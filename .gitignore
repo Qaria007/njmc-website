@@ -1,5 +1,9 @@
 node_modules/
 .next/
-.env*
+.env
+.env.*
 !.env.example
 .DS_Store
+media/
+next-env.d.ts
+*.tsbuildinfo

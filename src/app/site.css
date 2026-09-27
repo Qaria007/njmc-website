@@ -1,0 +1,79 @@
+/* Fonts are self-hosted from npm (@fontsource), no Google request at build or run time. */
+/* Design tokens: the live site's palette (assets/njmc-home.css) and the NJMC mark. */
+:root {
+  --navy: #1a2744;
+  --navy-2: #223458;
+  --teal: #0d7c66;
+  --teal-light: #0fa882;
+  --mint: #cdeae3;
+  --gold: #c8922a;
+  --text: #2c3547;
+  --text-muted: #5b6474;
+  --border: #e2e8f0;
+  --bg: #ffffff;
+  --bg-soft: #f7f8fc;
+  --radius: 10px;
+  --max: 1160px;
+  --font-latin: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-arabic: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-latin);
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+}
+html[lang='ar'] body { font-family: var(--font-arabic); line-height: 1.8; }
+a { color: var(--teal); }
+a:hover { color: var(--navy); }
+img { max-width: 100%; height: auto; }
+h1, h2, h3 { color: var(--navy); line-height: 1.25; }
+h1 { font-size: clamp(1.8rem, 1.2rem + 2.4vw, 2.8rem); }
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+.container { width: 100%; max-width: var(--max); margin-inline: auto; padding-inline: 20px; }
+.skip-link { position: absolute; inset-inline-start: -9999px; }
+.skip-link:focus { inset-inline-start: 12px; top: 12px; background: #fff; padding: 8px 12px; z-index: 100; }
+
+/* Header */
+.site-header { border-bottom: 1px solid var(--border); background: #fff; position: sticky; top: 0; z-index: 20; }
+.header-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 72px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.05; }
+.brand-name { font-weight: 700; font-size: 1.35rem; color: var(--navy); letter-spacing: 0.04em; }
+.brand-sub { font-size: 0.62rem; color: var(--text-muted); letter-spacing: 0.12em; }
+.nav-list { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; padding: 0; }
+.nav-list a { text-decoration: none; color: var(--navy); font-weight: 500; font-size: 0.95rem; padding: 6px 0; display: inline-block; }
+.nav-list a:hover { color: var(--teal); }
+.has-children { position: relative; }
+.sub-list { display: none; position: absolute; inset-inline-start: 0; top: 100%; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 14px; list-style: none; min-width: 260px; box-shadow: 0 8px 24px rgba(26, 39, 68, 0.08); }
+.has-children:hover .sub-list, .has-children:focus-within .sub-list { display: block; }
+
+/* Main */
+main { min-height: 60vh; }
+.hero { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 55%, var(--teal) 100%); color: #fff; padding: 72px 0; }
+.hero h1 { color: #fff; margin: 0 0 16px; }
+.hero p { max-width: 720px; font-size: 1.1rem; margin: 0; opacity: 0.95; }
+
+/* Footer */
+.site-footer { background: var(--navy); color: #d7deea; margin-top: 64px; padding: 40px 0 20px; font-size: 0.95rem; }
+.site-footer a { color: #fff; }
+.footer-grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.footer-name { font-weight: 600; color: #fff; margin-top: 0; }
+.footer-contact { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.footer-copy { border-top: 1px solid rgba(255, 255, 255, 0.12); margin-top: 24px; padding-top: 16px; font-size: 0.85rem; }
+
+/* Floating WhatsApp */
+.wa-float { position: fixed; inset-inline-end: 18px; bottom: 18px; width: 56px; height: 56px; border-radius: 50%; background: #1f9d55; color: #fff; display: grid; place-items: center; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2); z-index: 30; }
+.wa-float:hover { color: #fff; background: #178046; }
+
+@media (max-width: 720px) {
+  .header-row { padding-block: 10px; }
+  .nav-list { gap: 2px 14px; }
+  .sub-list { position: static; box-shadow: none; border: 0; padding: 0 0 0 12px; display: none; }
+}
