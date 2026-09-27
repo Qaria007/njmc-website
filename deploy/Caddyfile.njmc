@@ -1,0 +1,30 @@
+# NJMC blocks appended to /opt/pharmatrust-deploy/Caddyfile (the PharmaTrust Caddy).
+# Apply: back up the file, append in place (keep the inode: the file is bind-mounted),
+# `docker exec pharmatrust-caddy-1 caddy validate --config /etc/caddy/Caddyfile`,
+# then `docker exec pharmatrust-caddy-1 caddy reload --config /etc/caddy/Caddyfile`.
+# Never restart the container.
+
+# Preview before launch: needs no DNS change (sslip.io resolves to the IP in the name).
+njmc.187-127-158-97.sslip.io {
+	encode zstd gzip
+	header X-Robots-Tag "noindex, nofollow"
+	reverse_proxy njmc-web:3000
+	log {
+		output file /data/access-njmc.log {
+			roll_size 20MiB
+			roll_keep 5
+		}
+	}
+}
+
+# Added at C3 only, after the owner points DNS at the VPS:
+# njmcmedicsupp.com {
+# 	encode zstd gzip
+# 	reverse_proxy njmc-web:3000
+# 	log {
+# 		output file /data/access-njmc.log
+# 	}
+# }
+# www.njmcmedicsupp.com {
+# 	redir https://njmcmedicsupp.com{uri} permanent
+# }

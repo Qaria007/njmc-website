@@ -14,7 +14,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             <span className="brand-sub">MEDICAL SUPPLIES CO., LTD</span>
           </span>
         </Link>
-        <nav aria-label={locale === 'ar' ? 'القائمة الرئيسية' : 'Main'}>
+        <nav aria-label="Main">
           <ul className="nav-list">
             {nav[locale].map((item) => (
               <li key={item.label} className={item.children ? 'has-children' : undefined}>

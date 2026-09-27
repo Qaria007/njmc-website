@@ -1,0 +1,21 @@
+# NJMC website (repo Qaria007/njmc-website). Its own compose project: never mix with
+# /opt/pharmatrust-deploy. The image is built in GitHub Actions; this server only pulls it.
+name: njmc
+services:
+  web:
+    image: ghcr.io/qaria007/njmc-website:latest
+    container_name: njmc-web
+    restart: unless-stopped
+    env_file: /opt/njmc/.env
+    volumes:
+      - njmc_media:/app/media
+    networks: [pharmatrust_internal]
+    mem_limit: 768m
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+volumes:
+  njmc_media:
+networks:
+  pharmatrust_internal:
+    external: true

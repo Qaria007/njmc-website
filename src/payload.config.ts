@@ -32,7 +32,8 @@ export default buildConfig({
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },
   db: postgresAdapter({
     pool: { connectionString: process.env.DATABASE_URI || '' },
-    // Schema changes ship as migrations (src/migrations) and run when the container starts.
+    // Schema changes ship as migrations (src/migrations). Payload runs pending ones when it
+    // first initialises in production (first /admin or /api request; the deploy step makes one).
     push: false,
     prodMigrations: migrations,
   }),

@@ -12,7 +12,7 @@ export function SiteShell({ locale, children }: { locale: Locale; children: Reac
   return (
     <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <body>
-        <a className="skip-link" href="#main">{locale === 'ar' ? 'انتقل إلى المحتوى' : 'Skip to content'}</a>
+        <a className="skip-link" href="#main">{/* Arabic label waits for review (docs/arabic-review.md) */}Skip to content</a>
         <SiteHeader locale={locale} />
         <main id="main">{children}</main>
         <SiteFooter locale={locale} />
