@@ -3,9 +3,9 @@ Each file: {"title", "description", "html", "jsonld"}. Body = everything between
 and the footer, breadcrumb and scripts removed, links rewritten to the new URL scheme
 (docs/DECISIONS.md 27 Sep "Keep the live slug stems"). Facts superseded by BRAND.md are fixed
 in fix() so the change is visible and repeatable."""
-import html, json, pathlib, re, sys
+import html, json, os, pathlib, re, sys
 
-SRC = pathlib.Path.home() / 'njmc-site'
+SRC = pathlib.Path(os.environ.get('OLD_SITE_DIR', pathlib.Path.home() / 'njmc-site'))
 OUT = pathlib.Path(__file__).resolve().parent.parent / 'src' / 'content'
 
 def new_path(href: str) -> str:
