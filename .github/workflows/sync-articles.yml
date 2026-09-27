@@ -35,7 +35,7 @@ jobs:
         id: diff
         run: |
           if [ -n "$(git status --porcelain src/content)" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; git status --porcelain src/content; else echo "changed=false" >> "$GITHUB_OUTPUT"; fi
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.diff.outputs.changed == 'true'
         with:
           node-version: 22
