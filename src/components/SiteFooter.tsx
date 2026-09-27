@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 import { contact, type Locale } from '@/lib/site.ts'
 
 export function SiteFooter({ locale }: { locale: Locale }) {
@@ -7,6 +9,12 @@ export function SiteFooter({ locale }: { locale: Locale }) {
         <div>
           <p className="footer-name" dir="ltr">{contact.legalName}</p>
           <p>{contact.address[locale]}</p>
+          {locale === 'en' && (
+            <ul className="footer-contact">
+              <li><Link href="/group/">Our companies</Link></li>
+              <li><Link href="/trust/">Due diligence and confidentiality</Link></li>
+            </ul>
+          )}
         </div>
         <ul className="footer-contact" dir="ltr">
           <li><a href={`mailto:${contact.emailGeneral}`}>{contact.emailGeneral}</a></li>

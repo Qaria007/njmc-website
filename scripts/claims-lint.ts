@@ -5,7 +5,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
 const ROOT = new URL('..', import.meta.url).pathname
-const SCAN = ['src/app', 'src/components', 'src/lib']
+const SCAN = ['src/app', 'src/components', 'src/lib', 'src/content']
 const SKIP = [/\(payload\)/, /importMap\.js$/, /\.css$/]
 
 type Rule = { name: string; re: RegExp; allow?: RegExp }
@@ -18,7 +18,12 @@ const rules: Rule[] = [
   { name: 'exclamation mark', re: /([A-Za-z؀-ۿ)\]'"]\s*[!！](?![=.)\],;]))|！/ },
   {
     name: 'hype or banned word',
-    re: /\b(revolutionary|world-class|best-in-class|leading|cutting-edge|unparalleled|seamless(ly)?|state-of-the-art|leverag(e|es|ing)|robust|delve|unlock|elevate|empower|streamline|comprehensive suite|tailored solutions|trusted partner|trusted ally|guarantee(d|s)?)\b/i,
+    re: /\b(revolutionary|world-class|best-in-class|leading|cutting-edge|unparalleled|seamless(ly)?|state-of-the-art|leverages|leveraging|robust|delve|unlock|elevate|empower|streamline|comprehensive suite|tailored solutions|trusted partner|trusted ally)\b/i,
+  },
+  {
+    name: 'guarantee claim by NJMC',
+    re: /\b(we|NJMC)\b[^.\n]{0,40}\bguarantee(d|s)?\b|\bguaranteed (quality|delivery|results?|supply)\b|\b(to|we|can) leverage\b/i,
+    allow: /\b(not|never|no|cannot|can't)\b[^.\n]{0,20}\bguarantee/i,
   },
   { name: 'figurative navigate or landscape', re: /\b(navigat(e|ing) the|the [a-z]+ landscape|landscape of)\b/i },
   { name: 'banned sentence opener', re: /(^|[.>"'`]\s*)(Moreover|Furthermore|Additionally|In today's|In an era of|It is important to note|When it comes to)\b/ },
