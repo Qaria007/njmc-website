@@ -58,6 +58,39 @@ def fix(s: str, ar: bool) -> str:
     s = s.replace("Tailored solutions for medical institutions' needs", "Consultancy for medical institutions")
     s = s.replace('we are a team of highly educated medical experts committed to serving hospitals and medical care facilities. We empower their services',
                   'we serve hospitals and medical care facilities. We support their services')
+    # Claims review (Fable, 27 Sep 2026): certification belongs to the product, no invented
+    # numbers, no scarcity, no go/no-go verdicts, no unapproved price terms. Arabic is only
+    # shortened, never rewritten (docs/arabic-review.md).
+    R = [
+        ('<h3>Trusted Partnerships</h3>\n        <p>Quality medical supplies with the highest certification standards, including CE, FDA, and SFDA.</p>',
+         '<h3>Product Certification</h3>\n        <p>Consumables and devices sourced with the CE, FDA or SFDA documentation the destination market requires.</p>'),
+        ('We supply medical institutions with a wide range of medical consumables certified by CE, FDA, SFDA, and other recognized quality control standards.',
+         'We supply medical consumables carrying CE marking, FDA clearance or registration, or SFDA registration as required by the destination market. Certificates available on request.'),
+        ('Our team of medical experts helps hospitals and medical facilities source the required equipment, complete with the necessary certifications.',
+         'We help hospitals and medical facilities source the required equipment, with the certification documents the destination market requires.'),
+        ('We offer the best medical supplies from the Asian market and consultancy services tailored for',
+         'We source medical supplies from China and India and offer consultancy services for'),
+        (' in a competitive healthcare landscape.', '.'),
+        ('site identity, red flags, and a clear go, caution or no-go.',
+         'site identity, and a written findings report listing red flags and gaps.'),
+        ('Introductory rates apply to the first ten engagements. Standard rates are USD 300, 500 and 750. Retainers are available where verification is needed regularly.',
+         'These are introductory rates. Standard rates are USD 300, 500 and 750.'),
+        ('and we have done so for many customers.', 'and have done so for three years.'),
+        ('<h3>PharmaTrust</h3>', '<h3>PharmaTrust by NJMC</h3>'),
+        ('<h3>PharmaTrust, a product of NJMC</h3>', '<h3>PharmaTrust by NJMC</h3>'),
+        ('alt="PharmaTrust: certificate analysis you can defend"', 'alt="PharmaTrust COA Validator: Certificate analysis you can defend."'),
+        # Arabic: shorten only.
+        ('<h3>شراكات موثوقة</h3>\n        <p>إمدادات طبية عالية الجودة تحمل أعلى معايير الاعتماد، بما في ذلك CE وFDA وSFDA.</p>', ''),
+        ('من المستهلكات الطبية المعتمدة وفق معايير CE وFDA وSFDA وغيرها من معايير الجودة المعترف بها.', 'من المستهلكات الطبية.'),
+        ('نحن فريق من الخبراء الطبيين المؤهلين تأهيلاً عالياً، ملتزمون بخدمة', 'نحن ملتزمون بخدمة'),
+        ('المؤشرات التحذيرية، وتوصية واضحة بالمضي أو التريث أو الرفض.', 'والمؤشرات التحذيرية.'),
+        ('تسري الأسعار التعريفية على أول عشرة تكليفات. والأسعار القياسية هي 300 و500 و750 دولاراً. وتتوفر عقود دورية لمن يحتاج التحقق بشكل منتظم.',
+         'والأسعار القياسية هي 300 و500 و750 دولاراً.'),
+        ('، وقد فعلنا ذلك لعملاء كثيرين.', '.'),
+    ]
+    for a, b in R:
+        s = s.replace(a, b)
+    s = re.sub(r'<div class="about-float-card">\s*<div class="num">5\+</div>\s*<p>.*?</p>\s*</div>', '', s, flags=re.S)
     s = s.replace('etc...', '').replace('etc…', '')
     s = s.replace('disposals', 'disposables').replace('competiive', 'competitive')
     # Dashes used as ranges in the old hours line.
@@ -105,9 +138,9 @@ for p in pages:
             slug = 'insights__' + slug[len('insights-'):]
     out = OUT / ('ar' if ar else 'en') / (slug + '.json')
     data = extract(p, ar)
-    if slug == 'verification' and not ar:
+    if slug == 'verification':
         # Approved by the owner 27 Sep 2026 (BRAND.md, docs/02).
-        note = ('<div class="callout"><p>Verification is an independent review of the goods, documents and evidence '
+        note = ('<div class="callout"' + (' dir="ltr" lang="en"' if ar else '') + '><p>Verification is an independent review of the goods, documents and evidence '
                 'available at the time of review. It supports, and does not replace, your own supplier qualification '
                 'and regulatory obligations.</p><p>The fee is payable regardless of outcome and is never tied to a '
                 'later sourcing order.</p></div>')
