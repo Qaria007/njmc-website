@@ -85,3 +85,15 @@ owner-started sessions until he says otherwise.
 No secrets in any commit. One client name (old homepage testimonial) was in docs/05 and
 the homepage snapshot; removed from the current files in d395c51. It remains in the three
 earlier commits until the owner decides on a history rewrite (OWNER-QUESTIONS).
+
+## 2026-09-27 Owner answers, second batch
+1 Off-site copy of the NJMC database: Google Drive, not Google Cloud Storage. Each nightly
+dump is uploaded to Claude shared drive > NJMC > "04 Website database backups (automatic)"
+(folder 1tF12YMQUXjVHlNNhIFoutxMne0uOeuI2), shared as writer with PharmaTrust's own service
+account cloud-storage-ptai@pharmatrust-ai.iam.gserviceaccount.com. The upload runs inside
+pharmatrust-api-1 (where that key is mounted), like PharmaTrust's own off-site upload; no new
+secret was created. Writer on a shared-drive folder cannot trash files, so Drive keeps every
+dump (they are small); the server keeps 14. Blocked until the owner enables the Google Drive
+API in the pharmatrust-ai Cloud project (one click).
+2 Client name in the first 3 commits: owner said no need to remove. History stays as is.
+3 SPF and DMARC: default. At C3 Claude gives the owner the exact records to add in hPanel.

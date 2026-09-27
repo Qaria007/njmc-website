@@ -86,5 +86,6 @@
   by the owner (Claude sends the invite link steps). Rate limit the RFQ endpoint.
   Security headers (CSP, HSTS, X-Frame-Options). Dependabot on.
 - Database backups: /opt/njmc/backup_njmc.sh nightly 02:35 UTC, 14 dumps in /root/backups
-  (PharmaTrust's own 02:20 backup is separate and untouched). The media volume joins the
-  backup once uploads exist. Off-site copy: owner question.
+  (PharmaTrust's own 02:20 backup is separate and untouched), plus an upload of each dump to
+  Google Drive (docs/DECISIONS.md 27 Sep, second batch). The media volume joins the backup
+  once uploads exist.
