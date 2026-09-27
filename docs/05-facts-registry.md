@@ -22,7 +22,7 @@ Only facts here or in BRAND.md may appear on the site. Every new fact needs a so
 | LNJC legal name, main site, logo | OPEN | Drive LNJC project, then ask |
 | PharmaTrust COA Validator, pharmatrust.tech, tagline "Certificate analysis you can defend." | CONFIRMED | PharmaTrust Brand Manual v3 |
 | Product lists per pillar | OPEN | owner only |
-| Testimonial "Dr. Ishmail" | REMOVE (client names never published) | owner rule |
+| Client testimonial on the old homepage | REMOVE (client names never published) | owner rule |
 | Partner logos on the old site | REMOVE (third-party logos never published) | owner rule |
 
 "PharmaTrust" is a common name elsewhere (a US pharmacy buying group, a Canadian
