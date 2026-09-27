@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { ContentPage } from '@/components/ContentPage.tsx'
+import { EnquiryForm } from '@/components/EnquiryForm.tsx'
 
 import { contentKeys, getContent, pageMetadata } from './content.ts'
 import type { Locale } from './site.ts'
@@ -22,9 +23,23 @@ export function contentRoute(locale: Locale, section: '' | 'insights' | 'group')
       return c ? pageMetadata(locale, key, c) : {}
     },
     Page: async function Page({ params }: { params: Params }) {
-      const c = await getContent(locale, toKey((await params).slug))
+      const key = toKey((await params).slug)
+      const c = await getContent(locale, key)
       if (!c) notFound()
-      return <ContentPage content={c} />
+      // Forms are English only until reviewed Arabic labels exist (docs/arabic-review.md).
+      const form = locale === 'en' && (key === 'contact' || key === 'verification')
+      return (
+        <>
+          <ContentPage content={c} />
+          {form && (
+            <section className="enquiry" id={key === 'verification' ? 'order' : 'rfq'}>
+              <div className="container">
+                <EnquiryForm kind={key === 'verification' ? 'verification' : 'rfq'} />
+              </div>
+            </section>
+          )}
+        </>
+      )
     },
   }
 }

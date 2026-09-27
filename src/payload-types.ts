@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    leads: Lead;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -78,6 +79,7 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    leads: LeadsSelect<false> | LeadsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -165,6 +167,41 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "leads".
+ */
+export interface Lead {
+  id: number;
+  type: 'rfq' | 'verification';
+  status?: ('new' | 'replied' | 'quoted' | 'won' | 'closed') | null;
+  name: string;
+  company?: string | null;
+  role?: string | null;
+  country: string;
+  email: string;
+  /**
+   * Phone or WhatsApp
+   */
+  phone?: string | null;
+  service?: string | null;
+  /**
+   * Verification orders: supplier or product to check
+   */
+  supplier?: string | null;
+  message: string;
+  heardAbout?: string | null;
+  consent: boolean;
+  page?: string | null;
+  utmFirst?: string | null;
+  utmLast?: string | null;
+  /**
+   * Notification reached the mail relay
+   */
+  emailed?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -194,6 +231,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'leads';
+        value: number | Lead;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -278,6 +319,31 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "leads_select".
+ */
+export interface LeadsSelect<T extends boolean = true> {
+  type?: T;
+  status?: T;
+  name?: T;
+  company?: T;
+  role?: T;
+  country?: T;
+  email?: T;
+  phone?: T;
+  service?: T;
+  supplier?: T;
+  message?: T;
+  heardAbout?: T;
+  consent?: T;
+  page?: T;
+  utmFirst?: T;
+  utmLast?: T;
+  emailed?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
