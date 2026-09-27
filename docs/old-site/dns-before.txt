@@ -16,3 +16,13 @@ Not found: TXT at @ (so NO SPF record), _dmarc (NO DMARC record), CAA.
 
 At C3 change ONLY: @ A/AAAA -> 187.127.158.97 (VPS, IPv4; drop the AAAA or point it at the
 VPS IPv6), www CNAME -> njmcmedicsupp.com (or A 187.127.158.97). Everything else stays.
+
+## Full zone as shown in hPanel, 27 Sep 2026 (before the C3 switch)
+TXT    google._domainkey  v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0...IDAQAB   TTL 14400
+CNAME  www                www.njmcmedicsupp.com.cdn.hstgr.net               TTL 300
+A      ftp                82.29.199.194                                     TTL 1800
+ALIAS  drqaria            drqaria.njmcmedicsupp.com.cdn.hstgr.net           TTL 300
+ALIAS  @                  njmcmedicsupp.com.cdn.hstgr.net                   TTL 300
+MX     @                  1 SMTP.GOOGLE.COM                                 TTL 14400
+Rollback: delete the new A @ and restore ALIAS @ -> njmcmedicsupp.com.cdn.hstgr.net,
+set CNAME www back to www.njmcmedicsupp.com.cdn.hstgr.net.

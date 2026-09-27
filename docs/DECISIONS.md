@@ -97,3 +97,15 @@ dump (they are small); the server keeps 14. Blocked until the owner enables the 
 API in the pharmatrust-ai Cloud project (one click).
 2 Client name in the first 3 commits: owner said no need to remove. History stays as is.
 3 SPF and DMARC: default. At C3 Claude gives the owner the exact records to add in hPanel.
+
+## 2026-09-27 LAUNCH (C3): njmcmedicsupp.com serves the new site
+Owner asked to publish directly without further preview rounds. Content = the 43 live pages
+imported with BRAND.md corrections plus /group/, /group/lnjc/, /group/pharmatrust/, /trust/,
+after a Fable claims review (5 blockers fixed). DNS in hPanel: ALIAS @ -> Hostinger CDN deleted
+(by Claude), A @ 187.127.158.97, TXT @ SPF (include:_spf.google.com ~all) and TXT _dmarc
+(p=none) added (by the owner; Claude's DNS edits were blocked by the safety check after the
+delete, which left the apex without a record for a few minutes). www CNAME still points to the
+Hostinger CDN until the owner edits it to njmcmedicsupp.com. MX, DKIM, drqaria, ftp untouched.
+Let's Encrypt certificate for njmcmedicsupp.com issued 27 Sep, expires 26 Dec 2026 (Caddy renews).
+Rollback: docs/old-site/dns-before.txt. The Hostinger site stays for 30 days.
+Not yet done: RFQ and verification forms (Phase 5), owner admin account, two-buyer home page.
