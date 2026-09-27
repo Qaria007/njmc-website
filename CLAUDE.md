@@ -24,9 +24,14 @@ presented under it, from a Companies collection in the CMS.
 - Next.js (App Router, TypeScript, server rendering for all public pages).
 - Payload CMS embedded in the same Next.js app (content + future backend:
   auth, access control, custom collections for a later client portal).
-- Postgres (managed, e.g. Neon) via the Payload Postgres adapter.
-- Hosting: Vercel (preview deploy per branch, production on main).
-- Media: Vercel Blob or Cloudflare R2 via Payload storage adapter.
+- Postgres: a separate `njmc` database and `njmc` user inside the existing PharmaTrust
+  container `pharmatrust-db-1` (Postgres 17), via the Payload Postgres adapter. No second Postgres.
+- Hosting (changed 27 Sep 2026, docs/DECISIONS.md): the PharmaTrust Hostinger VPS
+  (srv1625890, 187.127.158.97, Ubuntu 24.04), reached from the Mac as `ssh pharmatrust`.
+  GitHub Actions builds the Docker image and pushes it to GHCR; the server only pulls and
+  runs it. Never run the Next.js build on the server. The existing PharmaTrust Caddy serves
+  njmcmedicsupp.com and www.
+- Media: Payload local uploads on a named Docker volume on the VPS, included in the backup.
 - Languages: English (en) and Arabic (ar, right to left) as a full mirror.
   Arabic text reuses the owner's existing Arabic; new Arabic publishes only after review.
 - Before pinning versions: check the current stable Next.js and Payload releases
@@ -40,16 +45,29 @@ presented under it, from a Companies collection in the CMS.
   claim not already in BRAND.md, naming a third party (client, partner, person),
   prices, legal text, new Arabic text.
 - Never touch: drqaria.njmcmedicsupp.com, yedcoyemen.org, MX/SPF/DKIM/DMARC records.
-- You cannot create accounts or handle passwords. If an account (Vercel, Neon,
+- You cannot create accounts or handle passwords. If an account (for example a
   HubSpot private app token) is missing, list the exact clicks for the owner.
-  Secrets live only in Vercel environment variables and the password manager.
+- The repo is PUBLIC. Secrets live only in GitHub Actions secrets, the server file
+  `/opt/njmc/.env` (root, chmod 600, never committed) and the password manager.
+  Never commit confidential material either (docs/02 "Confidentiality").
+
+## Shared server rules (PharmaTrust runs on the same VPS)
+- PharmaTrust (pharmatrust-api-1, pharmatrust-caddy-1, pharmatrust-db-1) and the WhatsApp
+  bot (Node, /root/suhaibi-bot, outside Docker) must stay up. Never stop, restart or
+  change their containers, volumes or env files. Never edit PharmaTrust's backup script.
+- Before any server change, copy the Caddyfile and both compose files to
+  `/root/njmc-change-backups/<UTC timestamp>/`. If something breaks, roll back first,
+  then tell the owner.
+- Caddy: run `caddy validate` on the new file before `caddy reload`. Reload, never restart.
+- Never reboot the server (the owner does reboots from hPanel).
+- The DNS switch is the owner's step (C3).
 
 ## Model routing
 - Default opus, effort high; xhigh for the Phase 1 and 2 build sessions.
 - Run the `reviewer` subagent before every merge to main.
 - `worker` (sonnet) for mechanical edits; `scout` (haiku) for read-only lookups.
-- `expert` (fable) only for the claims review of the verification and PharmaTrust
-  pages, and only if the owner answered yes to that question.
+- `expert` (fable) for the claims review of the verification and PharmaTrust pages
+  (owner said yes on 27 Sep 2026). Not for other work.
 
 ## Content rules (hard gates; the build must fail if broken)
 - Every fact comes from `BRAND.md` or `docs/05-facts-registry.md`. Never invent

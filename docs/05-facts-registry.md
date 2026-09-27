@@ -19,9 +19,10 @@ Only facts here or in BRAND.md may appear on the site. Every new fact needs a so
 | APIs from China and India via long-term, internationally certified suppliers | FROM LIVE SITE | products page |
 | Built over three years | CONFIRMED | owner |
 | LNJC: pharmaceutical company in Yemen (APIs, IVF products, medicines, endotoxin testing) | CONFIRMED | owner |
-| LNJC legal name, main site, logo | OPEN | Drive LNJC project, then ask |
+| LNJC legal name "LNJC Pharmaceuticals and Medical Supplies Co., Ltd.", site landcarenj.com, brand-kit logo | CONFIRMED | owner, 27 Sep 2026 (OWNER-QUESTIONS 2) |
 | PharmaTrust COA Validator, pharmatrust.tech, tagline "Certificate analysis you can defend." | CONFIRMED | PharmaTrust Brand Manual v3 |
-| Product lists per pillar | OPEN | owner only |
+| No fixed product lists; products are sourced to each client's requirements | CONFIRMED | owner, 27 Sep 2026 (OWNER-QUESTIONS 1) |
+| Group boilerplate (BRAND.md) and verification disclaimer (docs/02) approved | CONFIRMED | owner, 27 Sep 2026 (OWNER-QUESTIONS 4) |
 | Client testimonial on the old homepage | REMOVE (client names never published) | owner rule |
 | Partner logos on the old site | REMOVE (third-party logos never published) | owner rule |
 

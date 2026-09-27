@@ -50,3 +50,38 @@ LNJC project (Mac: ~/Downloads/LNJC Claude Project) gives the English legal name
 "LNJC Pharmaceuticals and Medical Supplies Co., Ltd.", main site landcarenj.com, and the
 approved logo `brand/lnjc-logo-horizontal-colour-verified.png` (inside LNJC-Brand-Kit.zip).
 One older source says "Land Nanjing Care Co. Ltd.", so the owner confirms the name (question 2).
+
+## 2026-09-27 Hosting moves to the PharmaTrust Hostinger VPS (Vercel and Neon dropped)
+Owner decision (OWNER-QUESTIONS 3 "use hostinger", then written instructions the same day).
+The site runs on the VPS that already runs PharmaTrust (srv1625890, 187.127.158.97,
+Ubuntu 24.04; 7.8 GB RAM with 5.6 GB available, 2 GB swap, 95 GB disk at 41%).
+- Build: GitHub Actions builds the Docker image and pushes it to GHCR. The server never
+  builds Next.js (it would compete with PharmaTrust for memory).
+- Database: separate `njmc` database and `njmc` login inside pharmatrust-db-1. Created
+  27 Sep 2026. CONNECT on `njmc` is revoked from PUBLIC; CONNECT on `pharmatrust` is also
+  revoked from PUBLIC, so the njmc login cannot open the PharmaTrust database (tested).
+  Credentials live only in /opt/njmc/.env on the server.
+- Web: the existing PharmaTrust Caddy gets njmcmedicsupp.com and www blocks, `caddy
+  validate` before `caddy reload`, never a restart. The NJMC container joins the
+  `pharmatrust_internal` network.
+- Backups: PharmaTrust already has a nightly dump (02:20, 14 local, 30 off-site in Google
+  Cloud Storage, weekly restore drill). NJMC gets its own script /opt/njmc/backup_njmc.sh,
+  cron 02:35, 14 local dumps in /root/backups. Off-site copy is an owner question.
+- Trade-offs accepted: no automatic preview per branch (a preview hostname on the VPS
+  replaces it), shared blast radius with PharmaTrust (mitigated by the shared server rules
+  in CLAUDE.md), no managed point-in-time restore (nightly dumps instead).
+- Vercel/Neon mentions in docs/03, 04, 06 and 07 are superseded.
+
+## 2026-09-27 Owner answers to OWNER-QUESTIONS (first batch)
+1 Product lists: none; sourced to client requirements. 2 LNJC: "LNJC Pharmaceuticals and
+Medical Supplies" (Co., Ltd.). 3 Hosting: Hostinger VPS. 4 Boilerplate and disclaimer:
+approved. 5 Arabic for new pages: Claude drafts, pages stay unpublished until reviewed.
+6 Fable expert claims review: yes. 7 August verification page file: answered "yes" but no
+file was added to the folder; the page is written from the live page (default).
+8 Nightly build: "for now no need, later on can be done", so the build advances only in
+owner-started sessions until he says otherwise.
+
+## 2026-09-27 Repo made public by the owner; history checked
+No secrets in any commit. One client name (old homepage testimonial) was in docs/05 and
+the homepage snapshot; removed from the current files in d395c51. It remains in the three
+earlier commits until the owner decides on a history rewrite (OWNER-QUESTIONS).

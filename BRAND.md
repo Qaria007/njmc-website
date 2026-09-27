@@ -10,7 +10,9 @@ NJMC Medical Supplies Co., Ltd is the parent company. Every other business and p
 sits under NJMC, now and in future:
 - LNJC: sister company under NJMC, pharmaceutical company operating only in Yemen
   (APIs, IVF products, medicines, endotoxin testing). Blog: blog.landcarenj.com.
-  Legal name, main website and logo: [OPEN, check Drive LNJC project first].
+  Legal name: LNJC Pharmaceuticals and Medical Supplies Co., Ltd. (owner, 27 Sep 2026: use
+  "LNJC Pharmaceuticals and Medical Supplies" everywhere). Main website: landcarenj.com.
+  Logo: LNJC brand kit, lnjc-logo-horizontal-colour-verified.png.
 - PharmaTrust: NJMC software product, "PharmaTrust COA Validator", pharmatrust.tech.
   Tagline, never reworded: "Certificate analysis you can defend."
 - Future products: added as new entries in the CMS Companies collection (docs/03),
@@ -32,7 +34,7 @@ sits under NJMC, now and in future:
 - Owner: Dr. Majid Qaria, Founder & Technical Director, "PhD, PhD in Medical Sciences".
   Arabic, exact spelling: د. ماجد قاريه (never مجيد, never قارية).
 - Built over three years; all clients so far came by referral.
-- Boilerplate (DRAFT, owner to approve, then use verbatim everywhere):
+- Boilerplate (APPROVED by the owner 27 Sep 2026, use verbatim everywhere):
   "NJMC Medical Supplies is a sourcing, verification and consultancy company in Nanjing, China, serving hospitals and pharmaceutical buyers worldwide. The NJMC group also includes LNJC, a pharmaceutical company in Yemen, and PharmaTrust, a software product for certificate of analysis review."
 
 ## Audience
@@ -49,7 +51,8 @@ sits under NJMC, now and in future:
 6. Independent verification (owner's words: "We don't certify. We just verify and check, according to our experience and with experts."). Buyers send their order and documents; NJMC checks the goods, the factory, the documents, the COA and DMF.
    Introductory prices (against standard rates): Supplier Verification Report USD 150 (standard 300), Pre-shipment Verification USD 250 (standard 500), Dossier / Document Review USD 350 (standard 750).
    The fee is payable regardless of outcome and never tied to a later sourcing order.
-- Product lists (molecules, excipient categories, consumable and device categories): [OPEN, only the owner can supply].
+- Product lists: none published. Owner, 27 Sep 2026: "these we will resource according to client
+  requirements". Pillar pages describe categories and the sourcing-to-requirement process only.
 
 ## Claims and compliance
 - See docs/02-content-and-claims.md.

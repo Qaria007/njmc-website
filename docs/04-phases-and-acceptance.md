@@ -17,15 +17,15 @@ acceptance box is true. Record progress in STATUS.md (phase, done, blocked-on, n
   save them under docs/old-site/unpublished/.
 - [ ] `docs/old-site/redirect-map.csv` maps every old URL to a new URL from docs/01.
 - [ ] STATUS.md (repo), STATUS.docx and OWNER-QUESTIONS.docx (Drive), docs/DECISIONS.md created.
-- [ ] Nightly scheduled task running and backed up (docs/07).
+- [x] Nightly scheduled task: not wanted for now (owner, 27 Sep 2026; docs/07).
 
 ## Phase 1: Foundation
-- [ ] Next.js + Payload + Postgres running locally and on a Vercel preview URL.
+- [ ] Next.js + Payload + Postgres running locally, and on the VPS preview hostname
+  from a GHCR image built by GitHub Actions (docs/03 "Runtime" and "Deploy").
 - [ ] /admin login works; en and ar locales configured; /ar renders dir="rtl".
 - [ ] Design tokens, typography (Latin + Arabic), header, footer, layout shell.
 - [ ] CI pipeline green (typecheck, lint, tests, claims-lint stub).
-- Blocked if: Vercel or database account missing. Then list the owner's exact
-  clicks in OWNER-QUESTIONS.docx and continue Phase 2 work locally.
+- No accounts needed (VPS hosting, 27 Sep 2026). The njmc database exists.
 
 ## Phase 2: Content model and templates
 - [ ] All collections and globals from docs/03 exist with validation.

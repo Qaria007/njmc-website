@@ -9,7 +9,7 @@ line under each. He can reply "default" or a number. Read answers back with pand
 Remove any item you can answer from Drive, the PharmaTrust repo or the Work Log.
 1. Product lists per pillar (molecules, excipient categories, consumable and device categories). Default: pillar pages launch with category-level text only.
 2. LNJC: legal name, main website, logo file. Default: use what the Drive LNJC project has.
-3. Accounts: Vercel and Neon (Postgres). You give the exact clicks; he creates them with his email and connects GitHub Qaria007.
+3. (Answered 27 Sep 2026: hosting on the Hostinger VPS, no new accounts.)
 4. Where DNS for njmcmedicsupp.com is managed. Default: Hostinger.
 5. Approve the group boilerplate (BRAND.md) and the verification disclaimer (docs/02). Recommend a lawyer check of the verification scope and liability wording before selling.
 6. New Arabic text for new pages: default, Claude Code drafts it, pages stay unpublished until he (or a named reviewer) reads them.

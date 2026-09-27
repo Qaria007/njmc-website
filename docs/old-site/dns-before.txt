@@ -1,0 +1,18 @@
+DNS for njmcmedicsupp.com, queried 27 Sep 2026 against the authoritative nameserver
+ns1.dns-parking.com (Hostinger). A query can only find names it asks for; the complete
+list must come from the hPanel DNS zone export before the C3 switch.
+
+NS    ns1.dns-parking.com, ns2.dns-parking.com
+SOA   ns1.dns-parking.com dns.hostinger.com serial 2026092401
+@     A      Hostinger CDN addresses (rotate per query, e.g. 147.79.69.97, 88.222.243.47)
+@     AAAA   Hostinger CDN addresses (rotate)
+@     MX     1 SMTP.GOOGLE.com.          <- email, never touch
+www   CNAME  www.njmcmedicsupp.com.cdn.hstgr.net.
+drqaria A/AAAA Hostinger addresses (93.127.173.70, 88.222.243.60, ...)   <- never touch
+google._domainkey TXT  v=DKIM1; k=rsa; p=MIIBIjAN... (Google Workspace DKIM)   <- never touch
+ftp   A      82.29.199.194
+
+Not found: TXT at @ (so NO SPF record), _dmarc (NO DMARC record), CAA.
+
+At C3 change ONLY: @ A/AAAA -> 187.127.158.97 (VPS, IPv4; drop the AAAA or point it at the
+VPS IPv6), www CNAME -> njmcmedicsupp.com (or A 187.127.158.97). Everything else stays.

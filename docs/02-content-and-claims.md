@@ -55,7 +55,7 @@ Must read as human-written: strip AI markers (delve, landscape, "in today's worl
   approves, approval (by NJMC), pass/fail, guaranteed, NON-COMPLIANT.
 - NJMC is not a notified body; say so plainly on /verification/ and /trust/.
 - The fee is payable regardless of outcome and never tied to a later sourcing order.
-- DRAFT disclaimer (owner approves; recommend a lawyer check before selling):
+- Disclaimer (APPROVED by the owner 27 Sep 2026; a lawyer check before selling is still recommended):
   "Verification is an independent review of the goods, documents and evidence available
   at the time of review. It supports, and does not replace, your own supplier
   qualification and regulatory obligations."

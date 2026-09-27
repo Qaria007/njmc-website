@@ -3,6 +3,15 @@
 ## Architecture
 - One Next.js app with Payload mounted at /admin. Public pages server-rendered
   (static where possible, revalidated on CMS publish).
+- Runtime (27 Sep 2026): one Docker container `njmc-web` on the PharmaTrust VPS, image
+  `ghcr.io/qaria007/njmc-website`, started from `/opt/njmc/docker-compose.yml` (its own
+  compose project, never the PharmaTrust one), attached to the external network
+  `pharmatrust_internal`, env from `/opt/njmc/.env`. Memory limit 768 MB. Database
+  `njmc` in pharmatrust-db-1. Media on the named volume `njmc_media`.
+- Deploy: push to main -> GitHub Actions (typecheck, lint, tests, claims-lint, build image,
+  push to GHCR) -> on the server `docker compose pull && docker compose up -d` in /opt/njmc.
+  Preview before launch: a hostname that needs no DNS change (for example
+  `njmc.187-127-158-97.sslip.io`) served by the same Caddy.
 - Payload collections (Phase 2): Pages, Services, ProductCategories, Certificates,
   TeamMembers, Testimonials (permissionOnFile required), Partners (permissionOnFile),
   Articles (author, lastReviewed), FAQs, Leads (RFQ and verification orders),
@@ -62,18 +71,20 @@
 - Typecheck, lint, unit tests, claims-lint, link check, Playwright smoke tests
   (home, each service page, RFQ submit in test mode, /ar renders RTL),
   axe accessibility check, Lighthouse CI against the preview URL with the budgets above.
-- Branch per phase, preview deploy per PR, reviewer subagent before merge.
+- Branch per phase, reviewer subagent before merge. Images are built only in GitHub Actions.
 
 ## DNS and email safety (critical at launch)
 - The domain carries live email (info@, sale@) and the subdomain drqaria.njmcmedicsupp.com.
 - Before any change, export and save every DNS record to docs/old-site/dns-before.txt.
-- Change ONLY the apex and www records needed for Vercel. Never touch MX, SPF, DKIM,
+- Change ONLY the apex and www records, pointing them at the VPS. Never touch MX, SPF, DKIM,
   DMARC, or the drqaria record. Verify email delivery to info@ and sale@ right after.
 - Never touch yedcoyemen.org.
 
 ## Security
-- Secrets only in Vercel env vars. /admin behind Payload auth; owner account created
+- Secrets only in GitHub Actions secrets and /opt/njmc/.env on the server (never committed;
+  the repo is public). /admin behind Payload auth; owner account created
   by the owner (Claude sends the invite link steps). Rate limit the RFQ endpoint.
   Security headers (CSP, HSTS, X-Frame-Options). Dependabot on.
-- Database backups: confirm the managed Postgres plan has point-in-time restore;
-  record it in docs/DECISIONS.md.
+- Database backups: /opt/njmc/backup_njmc.sh nightly 02:35 UTC, 14 dumps in /root/backups
+  (PharmaTrust's own 02:20 backup is separate and untouched). The media volume joins the
+  backup once uploads exist. Off-site copy: owner question.
