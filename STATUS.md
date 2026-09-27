@@ -16,7 +16,7 @@ Updated 27 Sep 2026 (session 1, Claude Code on the Mac).
 - Live state vs the Aug 2026 spec recorded in inventory.md.
 - Unpublished assets: impurity article is already live; the rebuilt verification
   page and WhatsApp button were not found anywhere (inventory.md explains).
-- OWNER-QUESTIONS.docx in the Drive task folder.
+- OWNER-QUESTIONS.docx and STATUS.docx in the Drive task folder (copy of the questions in docs/).
 
 ## Blocked
 - Nightly scheduled task (docs/07): NOT created. Claude Code's safety check refused
