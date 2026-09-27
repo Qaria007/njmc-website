@@ -8,6 +8,9 @@
 njmc.187-127-158-97.sslip.io {
 	encode zstd gzip
 	header X-Robots-Tag "noindex, nofollow"
+	# No admin account exists yet: closed until the owner creates his (CLAUDE.md).
+	@adminapi path /admin /admin/* /api /api/*
+	respond @adminapi "Not available" 403
 	reverse_proxy njmc-web:3000
 	log {
 		output file /data/access-njmc.log {

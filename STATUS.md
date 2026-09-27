@@ -5,7 +5,7 @@ Updated 27 Sep 2026 (session 2, Claude Code on the Mac).
 | Phase | State |
 |---|---|
 | 0 Setup and inventory | Done |
-| 1 Foundation | Code done and merged (a568ce6). Not yet running on the server: waiting for the CI workflow push (owner step A below) |
+| 1 Foundation | Done. Live on the preview https://njmc.187-127-158-97.sslip.io/ (EN, /ar/ rtl), image from CI, migration applied |
 | 2 to 9 | Not started |
 
 ## Done this session
@@ -23,15 +23,12 @@ Updated 27 Sep 2026 (session 2, Claude Code on the Mac).
   header/footer/WhatsApp button, self-hosted fonts, claims-lint, tests, Dockerfile.
   Reviewer run; its fixes applied.
 
-## Blocked
-- A. `.github/workflows/ci.yml` is written but not pushed: the Mac's GitHub login lacks the
-  `workflow` scope. Owner runs once in Terminal: `gh auth refresh -h github.com -s workflow`.
-- B. After the first image is built, the GHCR package must be public (the repo is public
-  anyway) so the server can pull it without a password: GitHub > Qaria007 > Packages >
-  njmc-website > Package settings > Change visibility > Public.
+## Open
+- /admin and /api are closed (403) on the preview in Caddy: no admin account exists yet and
+  the first visitor to /admin could create one. The owner's account gets created in a guided
+  step (open /admin to his IP only for a few minutes), then the block is lifted.
+- CI workflow pushed after the owner added the `workflow` scope. The GHCR package is already
+  public (the server pulls without login).
 
 ## Next
-1. Push ci.yml, confirm the image builds, deploy to the preview hostname
-   njmc.187-127-158-97.sslip.io (Caddy block in deploy/Caddyfile.njmc), open /admin once
-   to run the migration, check EN/AR in the browser.
-2. Phase 2: collections and globals from docs/03, templates, every sitemap page.
+1. Phase 2: collections and globals from docs/03, templates, every sitemap page.

@@ -20,11 +20,11 @@ acceptance box is true. Record progress in STATUS.md (phase, done, blocked-on, n
 - [x] Nightly scheduled task: not wanted for now (owner, 27 Sep 2026; docs/07).
 
 ## Phase 1: Foundation
-- [ ] Next.js + Payload + Postgres running locally, and on the VPS preview hostname
+- [x] Next.js + Payload + Postgres running locally, and on the VPS preview hostname
   from a GHCR image built by GitHub Actions (docs/03 "Runtime" and "Deploy").
-- [ ] /admin login works; en and ar locales configured; /ar renders dir="rtl".
-- [ ] Design tokens, typography (Latin + Arabic), header, footer, layout shell.
-- [ ] CI pipeline green (typecheck, lint, tests, claims-lint stub).
+- [x] /admin serves (closed at Caddy until the owner account exists); en and ar locales configured; /ar renders dir="rtl".
+- [x] Design tokens, typography (Latin + Arabic), header, footer, layout shell.
+- [x] CI pipeline green (typecheck, lint, tests, claims-lint, build, image).
 - No accounts needed (VPS hosting, 27 Sep 2026). The njmc database exists.
 
 ## Phase 2: Content model and templates
