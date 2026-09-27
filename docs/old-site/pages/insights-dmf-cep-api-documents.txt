@@ -1,0 +1,101 @@
+URL: https://njmcmedicsupp.com/insights-dmf-cep-api-documents.html
+TITLE: DMF, CEP and COA: Which API Document Do You Need
+DESCRIPTION: A buyer's guide to API regulatory documentation. What a Drug Master File, a CEP, a GMP certificate and a certificate of analysis each prove, and which your filing requires.
+
+DMF, CEP and COA: Which API Document Do You Need
+
+Home
+What we source
+Active Pharmaceutical Ingredients
+Pharmaceutical Excipients
+Medical Consumables
+Medical Devices and Equipment
+Sourcing Consultancy
+Independent Verification
+Insights
+About
+العربية
+Contact Us
+
+Home/Insights
+
+Documentation
+
+Published 12 August 2026
+
+DMF, CEP and COA: which API document do you actually need
+
+Suppliers send whatever they have. Knowing which document proves what turns a pile of PDFs into an assessment.
+
+In short
+A certificate of analysis reports batch specific results. A GMP certificate confirms a named site was inspected. A Drug Master File is a confidential regulator held submission accessed through a letter of access. A CEP confirms a specific manufacturer's substance can be controlled by the European Pharmacopoeia monograph and is independently verifiable against the EDQM database. Which you need depends on where you are filing, not on what the supplier holds.
+Ask an API supplier for documentation and you will usually receive a folder of PDFs. Some of it proves something. Some of it proves that a document exists. Telling the two apart is most of the work in supplier assessment, and it is where a buyer without regulatory background is at the greatest disadvantage.
+
+What each document proves
+
+Certificate of Analysis
+
+Batch specific test results against a stated specification. This is the only document that tells you anything about the material you are actually buying. A specimen or typical certificate proves the supplier produced a conforming batch at some point, which is a different claim entirely. Always ask for the certificate for your batch, and check that the specification on it is the specification you agreed.
+
+GMP certificate
+
+Confirms that a named manufacturing site was inspected and found to operate under good manufacturing practice. Three things are worth checking every time: the site address, the expiry date, and the scope. A valid certificate for a site that does not make your material tells you nothing useful.
+
+Drug Master File
+
+A confidential submission held with a regulator describing the manufacturing process, controls and facilities. The manufacturer grants you a letter of access so a regulator can review it in support of your filing without disclosing the process to you. The practical questions are which regulator holds it, whether it is active, and whether the letter of access names your product.
+
+CEP, or Certificate of Suitability
+
+Issued by the EDQM, it confirms that a substance made by a specific manufacturer at a specific site can be controlled adequately by the European Pharmacopoeia monograph. It is strong evidence and, unusually in this field, independently verifiable. Where a CEP exists it simplifies a European filing considerably.
+
+Written confirmation
+
+For APIs imported into the EU from certain third countries, a confirmation from the exporting country's authority that the manufacturing site meets standards equivalent to EU GMP. Relevant if Europe is your destination.
+
+Stability data
+
+Supports retest period, shelf life and storage conditions. This is the most commonly missing item in a package that otherwise looks complete, and it is worth asking for early because it cannot be produced quickly.
+
+The verification most buyers skip. A CEP number can be checked against the EDQM database. A US establishment registration can be checked against public FDA listings. If a supplier provides a reference number that does not resolve, or declines to provide one, you have learned something important at no cost.
+
+Matching the package to the filing
+
+What you need depends entirely on where you are filing, not on what the supplier happens to hold. A European filing may be satisfied by a CEP. A filing elsewhere may require a DMF with a letter of access, or a full open part. Establishing this before you shortlist suppliers is the whole game, because a supplier who cannot support your route is not a cheaper option, they are not an option.
+
+This assessment is the core of our API sourcing work, and it is available separately through our consultancy service if you would rather build the capability in house.
+
+Frequently asked questions
+
+What is the difference between a DMF and a CEP?
+A Drug Master File is a confidential submission held by a regulator describing the process, accessed on your behalf through a letter of access. A CEP is issued by the EDQM confirming a specific manufacturer's substance can be controlled by the European Pharmacopoeia monograph, and it can be verified independently.
+Is a typical certificate of analysis acceptable?
+No. A specimen or typical certificate proves the supplier produced a conforming batch at some point. Always request the certificate for the batch you are buying, and check the specification on it matches what you agreed.
+What is a written confirmation?
+For APIs imported into the EU from certain third countries, a confirmation from the exporting country's authority that the manufacturing site meets standards equivalent to EU GMP.
+
+📚
+
+Written by
+
+Dr. Majjid A. Qaria
+
+Dr. Qaria holds two doctorates and a postdoctoral research background in the medical sciences, across molecular microbiology and cancer cell biology. He has personally sourced and supplied active pharmaceutical ingredients and excipients, and leads sourcing and consultancy at NJMC from Nanjing. Research background and publications are on his profile site.
+
+Related pages
+Active Pharmaceutical IngredientsAPIs sourced against the impurity profile, polymorph and documentation your filing needs.Pharmaceutical ExcipientsCompendial grade excipients, chosen for function rather than by name alone.Sourcing ConsultancySupplier assessment and market entry advice, separate from any sourcing mandate.ContactSend a specification and get a considered answer.Impurity profiles in APIs: named, unspecified and how to read a COAA monograph is a floor. The impurity profile belongs to a route of synthesis, and that is what decides whether a compliant batch suits your product.Reading a GMP certificate correctlyA GMP certificate proves a site passed inspection, not that your batch conforms. Here is how to check the site, scope and expiry before you rely on one.
+
+Tell us what you need to source
+Send the product or molecule, the grade, the quantity and the destination market. You will get a considered answer about what can be sourced and what documentation comes with it.
+Send an enquiry
+
+ Home
+ Products
+ About
+ Contact Us
+ Dr. Qaria's Profile
+ العربية
+
+info@njmcmedicsupp.com  ·  sale@njmcmedicsupp.com
+
+© 2026 NJMC Medical Supplies Co., Ltd  ·  njmcmedicsupp.com  ·  Nanjing, China

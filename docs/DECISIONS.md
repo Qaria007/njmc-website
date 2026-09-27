@@ -34,3 +34,19 @@ service has fixed introductory prices. Owner documents are Word files, never .md
 Owner: keep the NJMC name and njmcmedicsupp.com. "Nova Ascentis" dropped ("Ascentis"
 is a Merck KGaA registered trademark for HPLC columns used in pharma QC). Shorter
 domains checked were taken or not wanted. No rename work in any phase.
+
+## 2026-09-27 Keep the live slug stems (docs/01 rule "never break a live URL")
+The live site uses `/drug-apis.html` and `/medical-equipment.html`, not the proposed
+`/apis/` and `/medical-devices/`. New URLs keep the live stems in the docs/01 trailing-slash
+form: `/drug-apis/`, `/excipients/`, `/medical-consumables/`, `/medical-equipment/`,
+`/consultancy/`, `/verification/`, `/about/`, `/contact/`, `/insights/`, and articles move
+from `/insights-<slug>.html` to `/insights/<slug>/`. The medical-equipment page covers the
+devices pillar (its H1 and copy say "medical devices and equipment"). Every old `.html` URL
+301s per `docs/old-site/redirect-map.csv`. Why: continuity with the live site and the Aug
+2026 spec's target titles; Search Console data is not available yet to prove either slug ranks.
+
+## 2026-09-27 LNJC facts found in the LNJC project (not asked from scratch)
+LNJC project (Mac: ~/Downloads/LNJC Claude Project) gives the English legal name
+"LNJC Pharmaceuticals and Medical Supplies Co., Ltd.", main site landcarenj.com, and the
+approved logo `brand/lnjc-logo-horizontal-colour-verified.png` (inside LNJC-Brand-Kit.zip).
+One older source says "Land Nanjing Care Co. Ltd.", so the owner confirms the name (question 2).

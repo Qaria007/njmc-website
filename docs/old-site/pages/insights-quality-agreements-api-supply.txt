@@ -1,0 +1,118 @@
+URL: https://njmcmedicsupp.com/insights-quality-agreements-api-supply.html
+TITLE: What a Quality Agreement With an API Supplier Contains
+DESCRIPTION: A quality agreement with an API supplier sets out who is responsible for specification, testing, change notification, deviations, audits and record keeping.
+
+What a Quality Agreement With an API Supplier Contains
+
+Home
+What we source
+Active Pharmaceutical Ingredients
+Pharmaceutical Excipients
+Medical Consumables
+Medical Devices and Equipment
+Sourcing Consultancy
+Independent Verification
+Insights
+About
+العربية
+Contact Us
+
+Home/Insights
+
+Sourcing
+
+Published 22 September 2026
+
+What a quality agreement with an API supplier should contain
+
+Supplier assessment tells you what a supplier can do. A quality agreement fixes in writing what they must do on every batch. Here is what belongs in it.
+
+What should a quality agreement with an API supplier contain?
+A quality agreement with an API supplier defines who is responsible for what: the agreed specification, testing and batch release, change notification, deviation and complaint handling, storage and shipping conditions, audit rights, and record retention. It is separate from the commercial contract and governs quality, not price or volume.
+
+A supplier can pass every checkpoint in your assessment and still ship you material you cannot use, because assessment tells you what a supplier is capable of, while a quality agreement tells you what they have committed to do on every batch after the sample. The gap between the two is where most supply problems live.
+
+A quality agreement, sometimes called a technical agreement, is the document that closes that gap. It records who is responsible for each quality activity between your company and the API supplier, so that when a question arises about a change, a deviation or an out of specification result, the answer is already written down rather than negotiated under pressure. It is dull to draft and invaluable the first time something goes wrong.
+
+What a quality agreement is, and what it is not
+
+A quality agreement governs quality. The commercial contract governs price, quantity, delivery terms and payment. Keeping the two separate is deliberate: the people who negotiate price are rarely the people who decide whether a change to a starting material needs to reach your regulatory filing, and mixing the two documents tends to bury the quality terms where no one in the quality unit ever reads them.
+
+It is also not a substitute for qualification. Signing an agreement with a supplier you have not assessed simply commits both parties to a relationship neither has tested. The agreement comes after you are satisfied the supplier can do the work, and it fixes in writing how that work will be run.
+
+What belongs in the document
+
+Specification and testing
+
+State the agreed specification by name and version, and say who tests against it. Define which tests the supplier performs and reports on the certificate of analysis, which tests you repeat on receipt, and how the two sets are reconciled if they disagree. Name the pharmacopoeia and monograph where one applies, and say what happens when the monograph is updated.
+
+Change control and notification
+
+This is the clause buyers regret leaving vague. The supplier will, over time, change something: a starting material source, a step in the process, a piece of equipment, a test method, the manufacturing site itself. The agreement must say which categories of change they will tell you about, how far in advance, and in what form. A change you learn about after it has shipped is a change you cannot assess before it reaches your patients.
+
+Deviations, complaints and recalls
+
+Say how the supplier notifies you of a deviation affecting a batch you have bought, how you raise a complaint and what response time applies, and how a recall would be run across both companies. Agree who holds reference and retention samples, and for how long.
+
+Storage, packaging and shipping
+
+Define the packaging, the labelling, the storage conditions and the transport conditions, and say who is responsible at each handover. For a temperature sensitive material, state the monitoring expected in transit and what happens to a shipment that breaches its range.
+
+Audit rights and access
+
+Record your right to audit the site, how much notice applies, and whether a remote or paper audit can stand in for an on site visit in defined circumstances. Say who may audit on your behalf, since a buyer working through a distributor often relies on the distributor's audit access.
+
+Records and retention
+
+Agree what records each party keeps, in what form, and for how long, so that a question raised years after a batch shipped can still be answered from documents that were never allowed to be destroyed.
+
+If you fix only one clause, fix change notification. Almost every serious API supply surprise, from a shifted impurity profile to a failed inspection, reaches the buyer through a change the supplier did not think was worth mentioning. A precise change notification clause, listing the categories that must be reported before shipment, is the single term that earns its place most often.
+
+Who signs it, and when
+
+The quality agreement is owned by the quality units on both sides, not by purchasing, and it is signed by people with the authority to commit each company's quality system. Put it in place before the first commercial batch, review it on a defined cycle, and revisit it whenever the relationship changes in scope. An agreement that names a contact who left two years ago, or a specification version long superseded, is worse than none, because it invites reliance on terms that no longer hold. Where a review interval or a notification period would sit, confirm the current expectation for your market and product rather than copying a number from a template.
+
+What changes when you buy through a trader
+
+Buying an API through a trading or distribution company adds a party, and the agreement has to account for it. The material is still made at a manufacturing site, and the quality commitments that matter, the specification, the change notification, the audit access, ultimately concern that site. A well drafted three way arrangement makes clear that the distributor passes those obligations through to the manufacturer rather than absorbing and diluting them, and that your right to the manufacturer's information survives the extra link in the chain. Understanding who actually makes the material, covered in our note on telling a manufacturer from a trader, is the starting point for getting this right.
+
+A quality agreement is where supplier assessment turns into an ongoing obligation, which is why we treat it as part of the API sourcing work and offer it separately through our consultancy service. It pairs naturally with the documentation questions covered in the documents an API supplier should provide.
+
+NJMC Medical Supplies Co., Ltd is a trading and consultancy company in Nanjing, China, supplying medical equipment, medical consumables and active pharmaceutical ingredients to healthcare institutions, sourced from manufacturers in China and India.
+
+Frequently asked questions
+
+Is a quality agreement the same as a supply contract?
+No. A supply contract governs commercial terms: price, quantity, delivery and payment. A quality agreement governs quality responsibilities: specification, testing, change notification, deviations, audits and records. They are usually separate documents signed by different functions, so the quality terms are not buried inside a commercial negotiation and stay visible to the people who rely on them.
+Who should sign the quality agreement?
+The quality units of both companies own and sign it, not the purchasing teams. The signatories need the authority to commit each side's quality system, because the document allocates responsibilities that the quality unit, not procurement, has to honour on every batch. Purchasing may negotiate around it, but it stays a quality document.
+Do I still need a quality agreement if I buy through a distributor?
+Yes, and it matters more, because a distributor sits between you and the site that actually makes the material. The agreement should make clear that change notification, audit access and specification commitments pass through to the manufacturer rather than stopping at the distributor. Otherwise the extra link becomes a place where information quietly disappears.
+When should a quality agreement be put in place?
+Before the first commercial batch ships, once you are satisfied the supplier can do the work. Signing before qualification commits both sides to an untested relationship, while leaving it until after supply has started means the first deviation is handled with no agreed rules. Review it on a set cycle and whenever the scope changes.
+
+📚
+
+Written by
+
+Dr. Majjid A. Qaria
+
+Dr. Qaria holds two doctorates and a postdoctoral research background in the medical sciences, across molecular microbiology and cancer cell biology. He has personally sourced and supplied active pharmaceutical ingredients and excipients, and leads sourcing and consultancy at NJMC from Nanjing. Research background and publications are on his profile site.
+
+Related pages
+Manufacturer or trader?How to tell a manufacturer from a trading company before you order.API documents explainedCOA, GMP, DMF and CEP: what each document actually proves.API sourcingHow we assess and source active pharmaceutical ingredients.
+
+Tell us what you need to source
+Send the product or molecule, the grade, the quantity and the destination market. You will get a considered answer about what can be sourced and what documentation comes with it.
+Send an enquiry
+
+ Home
+ Products
+ About
+ Contact Us
+ Dr. Qaria's Profile
+ العربية
+
+info@njmcmedicsupp.com  ·  sale@njmcmedicsupp.com
+
+© 2026 NJMC Medical Supplies Co., Ltd  ·  njmcmedicsupp.com  ·  Nanjing, China

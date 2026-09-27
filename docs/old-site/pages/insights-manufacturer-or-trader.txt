@@ -1,0 +1,112 @@
+URL: https://njmcmedicsupp.com/insights-manufacturer-or-trader.html
+TITLE: Pharmaceutical Manufacturer vs Trading Company: How to Tell
+DESCRIPTION: A trading company can forward a manufacturer
+
+Pharmaceutical Manufacturer vs Trading Company: How to Tell
+
+Home
+What we source
+Active Pharmaceutical Ingredients
+Pharmaceutical Excipients
+Medical Consumables
+Medical Devices and Equipment
+Sourcing Consultancy
+Independent Verification
+Insights
+About
+العربية
+Contact Us
+
+Home/Insights
+
+Sourcing
+
+Published 15 September 2026
+
+Telling a manufacturer from a trading company before you place an order
+
+Both can quote you the same material at the same price. Only one of them controls how it is made, and the difference shows in the documents long before it shows in a batch.
+
+How do you tell a manufacturer from a trading company before ordering?
+Ask for documents only a manufacturer holds, and read the legal entity named on them. A manufacturer appears on its own site licence and GMP certificate and can describe its route of synthesis. A trading company forwards another site's paperwork, often offers one product from several origins, and cannot answer process questions without asking someone else.
+
+Two suppliers quote you the same material at almost the same price. One of them made it. The other bought it, or will buy it once your order is confirmed. Nothing in the quotation separates the two, and the language a company uses about itself is the least reliable guide available: the word manufacturer sits on the front page of factories, of groups that own factories, and of exporters who have never handled the material.
+
+The distinction decides who can answer a question about the process, who can commit to a named site, and who stands between you and a batch record when something goes wrong. Telling the two apart before you order is a documentary exercise rather than an intuitive one, and none of it requires a plant visit: there are documents only a manufacturer holds in its own name, questions only a manufacturer answers without a phone call first, and patterns in a catalogue that give a trading company away.
+
+What is the difference between a manufacturer and a trading company?
+
+A manufacturer owns or operates the site where the material is made. It holds the licences attached to that site, it employs the quality unit that releases the batch, and it carries the regulatory responsibility for what leaves the gate. A trading company buys from manufacturers and sells on. It can add real value: consolidating quantities too small for a factory to accept, handling export documentation, and carrying credit risk. What it cannot do is change how the material is made, or speak with authority about a process it does not run.
+
+Between the two sits the form that causes most of the confusion: a company that manufactures one product family and trades everything else. Its documents are its own for what it makes and borrowed for the rest, and its catalogue draws no line between them. So the question is never simply whether a supplier is a manufacturer. It is whether it is the manufacturer of the item on your enquiry.
+
+Which documents can only a manufacturer hold?
+
+Ask for the supplier's business licence and its manufacturing or site licence, and read the legal entity name on each. A manufacturing licence, an establishment registration or a site permit is issued to the company that operates the site, and the name on it either matches the company quoting you or it does not. A trading company forwards its principal's paperwork readily and produces its own reluctantly, because its own licence describes trade and export rather than manufacture.
+
+Then read the GMP certificate closely. It names a site address, and that address belongs to the manufacturer, not to whoever emailed it to you. A trading company sending a GMP certificate is sending someone else's document, which is legitimate as long as it says so. Which licences an exporter and an importer must each hold, and what each is called, differ by market and by product category, so confirm the current requirement for your own market and dosage form rather than assuming one pattern applies everywhere.
+
+The legal entity behind the brand name
+
+A trading name, an English marketing name and the registered legal entity are frequently three different strings. The proforma invoice, the licence and the certificate should converge on a single registered name. Where they do not, that gap is the answer to your question.
+
+What do the questions a supplier cannot answer tell you?
+
+Documents can be forwarded. Process knowledge cannot. Ask something only the people running the plant can answer, then watch how the answer arrives rather than what it says.
+
+Which route of synthesis does this material come from, and which impurities does that route produce? What is a normal batch size here, and how many batches make a campaign? What happens when an out of specification result appears at final testing, and who signs the release? A manufacturer's representative answers immediately and sometimes imprecisely, in the way people are imprecise about their own work. A trading company's representative answers correctly, slowly, in sentences lifted from a document, and cannot go one question deeper. The delay is the tell.
+
+The problem is not that a trading company sits in the chain. It is not knowing that one does. A disclosed intermediary that names the manufacturing site, forwards documents matching that site, and states plainly what it does and does not control is a workable supplier. An undisclosed one leaves you holding a specification you agreed with a party that cannot enforce it.
+
+Which patterns in a catalogue give a trading company away?
+
+A factory is built around a class of chemistry or a class of device, and its range reflects that. A catalogue spanning active pharmaceutical ingredients, excipients, disposable consumables and imaging equipment under one legal entity describes a trading operation, whatever the header says. Plant photographs that appear on several unrelated companies' websites point the same way. So does an offer of the same product code from two origins at two prices, which is ordinary behaviour for a trader and impossible for the factory itself.
+
+Is a trading company the wrong choice?
+
+No, and assuming so removes options a buyer often needs. A factory may decline a trial quantity outright, or price it out of reach. Export documentation, consolidation and payment terms are real work, and someone has to do it. What a buyer should refuse is the undisclosed version: an intermediary presenting itself as the maker, quoting from a site it has not named, and passing on documents it has not reconciled. Ask directly whether the supplier manufactures the item or sources it; a straight answer says more about a counterparty than any certificate does.
+
+What should you settle before the order?
+
+Get the manufacturing site named in writing, with its address, and check that it matches the GMP certificate and the certificate of analysis you are eventually sent. Ask who performs testing and where, since testing is often done away from the site of synthesis. Establish who holds the regulatory documentation your filing will need, and whether the supplier can obtain a letter of access rather than merely say one exists.
+
+None of this is exotic due diligence. It is reading the documents you already asked for with the entity names in view. The same discipline runs through sourcing from China and India, through reading a GMP certificate, and through independent verification when a buyer wants the paperwork checked by someone with no stake in the sale. Where a supplier's answers raise more questions than they settle, that is the gap our sourcing consultancy is built to close.
+
+NJMC Medical Supplies Co., Ltd is a trading and consultancy company in Nanjing, China, supplying medical equipment, medical consumables and active pharmaceutical ingredients to healthcare institutions, sourced from manufacturers in China and India.
+
+Frequently asked questions
+
+Can a trading company supply material that meets the same specification as buying direct?
+Yes. The material is the same material, and an intermediary does not change it. What changes is who holds the process knowledge and who can act when something moves. A disclosed trading company that names the site and forwards documents belonging to that site can supply conforming material reliably. The risk lies in an undisclosed chain, not in the existence of one.
+Why would a manufacturer refuse to sell to me directly?
+Small quantities, unfamiliar destinations and an unproven payment record are the usual reasons. A factory plans around campaigns and full batches, and an order below that scale can cost more to administer than it earns. Export paperwork for a market it does not already serve is a further deterrent. Refusal is a commercial judgement about order size, not a comment on the buyer.
+Does holding a GMP certificate prove that a supplier is the manufacturer?
+No. A GMP certificate names the site that was inspected, and any party with a copy can forward it. Compare the address and legal entity on the certificate against the name on the quotation and the invoice. If they differ, the supplier is handling someone else's document, which is acceptable when disclosed and a warning when presented as its own.
+What should a buyer do after discovering an undisclosed intermediary?
+Treat it as a disclosure problem before treating it as a disqualification. Ask who manufactures the item, at which site, and why that was not stated at the outset. A supplier that answers plainly and produces matching documents may still be worth using. One that keeps blurring the question has shown you how it will behave when a batch is disputed.
+
+📚
+
+Written by
+
+Dr. Majjid A. Qaria
+
+Dr. Qaria holds two doctorates and a postdoctoral research background in the medical sciences, across molecular microbiology and cancer cell biology. He has personally sourced and supplied active pharmaceutical ingredients and excipients, and leads sourcing and consultancy at NJMC from Nanjing. Research background and publications are on his profile site.
+
+Related pages
+Active Pharmaceutical IngredientsAPIs sourced against a named manufacturing site, with the documents to match.Sourcing from China and IndiaWhat changes when the manufacturing site sits in a market a buyer cannot visit easily.Reading a GMP certificateSite, scope and expiry, and what none of them prove about the batch you are buying.Independent VerificationThird party checks on a supplier's documents and claims, separate from any sourcing mandate.Sourcing ConsultancySupplier assessment and market entry advice, engaged on its own terms.Quality agreements with API suppliersThe document that turns supplier assessment into an ongoing obligation: specification, change notification, audits and records, and how it works when you buy through a trader.
+
+Tell us what you need to source
+Send the product or molecule, the grade, the quantity and the destination market. You will get a considered answer about what can be sourced and what documentation comes with it.
+Send an enquiry
+
+ Home
+ Products
+ About
+ Contact Us
+ Dr. Qaria's Profile
+ العربية
+
+info@njmcmedicsupp.com  ·  sale@njmcmedicsupp.com
+
+© 2026 NJMC Medical Supplies Co., Ltd  ·  njmcmedicsupp.com  ·  Nanjing, China

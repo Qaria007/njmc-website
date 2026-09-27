@@ -1,0 +1,99 @@
+URL: https://njmcmedicsupp.com/insights-excipient-gmp-ipec.html
+TITLE: Excipient GMP: What IPEC-PQG Means for Buyers
+DESCRIPTION: Excipient manufacture is not held to API GMP standards by default. What IPEC-PQG certification covers, and why excipient supply chains carry risks buyers underestimate.
+
+Excipient GMP: What IPEC-PQG Means for Buyers
+
+Home
+What we source
+Active Pharmaceutical Ingredients
+Pharmaceutical Excipients
+Medical Consumables
+Medical Devices and Equipment
+Sourcing Consultancy
+Independent Verification
+Insights
+About
+العربية
+Contact Us
+
+Home/Insights
+
+Quality
+
+Published 12 August 2026
+
+Excipient GMP: why the standard is not what you assume
+
+Buyers assume excipients are made under the same controls as APIs. They usually are not, and the gap is where excipient supply chain incidents originate.
+
+In short
+Excipient manufacture is not held to API GMP standards by default, because many excipients are produced in large volumes for food, cosmetic and industrial customers with pharmaceutical grade forming a small segregated portion. The IPEC-PQG Good Manufacturing Practices guide was written specifically for excipient manufacture and addresses change control, cross contamination between grades and traceability through distribution.
+The assumption behind most excipient purchasing is that a pharmaceutical ingredient is made under pharmaceutical conditions. For active ingredients that is broadly true. For excipients it often is not, and the reason is structural rather than negligent.
+
+Why excipients are different
+
+Many excipients are produced in large volumes for industries other than pharmaceuticals. The same lactose, cellulose, glycol or stearate may serve food, cosmetic and industrial customers, with the pharmaceutical grade representing a small fraction of output. The plant is engineered around the majority use, and pharmaceutical requirements are applied to a segregated portion of production.
+
+That is a legitimate model. It also means the controls around your material depend on how carefully that segregation is managed, which is not something a monograph tells you.
+
+What IPEC-PQG covers
+
+The joint IPEC-PQG Good Manufacturing Practices guide was written specifically for excipient manufacture, precisely because API GMP does not map cleanly onto plants of this type. It addresses the things that actually go wrong in excipient supply: change control, contamination and cross contamination between grades, traceability through the chain, and management of the point where general production becomes pharmaceutical production.
+
+A supplier certified against it has been assessed on the risks specific to excipients. A supplier who simply states "GMP" may mean something quite different, or may mean the certification of a different product line entirely.
+
+The distribution chain is the weak point. Excipients frequently reach buyers through distributors who repack, relabel or split lots. Every one of those steps is an opportunity for the chain of custody to break. The most serious excipient incidents in pharmaceutical history have involved substituted or mislabelled material moving through distribution, not manufacturing failure at source. Knowing who repacked your material, and under what quality system, is not a formality.
+
+What to ask an excipient supplier
+
+Is the site certified to IPEC-PQG or an equivalent excipient specific standard, and can you see the certificate.
+
+Is the pharmaceutical grade produced on dedicated equipment or on shared equipment with cleaning validation between grades.
+
+Has this material passed through a distributor, and if so was it repacked, and under what certification.
+
+What is the change control commitment. Will you be notified before a process, site or specification change affects your material.
+
+What functional parameters are controlled beyond the compendial monograph, and are they reported on the certificate.
+
+Origin statements. TSE and BSE for animal derived materials, and GMO, allergen or vegetarian declarations where your market requires them.
+
+Why this sits with sourcing rather than QA
+
+By the time an excipient reaches your quality department it has already been selected, priced and ordered. The questions above only have leverage before that point. This is the reasoning behind treating excipients as a distinct sourcing discipline on our excipients page rather than as an adjunct to API supply.
+
+Frequently asked questions
+
+What does IPEC-PQG certification cover?
+It is a Good Manufacturing Practices guide written specifically for excipient manufacture. It addresses change control, contamination and cross contamination between grades, traceability through the supply chain, and the point at which general production becomes pharmaceutical production.
+Why is excipient distribution a risk?
+Excipients frequently reach buyers through distributors who repack, relabel or split lots, and each step is an opportunity for the chain of custody to break. The most serious historical excipient incidents involved substituted or mislabelled material moving through distribution.
+What origin statements should I request?
+TSE and BSE statements for animal derived materials, and GMO, allergen or vegetarian declarations where your market or product requires them.
+
+📚
+
+Written by
+
+Dr. Majjid A. Qaria
+
+Dr. Qaria holds two doctorates and a postdoctoral research background in the medical sciences, across molecular microbiology and cancer cell biology. He has personally sourced and supplied active pharmaceutical ingredients and excipients, and leads sourcing and consultancy at NJMC from Nanjing. Research background and publications are on his profile site.
+
+Related pages
+Active Pharmaceutical IngredientsAPIs sourced against the impurity profile, polymorph and documentation your filing needs.Pharmaceutical ExcipientsCompendial grade excipients, chosen for function rather than by name alone.Sourcing ConsultancySupplier assessment and market entry advice, separate from any sourcing mandate.ContactSend a specification and get a considered answer.
+
+Tell us what you need to source
+Send the product or molecule, the grade, the quantity and the destination market. You will get a considered answer about what can be sourced and what documentation comes with it.
+Send an enquiry
+
+ Home
+ Products
+ About
+ Contact Us
+ Dr. Qaria's Profile
+ العربية
+
+info@njmcmedicsupp.com  ·  sale@njmcmedicsupp.com
+
+© 2026 NJMC Medical Supplies Co., Ltd  ·  njmcmedicsupp.com  ·  Nanjing, China
