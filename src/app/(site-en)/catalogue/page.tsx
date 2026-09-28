@@ -68,7 +68,7 @@ export default async function CataloguePage({ searchParams }: { searchParams: Se
                   <thead>
                     <tr>
                       <th scope="col">Product</th>
-                      {c === 'colour' ? <th scope="col">C.I. number</th> : <th scope="col">Grade</th>}
+                      {c === 'colour' ? <th scope="col">C.I. number</th> : <th scope="col">Grade (as listed)</th>}
                       <th scope="col">{c === 'colour' ? 'Type' : 'Class'}</th>
                     </tr>
                   </thead>

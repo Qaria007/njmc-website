@@ -33,7 +33,7 @@ export default async function ProductPage({ params }: { params: Params }) {
     ['Other names', p.otherNames],
     ['CAS number', p.cas],
     ['C.I. number', p.ciNumber],
-    ['Grades offered', p.grades?.length ? p.grades.join(', ') : null],
+    ['Grades listed by the manufacturer', p.grades?.length ? p.grades.join(', ') : null],
   ]
   const rfq = `/contact/?product=${encodeURIComponent(p.name)}#rfq`
 
