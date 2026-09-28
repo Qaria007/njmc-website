@@ -109,3 +109,12 @@ Hostinger CDN until the owner edits it to njmcmedicsupp.com. MX, DKIM, drqaria, 
 Let's Encrypt certificate for njmcmedicsupp.com issued 27 Sep, expires 26 Dec 2026 (Caddy renews).
 Rollback: docs/old-site/dns-before.txt. The Hostinger site stays for 30 days.
 Not yet done: RFQ and verification forms (Phase 5), owner admin account, two-buyer home page.
+
+## 2026-09-28 Public product pages (owner)
+Asked whether to publish the product catalogue despite the 27 Sep "no product lists" answer,
+the owner chose "Publish the product pages". /catalogue/ lists examples of products NJMC
+sources (framed as a starting point, not a fixed catalogue). Published: pharmacopoeial APIs
+(EP/USP/JP) and pharmaceutical colours. Kept unpublished: in-house specification and R&D
+molecules until their patent status is checked. API pages say supply depends on the patent
+status in the destination country. Supplier names, prices and documents stay private
+(admin-only fields). Data is imported from Drive NJMC > Suppliers files, never committed.

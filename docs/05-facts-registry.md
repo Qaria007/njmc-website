@@ -22,6 +22,7 @@ Only facts here or in BRAND.md may appear on the site. Every new fact needs a so
 | LNJC legal name "LNJC Pharmaceuticals and Medical Supplies Co., Ltd.", site landcarenj.com, brand-kit logo | CONFIRMED | owner, 27 Sep 2026 (OWNER-QUESTIONS 2) |
 | PharmaTrust COA Validator, pharmatrust.tech, tagline "Certificate analysis you can defend." | CONFIRMED | PharmaTrust Brand Manual v3 |
 | No fixed product lists; products are sourced to each client's requirements | CONFIRMED | owner, 27 Sep 2026 (OWNER-QUESTIONS 1) |
+| Public product pages (/catalogue/) listing examples of products sourced (names, CAS/C.I., grades, class); published rows come from the catalogue database | CONFIRMED | owner, 28 Sep 2026 (in session) |
 | Group boilerplate (BRAND.md) and verification disclaimer (docs/02) approved | CONFIRMED | owner, 27 Sep 2026 (OWNER-QUESTIONS 4) |
 | Client testimonial on the old homepage | REMOVE (client names never published) | owner rule |
 | Partner logos on the old site | REMOVE (third-party logos never published) | owner rule |

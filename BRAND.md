@@ -51,8 +51,10 @@ sits under NJMC, now and in future:
 6. Independent verification (owner's words: "We don't certify. We just verify and check, according to our experience and with experts."). Buyers send their order and documents; NJMC checks the goods, the factory, the documents, the COA and DMF.
    Introductory prices (against standard rates): Supplier Verification Report USD 150 (standard 300), Pre-shipment Verification USD 250 (standard 500), Dossier / Document Review USD 350 (standard 750).
    The fee is payable regardless of outcome and never tied to a later sourcing order.
-- Product lists: none published. Owner, 27 Sep 2026: "these we will resource according to client
-  requirements". Pillar pages describe categories and the sourcing-to-requirement process only.
+- Product lists: superseded 28 Sep 2026 (docs/DECISIONS.md). The owner approved the public
+  product pages at /catalogue/: product names, CAS and C.I. numbers, grades and class, framed as
+  examples of what NJMC sources, not a fixed catalogue; every order is still sourced to the
+  client's requirements. Supplier names, prices and supplier documents are never published.
 
 ## Claims and compliance
 - See docs/02-content-and-claims.md.

@@ -9,7 +9,8 @@ Must read as human-written: strip AI markers (delve, landscape, "in today's worl
 ## Carried over from the Aug 2026 spec (still binding)
 - NJMC is NOT a manufacturer. Never write or imply that it manufactures or produces anything.
 - No product names, molecule names, CAS numbers or catalogue items unless they are in BRAND.md,
-  docs/05 or already on the live site.
+  docs/05 or already on the live site. Exception (owner, 28 Sep 2026): published rows of the
+  Products collection on /catalogue/, which show product facts only, never the supplier.
 - No numbers except those in BRAND.md or docs/05 (prices, "three years"). No awards,
   memberships, partnerships, client counts, tonnes, percentages or delivery times.
 - Contact: only the emails, WhatsApp numbers and WeChat link in BRAND.md. Location:

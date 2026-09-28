@@ -67,6 +67,7 @@ export default async function ProductPage({ params }: { params: Params }) {
               documents that come with the material: the certificate of analysis and the quality documents the manufacturer holds (for
               example GMP, ISO, DMF or CEP).
             </p>
+            {p.category === 'api' && <p>Supply depends on the patent status of the molecule in your country.</p>}
             <p>
               <Link className="cat-button" href={rfq}>
                 Request a quotation for {p.name}
