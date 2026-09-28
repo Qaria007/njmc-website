@@ -39,7 +39,12 @@ export function EnquiryForm({ kind = 'rfq' }: { kind?: 'rfq' | 'verification' })
   const [state, action, pending] = useActionState<EnquiryState, FormData>(submitEnquiry, null)
   const utm = useUtm()
   const [page, setPage] = useState('')
-  useEffect(() => setPage(window.location.pathname), [])
+  // Arriving from a catalogue product page: /contact/?product=<name>#rfq
+  const [product, setProduct] = useState('')
+  useEffect(() => {
+    setPage(window.location.pathname)
+    setProduct((new URLSearchParams(window.location.search).get('product') ?? '').slice(0, 120))
+  }, [])
 
   if (state?.ok) {
     return (
@@ -105,7 +110,9 @@ export function EnquiryForm({ kind = 'rfq' }: { kind?: 'rfq' | 'verification' })
       <label>
         {verification ? 'What should we check? *' : 'What do you need? *'}
         <textarea
+          key={product}
           name="message"
+          defaultValue={product ? `Product: ${product}\nGrade or specification:\nQuantity:\nDestination market:` : undefined}
           required
           rows={6}
           maxLength={5000}

@@ -8,6 +8,9 @@ import sharp from 'sharp'
 
 import { Leads } from './collections/Leads.ts'
 import { Media } from './collections/Media.ts'
+import { Products } from './collections/Products.ts'
+import { SupplierCertificates } from './collections/SupplierCertificates.ts'
+import { Suppliers } from './collections/Suppliers.ts'
 import { Users } from './collections/Users.ts'
 import { migrations } from './migrations/index.ts'
 
@@ -20,7 +23,7 @@ export default buildConfig({
     meta: { titleSuffix: ' | NJMC admin' },
     importMap: { baseDir: path.resolve(dirname) },
   },
-  collections: [Users, Media, Leads],
+  collections: [Users, Media, Leads, Products, Suppliers, SupplierCertificates],
   localization: {
     locales: [
       { code: 'en', label: 'English' },

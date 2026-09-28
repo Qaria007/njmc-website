@@ -8,7 +8,8 @@ Updated 27 Sep 2026 (session 2, Claude Code on the Mac).
 | 1 Foundation | Done. Live on the preview https://njmc.187-127-158-97.sslip.io/ (EN, /ar/ rtl), image from CI, migration applied |
 | LAUNCH | njmcmedicsupp.com LIVE on the new site since 27 Sep 2026 (all old pages + group + trust). www still on Hostinger until the owner edits the CNAME |
 | 28 Sep | Owner admin account qaria@njmcmedicsupp.com created; /admin open on the domain (login only). Forms live (RFQ on /contact/, order on /verification/). Articles sync daily from the weekly writer; server auto-deploys |
-| Next | Two-buyer home, Arabic for new pages and forms, Drive copy of backups (parked) |
+| 28 Sep (2) | Product catalogue: /catalogue/ + one page per product (EN only), admin group "Catalogue" (Products, Suppliers, Supplier certificates with expiry state). Pilot data from Drive NJMC > Suppliers files: 2 suppliers, 7 certificates, 99 products (63 published: 12 pharmacopoeial APIs, 51 colours; in-house and R&D APIs stay unpublished pending patent check). Import: deploy/README.md |
+| Next | Catalogue: the other ~16 suppliers in Suppliers files; Arabic catalogue after review. Two-buyer home, Arabic for new pages and forms, Drive copy of backups (parked) |
 
 ## Done this session
 - Public-repo check: no secrets in history. One client name removed from the current files

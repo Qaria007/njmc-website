@@ -70,6 +70,9 @@ export interface Config {
     users: User;
     media: Media;
     leads: Lead;
+    products: Product;
+    suppliers: Supplier;
+    'supplier-certificates': SupplierCertificate;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -80,6 +83,9 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     leads: LeadsSelect<false> | LeadsSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
+    suppliers: SuppliersSelect<false> | SuppliersSelect<true>;
+    'supplier-certificates': SupplierCertificatesSelect<false> | SupplierCertificatesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -202,6 +208,123 @@ export interface Lead {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  name: string;
+  /**
+   * Web address: /catalogue/<slug>/ (lower case, hyphens)
+   */
+  slug: string;
+  /**
+   * Shown on the public catalogue
+   */
+  published?: boolean | null;
+  category: 'api' | 'excipient' | 'colour';
+  /**
+   * Therapeutic class, or colour type
+   */
+  productClass?: string | null;
+  otherNames?: string | null;
+  cas?: string | null;
+  ciNumber?: string | null;
+  grades?: ('EP' | 'USP' | 'BP' | 'JP' | 'ChP' | 'IP' | 'In-house')[] | null;
+  /**
+   * Private: manufacturers and their documents for this product
+   */
+  sources?:
+    | {
+        supplier: number | Supplier;
+        /**
+         * e.g. CEP, US DMF, WC, EU GMP
+         */
+        documents?: string | null;
+        /**
+         * e.g. permitted in: India, EU, USA
+         */
+        marketStatus?: string | null;
+        details?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  internalNotes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "suppliers".
+ */
+export interface Supplier {
+  id: number;
+  name: string;
+  nameLocal?: string | null;
+  country: string;
+  city?: string | null;
+  address?: string | null;
+  website?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  supplies?: ('api' | 'intermediate' | 'excipient' | 'colour' | 'device' | 'consumable' | 'other')[] | null;
+  status?: ('new' | 'contacted' | 'samples' | 'qualified' | 'approved' | 'on-hold' | 'rejected') | null;
+  /**
+   * Where we met them, e.g. CPHI Shanghai 2026
+   */
+  source?: string | null;
+  /**
+   * Link to the Drive folder or files
+   */
+  documentsFolder?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Sort by "Valid until" to see what expires next.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-certificates".
+ */
+export interface SupplierCertificate {
+  id: number;
+  /**
+   * Filled in automatically
+   */
+  title?: string | null;
+  supplier: number | Supplier;
+  type:
+    | 'cn-gmp'
+    | 'cn-dml'
+    | 'eu-gmp'
+    | 'us-fda'
+    | 'who-gmp'
+    | 'cep'
+    | 'us-dmf'
+    | 'wc'
+    | 'ipec-gmp'
+    | 'iso-9001'
+    | 'iso-13485'
+    | 'iso-22000'
+    | 'fssc-22000'
+    | 'business-licence'
+    | 'other';
+  number?: string | null;
+  issuer?: string | null;
+  scope?: string | null;
+  issued?: string | null;
+  validUntil?: string | null;
+  state?: string | null;
+  /**
+   * File name or Drive link of the copy we hold
+   */
+  sourceFile?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -235,6 +358,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'leads';
         value: number | Lead;
+      } | null)
+    | ({
+        relationTo: 'products';
+        value: number | Product;
+      } | null)
+    | ({
+        relationTo: 'suppliers';
+        value: number | Supplier;
+      } | null)
+    | ({
+        relationTo: 'supplier-certificates';
+        value: number | SupplierCertificate;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -342,6 +477,73 @@ export interface LeadsSelect<T extends boolean = true> {
   utmFirst?: T;
   utmLast?: T;
   emailed?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  published?: T;
+  category?: T;
+  productClass?: T;
+  otherNames?: T;
+  cas?: T;
+  ciNumber?: T;
+  grades?: T;
+  sources?:
+    | T
+    | {
+        supplier?: T;
+        documents?: T;
+        marketStatus?: T;
+        details?: T;
+        id?: T;
+      };
+  internalNotes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "suppliers_select".
+ */
+export interface SuppliersSelect<T extends boolean = true> {
+  name?: T;
+  nameLocal?: T;
+  country?: T;
+  city?: T;
+  address?: T;
+  website?: T;
+  email?: T;
+  phone?: T;
+  supplies?: T;
+  status?: T;
+  source?: T;
+  documentsFolder?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-certificates_select".
+ */
+export interface SupplierCertificatesSelect<T extends boolean = true> {
+  title?: T;
+  supplier?: T;
+  type?: T;
+  number?: T;
+  issuer?: T;
+  scope?: T;
+  issued?: T;
+  validUntil?: T;
+  state?: T;
+  sourceFile?: T;
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }

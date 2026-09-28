@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { ContentPage } from '@/components/ContentPage.tsx'
@@ -28,9 +29,17 @@ export function contentRoute(locale: Locale, section: '' | 'insights' | 'group')
       if (!c) notFound()
       // Forms are English only until reviewed Arabic labels exist (docs/arabic-review.md).
       const form = locale === 'en' && (key === 'contact' || key === 'verification')
+      // The catalogue is English only for now, like the forms.
+      const catalogue = locale === 'en' && (key === 'drug-apis' || key === 'excipients')
       return (
         <>
           <ContentPage content={c} />
+          {catalogue && (
+            <p className="cat-banner">
+              <Link href="/catalogue/">See examples of products we source</Link>, each with a quotation request. Anything else is sourced to
+              your specification.
+            </p>
+          )}
           {form && (
             <section className="enquiry" id={key === 'verification' ? 'order' : 'rfq'}>
               <div className="container">
