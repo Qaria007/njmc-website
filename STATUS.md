@@ -7,7 +7,8 @@ Updated 27 Sep 2026 (session 2, Claude Code on the Mac).
 | 0 Setup and inventory | Done |
 | 1 Foundation | Done. Live on the preview https://njmc.187-127-158-97.sslip.io/ (EN, /ar/ rtl), image from CI, migration applied |
 | LAUNCH | njmcmedicsupp.com LIVE on the new site since 27 Sep 2026 (all old pages + group + trust). www still on Hostinger until the owner edits the CNAME |
-| Next | Forms (RFQ, verification order), owner admin login, two-buyer home, Arabic for new pages, pause the old-site weekly writer |
+| 28 Sep | Owner admin account qaria@njmcmedicsupp.com created; /admin open on the domain (login only). Forms live (RFQ on /contact/, order on /verification/). Articles sync daily from the weekly writer; server auto-deploys |
+| Next | Two-buyer home, Arabic for new pages and forms, Drive copy of backups (parked) |
 
 ## Done this session
 - Public-repo check: no secrets in history. One client name removed from the current files

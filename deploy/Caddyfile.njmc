@@ -23,9 +23,6 @@ njmc.187-127-158-97.sslip.io {
 # Production domain, added at C3 on 27 Sep 2026:
 njmcmedicsupp.com {
 	encode zstd gzip
-	# No admin account exists yet: closed until the owner creates his (CLAUDE.md).
-	@adminapi path /admin /admin/* /api /api/*
-	respond @adminapi "Not available" 403
 	reverse_proxy njmc-web:3000
 	log {
 		output file /data/access-njmc.log {
