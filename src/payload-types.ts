@@ -73,6 +73,8 @@ export interface Config {
     products: Product;
     suppliers: Supplier;
     'supplier-certificates': SupplierCertificate;
+    'order-matches': OrderMatch;
+    'order-files': OrderFile;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -86,6 +88,8 @@ export interface Config {
     products: ProductsSelect<false> | ProductsSelect<true>;
     suppliers: SuppliersSelect<false> | SuppliersSelect<true>;
     'supplier-certificates': SupplierCertificatesSelect<false> | SupplierCertificatesSelect<true>;
+    'order-matches': OrderMatchesSelect<false> | OrderMatchesSelect<true>;
+    'order-files': OrderFilesSelect<false> | OrderFilesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -324,6 +328,80 @@ export interface SupplierCertificate {
   createdAt: string;
 }
 /**
+ * Attach a customer order (Excel, CSV, Word, PDF) or type the materials, then Save. The suppliers for each material appear in "Results".
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "order-matches".
+ */
+export interface OrderMatch {
+  id: number;
+  /**
+   * e.g. customer name + date
+   */
+  title: string;
+  customer?: string | null;
+  status?: ('new' | 'suppliers contacted' | 'quoted' | 'won' | 'lost') | null;
+  /**
+   * Excel, CSV, Word, PDF (with text) or .txt
+   */
+  orderFile?: (number | null) | OrderFile;
+  /**
+   * Optional: one material per line, e.g. "Mesalazine EP 500 kg" or a CAS number
+   */
+  typedMaterials?: string | null;
+  rematch?: boolean | null;
+  matchedAt?: string | null;
+  readNote?: string | null;
+  /**
+   * Suppliers found for each material
+   */
+  results?: string | null;
+  lines?:
+    | {
+        requested?: string | null;
+        cas?: string | null;
+        grade?: string | null;
+        quantity?: string | null;
+        supplierCount?: number | null;
+        matches?:
+          | {
+              supplier?: (number | null) | Supplier;
+              product?: (number | null) | Product;
+              matchedOn?: string | null;
+              documents?: string | null;
+              certificates?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Uploaded customer orders (private).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "order-files".
+ */
+export interface OrderFile {
+  id: number;
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -370,6 +448,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'supplier-certificates';
         value: number | SupplierCertificate;
+      } | null)
+    | ({
+        relationTo: 'order-matches';
+        value: number | OrderMatch;
+      } | null)
+    | ({
+        relationTo: 'order-files';
+        value: number | OrderFile;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -546,6 +632,62 @@ export interface SupplierCertificatesSelect<T extends boolean = true> {
   notes?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "order-matches_select".
+ */
+export interface OrderMatchesSelect<T extends boolean = true> {
+  title?: T;
+  customer?: T;
+  status?: T;
+  orderFile?: T;
+  typedMaterials?: T;
+  rematch?: T;
+  matchedAt?: T;
+  readNote?: T;
+  results?: T;
+  lines?:
+    | T
+    | {
+        requested?: T;
+        cas?: T;
+        grade?: T;
+        quantity?: T;
+        supplierCount?: T;
+        matches?:
+          | T
+          | {
+              supplier?: T;
+              product?: T;
+              matchedOn?: T;
+              documents?: T;
+              certificates?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "order-files_select".
+ */
+export interface OrderFilesSelect<T extends boolean = true> {
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -29,12 +29,15 @@
     "@payloadcms/richtext-lexical": "3.90.2",
     "@payloadcms/translations": "3.90.2",
     "@payloadcms/ui": "3.90.2",
+    "exceljs": "^4.4.0",
     "graphql": "^16.8.1",
+    "mammoth": "^1.13.0",
     "next": "16.3.6",
     "payload": "3.90.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "sharp": "^0.34.0"
+    "sharp": "^0.34.0",
+    "unpdf": "^1.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

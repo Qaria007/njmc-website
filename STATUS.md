@@ -10,7 +10,8 @@ Updated 27 Sep 2026 (session 2, Claude Code on the Mac).
 | 28 Sep | Owner admin account qaria@njmcmedicsupp.com created; /admin open on the domain (login only). Forms live (RFQ on /contact/, order on /verification/). Articles sync daily from the weekly writer; server auto-deploys |
 | 28 Sep (2) | Product catalogue: /catalogue/ + one page per product (EN only), admin group "Catalogue" (Products, Suppliers, Supplier certificates with expiry state). Pilot data from Drive NJMC > Suppliers files: 2 suppliers, 7 certificates, 99 products (63 published: 12 pharmacopoeial APIs, 51 colours; in-house and R&D APIs stay unpublished pending patent check). Import: deploy/README.md |
 | 29 Sep | Catalogue: every file in Suppliers files loaded: 30 suppliers, 69 certificates, 517 products, 209 public. Grades labelled as listed by the manufacturer |
-| Next | Catalogue: Arabic after review; owner decision on in-house/R&D molecules. Two-buyer home, Arabic for new pages and forms, Drive copy of backups (parked) |
+| 30 Sep | Order matching (admin > Catalogue > Order matching): upload a customer order (xlsx, csv, docx, pdf with text, txt) or type materials; lists every supplier per material with documents and certificate state. Order files are private, on their own volume njmc_orders (/app/private-orders), never under media |
+| Next | Order files are not in the nightly backup yet (DB only). Catalogue: Arabic after review; owner decision on in-house/R&D molecules. Two-buyer home, Arabic for new pages and forms, Drive copy of backups (parked) |
 
 ## Done this session
 - Public-repo check: no secrets in history. One client name removed from the current files

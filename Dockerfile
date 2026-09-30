@@ -18,8 +18,9 @@ RUN DATABASE_URI=postgres://build:build@localhost:5432/build \
 
 FROM node:22-alpine AS run
 WORKDIR /app
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 MEDIA_DIR=/app/media
-RUN addgroup -S njmc && adduser -S njmc -G njmc && mkdir -p /app/media && chown njmc:njmc /app/media
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 MEDIA_DIR=/app/media ORDERS_DIR=/app/private-orders
+# Customer order files (Order matching) get their own folder and volume, never under the public media folder.
+RUN addgroup -S njmc && adduser -S njmc -G njmc && mkdir -p /app/media /app/private-orders && chown njmc:njmc /app/media /app/private-orders
 COPY --from=build --chown=njmc:njmc /app/.next/standalone ./
 COPY --from=build --chown=njmc:njmc /app/.next/static ./.next/static
 COPY --from=build --chown=njmc:njmc /app/public ./public

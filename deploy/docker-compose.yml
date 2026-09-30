@@ -9,6 +9,7 @@ services:
     env_file: /opt/njmc/.env
     volumes:
       - njmc_media:/app/media
+      - njmc_orders:/app/private-orders
     networks: [pharmatrust_internal]
     mem_limit: 768m
     logging:
@@ -16,6 +17,7 @@ services:
       options: { max-size: "10m", max-file: "3" }
 volumes:
   njmc_media:
+  njmc_orders:
 networks:
   pharmatrust_internal:
     external: true

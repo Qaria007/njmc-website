@@ -7,3 +7,5 @@ node_modules/
 media/
 next-env.d.ts
 *.tsbuildinfo
+.test-orders/
+private-orders/

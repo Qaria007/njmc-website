@@ -5,6 +5,7 @@ Copies of what runs on the server, without secrets. Rules: CLAUDE.md "Shared ser
 | Server path | Repo copy | Purpose |
 |---|---|---|
 | /opt/njmc/docker-compose.yml | deploy/docker-compose.yml | The `njmc-web` container (own compose project) |
+| volume njmc_orders -> /app/private-orders | deploy/docker-compose.yml | Customer order files for Order matching (private; not under media) |
 | /opt/njmc/.env | (never committed) | DATABASE_URI, PAYLOAD_SECRET, MEDIA_DIR, CATALOGUE_IMPORT_TOKEN |
 | /opt/njmc/backup_njmc.sh | deploy/backup_njmc.sh | Nightly dump of the `njmc` database, cron 02:35 UTC |
 | /opt/njmc/import-catalogue.sh | deploy/import-catalogue.sh | Load a catalogue JSON file (see below) |

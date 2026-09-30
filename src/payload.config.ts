@@ -8,6 +8,8 @@ import sharp from 'sharp'
 
 import { Leads } from './collections/Leads.ts'
 import { Media } from './collections/Media.ts'
+import { OrderFiles } from './collections/OrderFiles.ts'
+import { OrderMatches } from './collections/OrderMatches.ts'
 import { Products } from './collections/Products.ts'
 import { SupplierCertificates } from './collections/SupplierCertificates.ts'
 import { Suppliers } from './collections/Suppliers.ts'
@@ -23,7 +25,7 @@ export default buildConfig({
     meta: { titleSuffix: ' | NJMC admin' },
     importMap: { baseDir: path.resolve(dirname) },
   },
-  collections: [Users, Media, Leads, Products, Suppliers, SupplierCertificates],
+  collections: [Users, Media, Leads, Products, Suppliers, SupplierCertificates, OrderMatches, OrderFiles],
   localization: {
     locales: [
       { code: 'en', label: 'English' },
@@ -57,5 +59,7 @@ export default buildConfig({
         },
       })
     : undefined,
+  // 10 MB per upload (images and order files).
+  upload: { limits: { fileSize: 10_000_000 } },
   sharp,
 })
