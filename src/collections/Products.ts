@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Where } from 'payload'
 
 import { signedIn, signedInField } from './access.ts'
 import { importCatalogue } from './catalogue-import.ts'
@@ -9,6 +9,8 @@ import { importCatalogue } from './catalogue-import.ts'
 // Public text is not seen by claims-lint (it scans files), so the site's hard rules are checked here.
 const PUBLIC_TEXT = ['name', 'otherNames', 'productClass', 'cas', 'ciNumber'] as const
 const BANNED = /[\u2013\u2014!\uFF01]/
+// Only these categories have public pages; the others are for Order matching in the admin only.
+export const PUBLIC_CATEGORIES = ['api', 'excipient', 'colour'] as const
 
 export const Products: CollectionConfig = {
   slug: 'products',
@@ -18,7 +20,7 @@ export const Products: CollectionConfig = {
     defaultColumns: ['name', 'category', 'productClass', 'published', 'updatedAt'],
   },
   access: {
-    read: ({ req }) => (req.user ? true : { published: { equals: true } }),
+    read: ({ req }) => (req.user ? true : ({ and: [{ published: { equals: true } }, { category: { in: [...PUBLIC_CATEGORIES] } }] } as Where)),
     create: signedIn,
     update: signedIn,
     delete: () => false,
@@ -26,10 +28,15 @@ export const Products: CollectionConfig = {
   endpoints: [{ path: '/import', method: 'post', handler: importCatalogue }],
   hooks: {
     beforeValidate: [
-      ({ data }) => {
+      ({ data, originalDoc }) => {
         for (const f of PUBLIC_TEXT) {
           const v = data?.[f]
           if (typeof v === 'string' && BANNED.test(v)) throw new Error(`${f}: no dashes (en or em) or exclamation marks (docs/02)`)
+        }
+        const cat = data?.category ?? originalDoc?.category
+        const pub = data?.published ?? originalDoc?.published
+        if (pub && cat && !(PUBLIC_CATEGORIES as readonly string[]).includes(cat)) {
+          throw new Error('Only APIs, excipients and pharmaceutical colours can be published on the public catalogue')
         }
         return data
       },
@@ -64,6 +71,12 @@ export const Products: CollectionConfig = {
             { label: 'Active pharmaceutical ingredient', value: 'api' },
             { label: 'Excipient', value: 'excipient' },
             { label: 'Pharmaceutical colour', value: 'colour' },
+            // Admin only (Order matching): never published.
+            { label: 'Intermediate (admin only)', value: 'intermediate' },
+            { label: 'Finished dosage (admin only)', value: 'finished-dosage' },
+            { label: 'Extract / nutraceutical (admin only)', value: 'extract' },
+            { label: 'Device / equipment (admin only)', value: 'device' },
+            { label: 'Other (admin only)', value: 'other' },
           ],
         },
         { name: 'productClass', type: 'text', label: 'Class', admin: { description: 'Therapeutic class, or colour type' } },

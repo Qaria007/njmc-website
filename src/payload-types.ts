@@ -225,7 +225,7 @@ export interface Product {
    * Shown on the public catalogue
    */
   published?: boolean | null;
-  category: 'api' | 'excipient' | 'colour';
+  category: 'api' | 'excipient' | 'colour' | 'intermediate' | 'finished-dosage' | 'extract' | 'device' | 'other';
   /**
    * Therapeutic class, or colour type
    */
