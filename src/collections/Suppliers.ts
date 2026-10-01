@@ -33,6 +33,13 @@ export const Suppliers: CollectionConfig = {
       ],
     },
     {
+      type: 'row',
+      fields: [
+        { name: 'contactPerson', type: 'text', label: 'Contact person', admin: { description: 'Name and title, e.g. from the business card' } },
+        { name: 'wechat', type: 'text', label: 'WeChat / WhatsApp' },
+      ],
+    },
+    {
       name: 'supplies',
       type: 'select',
       hasMany: true,

@@ -13,7 +13,13 @@ const HEAD = {
   name: /^(product|product name|material|material name|item|item name|description|name|api|substance|molecule|commodity|goods)\b/i,
   cas: /\bcas\b/i,
   grade: /\b(grade|spec|specification|standard|pharmacopoeia|pharmacopeia)\b/i,
-  quantity: /\b(qty|quantity|amount|volume|kg|mt|tons?)\b/i,
+  quantity: /\b(qty|q t y|quantity|amount|volume|kg|mt|tons?)\b/i,
+}
+// Header cells are compared without brackets and punctuation: "(Material Name)", "Q.T.Y".
+const plain = (c: string) => c.replace(/[^A-Za-z0-9:]+/g, ' ').trim()
+// Alternative names in brackets anywhere on a row, e.g. "Pharmaceutical Grade (Carbomer 940)".
+function bracketAliases(cells: string[]): string[] {
+  return cells.flatMap((c) => [...c.matchAll(/\(([^()]*[A-Za-z]{3,}[^()]*)\)/g)].map((m) => m[1].trim())).filter((a) => !/^\d/.test(a))
 }
 
 function cellText(v: unknown): string {
@@ -30,7 +36,7 @@ function cellText(v: unknown): string {
 // Table (rows of cells) -> order rows. The header is the row with a product-name column plus the
 // most other header words (CAS, grade, quantity); "Name:" / "Date:" form labels are not headers.
 function headerScore(r: string[]): number {
-  const cells = r.map((c) => c.trim()).filter((c) => c && !c.endsWith(':'))
+  const cells = r.map(plain).filter((c) => c && !c.endsWith(':'))
   if (!cells.some((c) => HEAD.name.test(c))) return 0
   return 1 + [HEAD.cas, HEAD.grade, HEAD.quantity].filter((re) => cells.some((c) => re.test(c))).length
 }
@@ -49,7 +55,7 @@ export function tableToRows(table: string[][]): OrderRow[] {
     if (sc > best) [best, headerAt] = [sc, i]
   })
   if (headerAt < 0) return noHeaderRows(table)
-  const h = table[headerAt].map((c) => c.trim())
+  const h = table[headerAt].map(plain)
   const col = (re: RegExp) => h.findIndex((c) => !c.endsWith(':') && re.test(c))
   const iName = col(HEAD.name)
   const iCas = col(HEAD.cas)
@@ -63,6 +69,7 @@ export function tableToRows(table: string[][]): OrderRow[] {
       grade: iGrade >= 0 ? r[iGrade]?.trim() : undefined,
       quantity: iQty >= 0 ? r[iQty]?.trim() : undefined,
       row: headerAt + k + 2,
+      aliases: bracketAliases(r),
     }))
     .filter((r) => /[a-z]{3,}/i.test(r.text) || /\d{2,7}-\d{2}-\d/.test(r.cas || ''))
   return rows.length ? rows : noHeaderRows(table)

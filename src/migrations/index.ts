@@ -3,6 +3,7 @@ import * as migration_20260927_111243_leads from './20260927_111243_leads';
 import * as migration_20260928_083733_catalogue from './20260928_083733_catalogue';
 import * as migration_20260930_084117_order_matching from './20260930_084117_order_matching';
 import * as migration_20260930_123456_product_categories from './20260930_123456_product_categories';
+import * as migration_20261001_063312_supplier_contacts from './20261001_063312_supplier_contacts';
 
 export const migrations = [
   {
@@ -28,6 +29,11 @@ export const migrations = [
   {
     up: migration_20260930_123456_product_categories.up,
     down: migration_20260930_123456_product_categories.down,
-    name: '20260930_123456_product_categories'
+    name: '20260930_123456_product_categories',
+  },
+  {
+    up: migration_20261001_063312_supplier_contacts.up,
+    down: migration_20261001_063312_supplier_contacts.down,
+    name: '20261001_063312_supplier_contacts'
   },
 ];

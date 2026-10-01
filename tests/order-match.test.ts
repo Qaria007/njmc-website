@@ -61,11 +61,11 @@ test('Excel header row is recognised', () => {
     ['2', '', '', '', ''],
   ])
   assert.equal(rows.length, 1)
-  assert.deepEqual({ ...rows[0] }, { text: 'Mesalazine', cas: '89-57-6', grade: 'EP', quantity: '500', row: 3 })
+  assert.deepEqual({ ...rows[0] }, { text: 'Mesalazine', cas: '89-57-6', grade: 'EP', quantity: '500', row: 3, aliases: [] })
 })
 
 test('different substances are not matched (review findings)', () => {
-  for (const text of ['Magnesium oxide', 'Calcium stearate', 'Polysorbate 20', 'FD&C Yellow No. 6', 'Sodium starch glycolate', 'Hydroxypropyl methylcellulose']) {
+  for (const text of ['Magnesium oxide', 'Calcium stearate', 'Polysorbate 20', 'FD&C Yellow No. 6', 'Sodium starch glycolate', 'Vitamin E', 'Cetomacrogol 1000 (Polyethylene glycol cetyl ether)']) {
     const [line] = matchOrder([{ text }], '', products)
     assert.deepEqual(line.matches.filter((m) => m.score >= 80), [], text)
     assert.ok(!line.matches.some((m) => [6, 7, 8, 9, 11, 12].includes(Number(m.productId)) && !m.how.includes('check')), text)
@@ -82,4 +82,55 @@ test('an order form with "Name:" and "Date:" lines above the table', () => {
     ['2', 'Unobtainium citrate', 'BP', '10 kg'],
   ])
   assert.deepEqual(rows.map((r) => r.text), ['Mesalazine', 'Unobtainium citrate'])
+})
+
+test('real-order cases: bracketed headers, bracket aliases, typos, synonyms', () => {
+  const extra: CatalogueProduct[] = [
+    ...products,
+    { id: 20, name: 'Ketoconazole', sources: src(30) },
+    { id: 21, name: 'White Vaselin / 白凡士林', sources: src(31) },
+    { id: 22, name: 'Carbomer 940', sources: src(32) },
+    { id: 23, name: 'Kaolin / 高岭土', sources: src(33) },
+    { id: 24, name: 'Vitamin A', sources: src(34) },
+    { id: 25, name: '(1-Hydroxycyclohexyl)(4-methoxyphenyl)acetonitrile (VEN-1)', sources: src(35) },
+    { id: 26, name: 'Polyethylene glycol', sources: src(36) },
+  ]
+  const rows = tableToRows([
+    ['No.', '(Material Name)', '(Q.T.Y)', ' (Grade / Spec)', ' (Micronization)'],
+    ['1', 'Acrypol 940', '200', 'Pharmaceutical Grade (Carbomer 940)', 'Standard'],
+    ['2', 'KETOCONAZOL', '25', 'BP/USP', 'Micronized'],
+    ['3', 'White petroleum jelly', '5100', 'BP/USP - White Soft Paraffin', 'Standard'],
+    ['4', 'Light Kaolin L.P', '50', 'BP/L.P Grade', 'Standard'],
+    ['5', 'Tartrazine Yellow Color', '1', 'Food & Drug Grade', 'Standard'],
+    ['6', 'Hydroxypropyl methylcellulose', '10', 'USP', 'Standard'],
+    ['7', 'Acetonitrile HPLC grade', '200', 'HPLC Grade', 'Standard'],
+  ])
+  assert.equal(rows.length, 7)
+  assert.equal(rows[0].quantity, '200')
+  const lines = matchOrder(rows, rows.map((r) => r.text).join('\n'), extra)
+  assert.equal(lines.length, 7, 'table orders get no extra free-text lines')
+  assert.deepEqual(lines.map((l) => l.matches.map((m) => m.productId)), [[22], [20], [21], [23], [9], [3], []])
+  assert.equal(lines[1].matches[0].how, 'close spelling (check)')
+  assert.equal(lines[2].matches[0].how, 'synonym (check)')
+})
+
+test('review v2: brackets and free text never give an unlabelled wrong match', () => {
+  const db: CatalogueProduct[] = [
+    ...products,
+    { id: 40, name: 'Lactose', sources: src(40) },
+    { id: 41, name: 'Titanium dioxide', sources: src(41) },
+    { id: 42, name: 'Polyethylene glycol', sources: src(42) },
+    { id: 43, name: 'Hydrocortisone', sources: src(43) },
+  ]
+  // A remark in brackets must not beat the name, and is only ever a labelled hint.
+  const [a] = matchOrder([{ text: 'Magnesium stearate', aliases: ['Lactose'] }], '', db)
+  assert.deepEqual(a.matches.map((m) => m.productId), [7])
+  const [b] = matchOrder([{ text: 'Hard gelatin capsules (Titanium dioxide)' }], '', db)
+  assert.ok(b.matches.every((m) => m.how.includes('check')))
+  // Typed list: a kept row that matched nothing is not scanned again.
+  const typed = ['PEG-40 hydrogenated castor oil 50 kg', 'Hydrocortisone butyrate 1 kg', 'Lactose-free excipient blend 10 kg']
+  const lines = matchOrder(typed.map((text, i) => ({ text, row: i + 1, fromText: true })), typed.join('\n'), db)
+  assert.equal(lines.length, 3)
+  for (const l of lines) assert.ok(l.matches.every((m) => m.how.includes('check')), l.requested)
+  assert.deepEqual(lines[0].matches, [])
 })

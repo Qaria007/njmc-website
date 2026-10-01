@@ -270,6 +270,11 @@ export interface Supplier {
   website?: string | null;
   email?: string | null;
   phone?: string | null;
+  /**
+   * Name and title, e.g. from the business card
+   */
+  contactPerson?: string | null;
+  wechat?: string | null;
   supplies?: ('api' | 'intermediate' | 'excipient' | 'colour' | 'device' | 'consumable' | 'other')[] | null;
   status?: ('new' | 'contacted' | 'samples' | 'qualified' | 'approved' | 'on-hold' | 'rejected') | null;
   /**
@@ -328,7 +333,7 @@ export interface SupplierCertificate {
   createdAt: string;
 }
 /**
- * Attach a customer order (Excel, CSV, Word, PDF) or type the materials, then Save. The suppliers for each material appear in "Results".
+ * Attach a customer order (Excel, CSV, Word, PDF) or type the materials, then Save. The suppliers table appears below, with an Excel download.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "order-matches".
@@ -352,9 +357,6 @@ export interface OrderMatch {
   rematch?: boolean | null;
   matchedAt?: string | null;
   readNote?: string | null;
-  /**
-   * Suppliers found for each material
-   */
   results?: string | null;
   lines?:
     | {
@@ -606,6 +608,8 @@ export interface SuppliersSelect<T extends boolean = true> {
   website?: T;
   email?: T;
   phone?: T;
+  contactPerson?: T;
+  wechat?: T;
   supplies?: T;
   status?: T;
   source?: T;

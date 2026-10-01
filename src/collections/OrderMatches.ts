@@ -1,10 +1,11 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import type { CollectionBeforeChangeHook, CollectionConfig, PayloadRequest } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig, PayloadHandler, PayloadRequest } from 'payload'
 
 import { type CatalogueProduct, matchOrder, type OrderRow } from '../lib/order-match.ts'
 import { parseOrder, typedToOrder } from '../lib/order-parse.ts'
+import { buildOrderTable, orderTableXlsx } from '../lib/order-table.ts'
 import { signedIn } from './access.ts'
 import { ORDERS_DIR } from './OrderFiles.ts'
 import { CERT_TYPES, certificateState } from './SupplierCertificates.ts'
@@ -114,25 +115,30 @@ const findSuppliers: CollectionBeforeChangeHook = async ({ data, req, originalDo
     return { requested: l.requested, cas: l.cas, grade: l.grade, quantity: l.quantity, supplierCount: new Set(matches.map((m) => m.supplier)).size, matches }
   })
 
-  const supName = new Map(products.flatMap((p) => p.sources.map((s) => [String(s.supplierId), s.supplierName])))
   const found = data.lines.filter((l: { supplierCount: number }) => l.supplierCount > 0)
-  const out = [`${found.length} of ${data.lines.length} requested item(s) have at least one supplier in the database.`, '']
-  data.lines.forEach((l: { requested: string; quantity?: string; grade?: string; supplierCount: number; matches: { product: string; supplier: string; matchedOn: string; documents: string; certificates: string }[] }, i: number) => {
-    out.push(`${i + 1}. ${l.requested}${l.grade ? ` | grade ${l.grade}` : ''}${l.quantity ? ` | qty ${l.quantity}` : ''}`)
-    if (!l.matches.length) out.push('   No supplier in the database yet.')
-    for (const m of l.matches) {
-      const p = byId.get(String(m.product))
-      out.push(`   - ${supName.get(String(m.supplier))}: ${p?.name}${p?.grades?.length ? ` (${p.grades.join(', ')})` : ''} [matched on ${m.matchedOn}]`)
-      if (m.documents) out.push(`       documents: ${m.documents}`)
-      out.push(`       certificates: ${m.certificates}`)
-    }
-    out.push('')
-  })
-  data.results = out.join('\n')
+  data.results = `${found.length} of ${data.lines.length} requested materials have at least one supplier in the database. See the table below, or download the Excel.`
   data.readNote = notes.join(' | ') || 'Nothing to read: attach an order file or type the materials.'
   data.matchedAt = new Date().toISOString()
   data.rematch = false
   return data
+}
+
+// Table data and Excel download for one order (signed-in admins only).
+const tableEndpoint: PayloadHandler = async (req) => {
+  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  return Response.json(await buildOrderTable(req.payload, String(req.routeParams?.id), req))
+}
+const xlsxEndpoint: PayloadHandler = async (req) => {
+  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  const t = await buildOrderTable(req.payload, String(req.routeParams?.id), req)
+  const name = `Suppliers - ${t.title || 'order'}`.replace(/[^A-Za-z0-9 _.-]+/g, ' ').trim().slice(0, 80)
+  return new Response(new Uint8Array(await orderTableXlsx(t)), {
+    headers: {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${name}.xlsx"`,
+      'Cache-Control': 'no-store',
+    },
+  })
 }
 
 // Order matching: upload a customer order and get every supplier in the Catalogue database for each
@@ -144,10 +150,14 @@ export const OrderMatches: CollectionConfig = {
     group: 'Catalogue',
     useAsTitle: 'title',
     defaultColumns: ['title', 'customer', 'status', 'matchedAt'],
-    description: 'Attach a customer order (Excel, CSV, Word, PDF) or type the materials, then Save. The suppliers for each material appear in "Results".',
+    description: 'Attach a customer order (Excel, CSV, Word, PDF) or type the materials, then Save. The suppliers table appears below, with an Excel download.',
   },
   access: { read: signedIn, create: signedIn, update: signedIn, delete: () => false },
   hooks: { beforeChange: [findSuppliers] },
+  endpoints: [
+    { path: '/:id/table', method: 'get', handler: tableEndpoint },
+    { path: '/:id/xlsx', method: 'get', handler: xlsxEndpoint },
+  ],
   timestamps: true,
   fields: [
     { name: 'title', type: 'text', required: true, admin: { description: 'e.g. customer name + date' } },
@@ -168,12 +178,14 @@ export const OrderMatches: CollectionConfig = {
     { name: 'rematch', label: 'Find suppliers again when I save', type: 'checkbox', defaultValue: true, admin: { position: 'sidebar' } },
     { name: 'matchedAt', type: 'date', admin: { position: 'sidebar', readOnly: true, date: { pickerAppearance: 'dayAndTime' } } },
     { name: 'readNote', label: 'What was read', type: 'text', admin: { readOnly: true } },
-    { name: 'results', type: 'textarea', admin: { readOnly: true, rows: 30, description: 'Suppliers found for each material' } },
+    { name: 'results', label: 'Summary', type: 'textarea', admin: { readOnly: true, rows: 2 } },
+    { name: 'resultsTable', type: 'ui', admin: { components: { Field: '/components/admin/OrderResults#OrderResults' } } },
     {
       name: 'lines',
       label: 'Results (detail)',
       type: 'array',
-      admin: { readOnly: true, initCollapsed: true },
+      // Shown through the table above; kept as data for the table and the Excel export.
+      admin: { readOnly: true, initCollapsed: true, hidden: true },
       fields: [
         { name: 'requested', type: 'text' },
         {

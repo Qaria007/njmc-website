@@ -1,4 +1,5 @@
 import type { Access, FieldAccess } from 'payload'
 
-export const signedIn: Access = ({ req }) => Boolean(req.user)
-export const signedInField: FieldAccess = ({ req }) => Boolean(req.user)
+// Admin users only: a future portal login (another auth collection) must not pass.
+export const signedIn: Access = ({ req }) => req.user?.collection === 'users'
+export const signedInField: FieldAccess = ({ req }) => req.user?.collection === 'users'
