@@ -124,7 +124,7 @@ const NOISE =
   /\b(\d+(?:[.,]\d+)?\s*(?:kg|kgs|g|mg|mt|t|ton|tons|tonnes|l|ml|litre|liter|drums?|bags?|%)|usp|nf|ep|bp|jp|chp|cp|ip|ph|eur|grade|api|qty|quantity|pharma|pharmaceutical|no|standard|micronized|micronised|powder|pure)\b/g
 
 function words(s: string, synonyms: boolean): string {
-  let t = (s || '').toLowerCase().replace(/[–—]/g, '-')
+  let t = (s || '').toLowerCase().replace(/[\u2013\u2014]/g, '-')
   for (const [re, to] of SPELLING) t = t.replace(re, to)
   t = t.replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ')
   if (synonyms) for (const [re, to] of SYNONYMS) t = t.replace(re, to)
