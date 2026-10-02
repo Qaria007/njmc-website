@@ -75,6 +75,8 @@ export interface Config {
     'supplier-certificates': SupplierCertificate;
     'order-matches': OrderMatch;
     'order-files': OrderFile;
+    'supplier-orders': SupplierOrder;
+    'buyer-documents': BuyerDocument;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -90,6 +92,8 @@ export interface Config {
     'supplier-certificates': SupplierCertificatesSelect<false> | SupplierCertificatesSelect<true>;
     'order-matches': OrderMatchesSelect<false> | OrderMatchesSelect<true>;
     'order-files': OrderFilesSelect<false> | OrderFilesSelect<true>;
+    'supplier-orders': SupplierOrdersSelect<false> | SupplierOrdersSelect<true>;
+    'buyer-documents': BuyerDocumentsSelect<false> | BuyerDocumentsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -99,8 +103,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: ('false' | 'none' | 'null') | false | null | ('en' | 'ar') | ('en' | 'ar')[];
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'trade-settings': TradeSetting;
+  };
+  globalsSelect: {
+    'trade-settings': TradeSettingsSelect<false> | TradeSettingsSelect<true>;
+  };
   locale: 'en' | 'ar';
   widgets: {
     collections: CollectionsWidget;
@@ -404,6 +412,177 @@ export interface OrderFile {
   focalY?: number | null;
 }
 /**
+ * An enquiry asks a supplier for prices. A purchase order orders the goods. Each one has a PDF and a message that is sent to the supplier only after you confirm.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-orders".
+ */
+export interface SupplierOrder {
+  id: number;
+  /**
+   * Given automatically
+   */
+  number?: string | null;
+  kind: 'rfq' | 'po';
+  status?: ('draft' | 'sent' | 'supplier replied' | 'confirmed' | 'cancelled') | null;
+  date?: string | null;
+  supplier: number | Supplier;
+  /**
+   * Taken from the supplier record; change it here if needed. Several addresses: separate with commas.
+   */
+  toEmail?: string | null;
+  items?:
+    | {
+        material: string;
+        spec?: string | null;
+        quantity?: number | null;
+        unit?: string | null;
+        /**
+         * Needed for a purchase order
+         */
+        unitPrice?: number | null;
+        supplierProduct?: string | null;
+        note?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  currency?: ('USD' | 'CNY' | 'EUR') | null;
+  incoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
+  /**
+   * e.g. Shanghai
+   */
+  incotermPlace?: string | null;
+  /**
+   * e.g. 30% T/T in advance, 70% before shipment
+   */
+  paymentTerms?: string | null;
+  /**
+   * e.g. within 20 days of the order
+   */
+  delivery?: string | null;
+  /**
+   * Country or port. The customer name is never sent to suppliers.
+   */
+  destination?: string | null;
+  documentsRequired?: string | null;
+  notes?: string | null;
+  subject?: string | null;
+  /**
+   * Written automatically. You can edit it before sending.
+   */
+  message?: string | null;
+  rewriteMessage?: boolean | null;
+  subjectAuto?: string | null;
+  messageAuto?: string | null;
+  /**
+   * For our records only
+   */
+  order?: (number | null) | OrderMatch;
+  fromEnquiry?: (number | null) | SupplierOrder;
+  sentAt?: string | null;
+  sentTo?: string | null;
+  sendLog?: string | null;
+  supplierReply?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Fill in the buyer, the items and the prices once. The proforma invoice, the invoice and the packing list are printed from the same record.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "buyer-documents".
+ */
+export interface BuyerDocument {
+  id: number;
+  /**
+   * Given automatically; you can change it
+   */
+  piNumber?: string | null;
+  piDate?: string | null;
+  validity?: string | null;
+  status?: ('draft' | 'PI sent' | 'paid' | 'shipped' | 'closed' | 'cancelled') | null;
+  /**
+   * Given automatically when you fill in the invoice date. Also printed on the packing list
+   */
+  invoiceNumber?: string | null;
+  /**
+   * Fill in when the goods ship
+   */
+  invoiceDate?: string | null;
+  buyerReference?: string | null;
+  buyerName: string;
+  buyerCountry?: string | null;
+  buyerContact?: string | null;
+  buyerAddress?: string | null;
+  /**
+   * Only if different from the buyer
+   */
+  consignee?: string | null;
+  notifyParty?: string | null;
+  items?:
+    | {
+        description: string;
+        spec?: string | null;
+        quantity?: number | null;
+        unit?: string | null;
+        unitPrice?: number | null;
+        hsCode?: string | null;
+        origin?: string | null;
+        /**
+         * Packing list
+         */
+        packages?: number | null;
+        /**
+         * e.g. 25 kg fibre drums
+         */
+        packageType?: string | null;
+        netWeight?: number | null;
+        grossWeight?: number | null;
+        batchNo?: string | null;
+        mfgDate?: string | null;
+        expDate?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  currency?: ('USD' | 'CNY' | 'EUR') | null;
+  incoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
+  /**
+   * e.g. Aden
+   */
+  incotermPlace?: string | null;
+  /**
+   * e.g. 100% T/T in advance
+   */
+  paymentTerms?: string | null;
+  /**
+   * Only if shown separately
+   */
+  freight?: number | null;
+  insurance?: number | null;
+  discount?: number | null;
+  portOfLoading?: string | null;
+  portOfDischarge?: string | null;
+  shipmentBy?: ('Sea' | 'Air' | 'Courier' | 'Land') | null;
+  /**
+   * e.g. 30 days after payment
+   */
+  deliveryTime?: string | null;
+  /**
+   * Invoice and packing list
+   */
+  vessel?: string | null;
+  blNumber?: string | null;
+  shippingMarks?: string | null;
+  remarks?: string | null;
+  /**
+   * For our records only
+   */
+  order?: (number | null) | OrderMatch;
+  internalNotes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -458,6 +637,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'order-files';
         value: number | OrderFile;
+      } | null)
+    | ({
+        relationTo: 'supplier-orders';
+        value: number | SupplierOrder;
+      } | null)
+    | ({
+        relationTo: 'buyer-documents';
+        value: number | BuyerDocument;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -695,6 +882,108 @@ export interface OrderFilesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-orders_select".
+ */
+export interface SupplierOrdersSelect<T extends boolean = true> {
+  number?: T;
+  kind?: T;
+  status?: T;
+  date?: T;
+  supplier?: T;
+  toEmail?: T;
+  items?:
+    | T
+    | {
+        material?: T;
+        spec?: T;
+        quantity?: T;
+        unit?: T;
+        unitPrice?: T;
+        supplierProduct?: T;
+        note?: T;
+        id?: T;
+      };
+  currency?: T;
+  incoterm?: T;
+  incotermPlace?: T;
+  paymentTerms?: T;
+  delivery?: T;
+  destination?: T;
+  documentsRequired?: T;
+  notes?: T;
+  subject?: T;
+  message?: T;
+  rewriteMessage?: T;
+  subjectAuto?: T;
+  messageAuto?: T;
+  order?: T;
+  fromEnquiry?: T;
+  sentAt?: T;
+  sentTo?: T;
+  sendLog?: T;
+  supplierReply?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "buyer-documents_select".
+ */
+export interface BuyerDocumentsSelect<T extends boolean = true> {
+  piNumber?: T;
+  piDate?: T;
+  validity?: T;
+  status?: T;
+  invoiceNumber?: T;
+  invoiceDate?: T;
+  buyerReference?: T;
+  buyerName?: T;
+  buyerCountry?: T;
+  buyerContact?: T;
+  buyerAddress?: T;
+  consignee?: T;
+  notifyParty?: T;
+  items?:
+    | T
+    | {
+        description?: T;
+        spec?: T;
+        quantity?: T;
+        unit?: T;
+        unitPrice?: T;
+        hsCode?: T;
+        origin?: T;
+        packages?: T;
+        packageType?: T;
+        netWeight?: T;
+        grossWeight?: T;
+        batchNo?: T;
+        mfgDate?: T;
+        expDate?: T;
+        id?: T;
+      };
+  currency?: T;
+  incoterm?: T;
+  incotermPlace?: T;
+  paymentTerms?: T;
+  freight?: T;
+  insurance?: T;
+  discount?: T;
+  portOfLoading?: T;
+  portOfDischarge?: T;
+  shipmentBy?: T;
+  deliveryTime?: T;
+  vessel?: T;
+  blNumber?: T;
+  shippingMarks?: T;
+  remarks?: T;
+  order?: T;
+  internalNotes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -732,6 +1021,74 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Printed on every enquiry, purchase order, proforma invoice, invoice and packing list. Fill in once.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "trade-settings".
+ */
+export interface TradeSetting {
+  id: number;
+  /**
+   * The legal name of the company that buys and sells
+   */
+  companyName: string;
+  /**
+   * Full registered address, as on the business licence
+   */
+  address?: string | null;
+  phone?: string | null;
+  /**
+   * Suppliers reply to this address
+   */
+  email?: string | null;
+  website?: string | null;
+  signatoryName?: string | null;
+  signatoryTitle?: string | null;
+  /**
+   * One or more email addresses. Leave empty for no copy.
+   */
+  copyTo?: string | null;
+  /**
+   * Printed on the proforma invoice and the invoice: beneficiary, bank, account number, SWIFT, bank address
+   */
+  bankDetails?: string | null;
+  /**
+   * Pre-filled on new purchase orders
+   */
+  supplierPaymentTerms?: string | null;
+  /**
+   * Pre-filled on new proforma invoices
+   */
+  buyerPaymentTerms?: string | null;
+  /**
+   * Pre-filled on new purchase orders
+   */
+  documentsRequired?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "trade-settings_select".
+ */
+export interface TradeSettingsSelect<T extends boolean = true> {
+  companyName?: T;
+  address?: T;
+  phone?: T;
+  email?: T;
+  website?: T;
+  signatoryName?: T;
+  signatoryTitle?: T;
+  copyTo?: T;
+  bankDetails?: T;
+  supplierPaymentTerms?: T;
+  buyerPaymentTerms?: T;
+  documentsRequired?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

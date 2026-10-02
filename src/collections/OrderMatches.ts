@@ -6,9 +6,12 @@ import type { CollectionBeforeChangeHook, CollectionConfig, PayloadHandler, Payl
 import { type CatalogueProduct, matchOrder, type OrderRow } from '../lib/order-match.ts'
 import { parseOrder, typedToOrder } from '../lib/order-parse.ts'
 import { buildOrderTable, orderTableXlsx } from '../lib/order-table.ts'
+import { emailsIn, parseQuantity } from '../lib/trade-docs.ts'
 import { signedIn } from './access.ts'
 import { ORDERS_DIR } from './OrderFiles.ts'
 import { CERT_TYPES, certificateState } from './SupplierCertificates.ts'
+import { jsonBody, notJson } from './SupplierOrders.ts'
+import { loadSeller } from './TradeSettings.ts'
 
 type Rel = number | string | { id: number | string; name?: string } | null | undefined
 const idOf = (r: Rel) => (r && typeof r === 'object' ? r.id : r)
@@ -141,6 +144,99 @@ const xlsxEndpoint: PayloadHandler = async (req) => {
   })
 }
 
+// Enquiries, purchase orders and buyer documents for one order (signed-in admins only).
+type Doc = Record<string, unknown> & { id: number | string }
+const str = (v: unknown) => (v == null ? '' : String(v))
+
+async function supplierOrdersOf(req: PayloadRequest, orderId: string) {
+  const res = await req.payload.find({ collection: 'supplier-orders', where: { order: { equals: orderId } }, limit: 500, depth: 0, pagination: false, sort: 'createdAt', overrideAccess: true, req })
+  return res.docs as unknown as Doc[]
+}
+
+// GET: every supplier found for this order with its materials and email, plus what already exists.
+const tradeEndpoint: PayloadHandler = async (req) => {
+  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  const id = String(req.routeParams?.id)
+  const t = await buildOrderTable(req.payload, id, req)
+  const existing = await supplierOrdersOf(req, id)
+  const by = new Map<string, typeof t.rows>()
+  for (const r of t.rows.filter((x) => x.found)) by.set(r.supplierId, [...(by.get(r.supplierId) ?? []), r])
+  const mine = (supplierId: string) => existing.filter((o) => String(idOf(o.supplier as Rel)) === supplierId && o.status !== 'cancelled')
+  const suppliers = [...by].map(([supplierId, rows]) => ({
+    supplierId,
+    supplier: rows[0].supplier,
+    // Where the email will really go: the address stored on the enquiry once it exists, else the supplier record.
+    emails: emailsIn(mine(supplierId).find((o) => o.kind === 'rfq')?.toEmail ?? rows[0].email),
+    phone: rows[0].phone,
+    wechat: rows[0].wechat,
+    materials: rows.map((r) => `${r.requested}${r.quantity ? ` (${r.quantity})` : ''}`),
+    orders: mine(supplierId).map((o) => ({ id: o.id, number: o.number, kind: o.kind, status: o.status, sentAt: o.sentAt ?? null })),
+  }))
+  const buyer = await req.payload.find({ collection: 'buyer-documents', where: { order: { equals: id } }, limit: 50, depth: 0, pagination: false, overrideAccess: true, req })
+  return Response.json({
+    suppliers: suppliers.sort((a, b) => b.materials.length - a.materials.length),
+    buyerDocuments: (buyer.docs as unknown as Doc[]).map((d) => ({ id: d.id, piNumber: d.piNumber, status: d.status })),
+  })
+}
+
+// POST { supplierIds: [...] }: a draft enquiry for each of these suppliers with the materials matched
+// to it. A supplier that already has an enquiry for this order keeps it (no second one). Nothing is sent here.
+const enquiriesEndpoint: PayloadHandler = async (req) => {
+  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  const id = String(req.routeParams?.id)
+  const body = await jsonBody<{ supplierIds?: unknown[] }>(req)
+  if (!body) return notJson()
+  const wanted = new Set((Array.isArray(body.supplierIds) ? body.supplierIds : []).map(String))
+  if (!wanted.size) return Response.json({ error: 'Choose at least one supplier' }, { status: 400 })
+  const t = await buildOrderTable(req.payload, id, req)
+  const existing = await supplierOrdersOf(req, id)
+  const out: { supplierId: string; id: number | string; number: string; created: boolean }[] = []
+  for (const supplierId of wanted) {
+    const rows = t.rows.filter((r) => r.found && r.supplierId === supplierId)
+    if (!rows.length) continue
+    const has = existing.find((o) => String(idOf(o.supplier as Rel)) === supplierId && o.kind === 'rfq' && o.status !== 'cancelled')
+    if (has) {
+      out.push({ supplierId, id: has.id, number: str(has.number), created: false })
+      continue
+    }
+    const made = (await req.payload.create({
+      collection: 'supplier-orders', depth: 0, overrideAccess: true, req,
+      data: {
+        kind: 'rfq', status: 'draft', supplier: Number(supplierId) || supplierId, order: Number(id) || id,
+        items: rows.map((r) => {
+          const q = parseQuantity(r.quantity)
+          // A sure match is asked for under the supplier's own product name (customer spelling can be off);
+          // a "(check)" match keeps the customer's wording so the supplier sees what is really wanted.
+          const sure = r.product && r.match.includes('check') === false && r.product.includes(';') === false
+          return { material: sure ? r.product : r.requested, spec: r.grade, quantity: q.quantity, unit: q.unit || 'kg', supplierProduct: r.product, note: q.quantity == null && r.quantity ? `Quantity: ${r.quantity}` : '' }
+        }),
+      } as never,
+    })) as unknown as Doc
+    out.push({ supplierId, id: made.id, number: str(made.number), created: true })
+  }
+  return Response.json({ orders: out })
+}
+
+// POST: one buyer-documents record for this order (PI, invoice, packing list), items pre-filled.
+const buyerDocsEndpoint: PayloadHandler = async (req) => {
+  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  if (!(await jsonBody(req))) return notJson()
+  const id = String(req.routeParams?.id)
+  const order = (await req.payload.findByID({ collection: 'order-matches', id, depth: 0, overrideAccess: true, req })) as unknown as Doc
+  const seller = await loadSeller(req.payload, req)
+  const made = (await req.payload.create({
+    collection: 'buyer-documents', depth: 0, overrideAccess: true, req,
+    data: {
+      buyerName: str(order.customer) || str(order.title), order: Number(id) || id, paymentTerms: seller.buyerPaymentTerms,
+      items: ((order.lines as Doc[]) ?? []).map((l) => {
+        const q = parseQuantity(l.quantity)
+        return { description: str(l.requested), spec: str(l.grade), quantity: q.quantity, unit: q.unit || 'kg', origin: 'China' }
+      }),
+    } as never,
+  })) as unknown as Doc
+  return Response.json({ id: made.id, piNumber: made.piNumber })
+}
+
 // Order matching: upload a customer order and get every supplier in the Catalogue database for each
 // material. Private (customer data).
 export const OrderMatches: CollectionConfig = {
@@ -157,6 +253,9 @@ export const OrderMatches: CollectionConfig = {
   endpoints: [
     { path: '/:id/table', method: 'get', handler: tableEndpoint },
     { path: '/:id/xlsx', method: 'get', handler: xlsxEndpoint },
+    { path: '/:id/trade', method: 'get', handler: tradeEndpoint },
+    { path: '/:id/enquiries', method: 'post', handler: enquiriesEndpoint },
+    { path: '/:id/buyer-documents', method: 'post', handler: buyerDocsEndpoint },
   ],
   timestamps: true,
   fields: [

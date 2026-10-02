@@ -118,3 +118,25 @@ sources (framed as a starting point, not a fixed catalogue). Published: pharmaco
 molecules until their patent status is checked. API pages say supply depends on the patent
 status in the destination country. Supplier names, prices and documents stay private
 (admin-only fields). Data is imported from Drive NJMC > Suppliers files, never committed.
+
+## 2026-10-02 Orders: supplier enquiries, purchase orders, buyer documents (owner request)
+The owner asked for Order matching to go on to the paperwork: prepare a PO, message the suppliers
+after one confirmation click, then prepare the PI, invoice and packing list for the buyer.
+Built as admin group "Orders" (all private, admin login only):
+- Supplier enquiries and purchase orders (`supplier-orders`): one record per supplier, numbered
+  NJMC-RFQ-yyyy-nnnn / NJMC-PO-yyyy-nnnn, PDF from pdf-lib, message written from the items.
+  A real PO needs a price, so the first message is an enquiry; "Make a purchase order from this
+  enquiry" copies it into a PO once the supplier has quoted.
+- Sending: only through POST /api/supplier-orders/:id/send with {confirm:true} from a signed-in
+  admin, after a panel that shows every recipient. Mail goes through the existing SMTP relay as
+  sale@njmcmedicsupp.com, reply-to the address in Company details. A sent record is not sent
+  twice unless the user ticks it again. "Send a test to myself" mails only the signed-in user.
+  The customer name is never put in a supplier message. WeChat cannot be automated: suppliers
+  without an email are listed with their phone and WeChat for the owner to contact by hand.
+- Buyer documents (`buyer-documents`): one record prints three PDFs (proforma invoice,
+  commercial invoice, packing list), numbered NJMC-PI-yyyy-nnnn and NJMC-INV-yyyy-nnnn.
+- Company details for documents (global `trade-settings`): legal name, address, signatory,
+  bank details, usual payment terms. Bank details are typed by the owner, never by Claude, and
+  never enter this repo.
+- PDFs are English only (built-in Latin fonts); Chinese or Arabic text is left out of the PDF.
+- No company stamp image: Media is public, so the stamp is added by hand after printing.

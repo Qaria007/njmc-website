@@ -4,6 +4,7 @@ import * as migration_20260928_083733_catalogue from './20260928_083733_catalogu
 import * as migration_20260930_084117_order_matching from './20260930_084117_order_matching';
 import * as migration_20260930_123456_product_categories from './20260930_123456_product_categories';
 import * as migration_20261001_063312_supplier_contacts from './20261001_063312_supplier_contacts';
+import * as migration_20261002_173307_trade_documents from './20261002_173307_trade_documents';
 
 export const migrations = [
   {
@@ -34,6 +35,11 @@ export const migrations = [
   {
     up: migration_20261001_063312_supplier_contacts.up,
     down: migration_20261001_063312_supplier_contacts.down,
-    name: '20261001_063312_supplier_contacts'
+    name: '20261001_063312_supplier_contacts',
+  },
+  {
+    up: migration_20261002_173307_trade_documents.up,
+    down: migration_20261002_173307_trade_documents.down,
+    name: '20261002_173307_trade_documents'
   },
 ];

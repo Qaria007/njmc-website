@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react'
 
 import type { OrderTable, TableRow } from '@/lib/order-table.ts'
 
+import { TradePanel } from './TradePanel.tsx'
+
 // Results table on the Order matching page: one row per material + supplier, with contacts.
 const COLS: [keyof TableRow, string][] = [
   ['no', 'No.'],
@@ -49,6 +51,7 @@ export function OrderResults() {
   const rows = table.rows.filter((r) => only === 'all' || (only === 'found' ? r.found : !r.found))
   return (
     <div style={{ margin: '24px 0' }}>
+      <TradePanel id={id} />
       <h3 style={{ margin: '0 0 6px' }}>Suppliers for this order</h3>
       <p style={{ margin: '0 0 10px' }}>{table.summary}</p>
       <p style={{ margin: '0 0 12px', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
