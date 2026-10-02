@@ -109,8 +109,13 @@ const FORM_WORDS = new Set(
   ('hcl hbr sodium potassium calcium magnesium zinc sulfate phosphate acetate citrate maleate fumarate tartrate mesilate besilate ' +
     'succinate tosylate lactate gluconate chloride bromide base monohydrate dihydrate trihydrate hemihydrate hydrate anhydrous ' +
     'sterile micronized micronised powder granules granular crystalline amorphous usp ep bp jp chp cp ip grade api pure valerate ' +
-    'dipropionate propionate acetonide').split(' '),
+    'dipropionate propionate acetonide solution').split(' '),
 )
+// Words that describe a quality or use, not the substance: "Acetonitrile HPLC grade", "Glycerol food grade".
+const DESCRIPTORS = new Set('hplc gc acs ar gr lr analytical reagent technical industrial food cosmetic medical injectable injection oral topical natural refined purified'.split(' '))
+const HYDRATE = /\b(monohydrate|dihydrate|trihydrate|hemihydrate|hydrate|anhydrous)\b/g
+// "calcium chloride dihydrate" -> "calcium chloride": the same substance with another water content.
+const dry = (c: string) => c.replace(HYDRATE, ' ').replace(/\s+/g, ' ').trim()
 // Words that do not identify a substance on their own: never match on these alone.
 const GENERIC = new Set(
   ('oxide oxides carbonate stearate sulfate phosphate chloride hydroxide citrate acetate lactate gluconate starch cellulose ' +
@@ -202,7 +207,7 @@ function namedWithin(row: string, product: string): boolean {
   const at = hay.indexOf(` ${product} `)
   if (at < 0) return false
   const rest = (hay.slice(0, at) + ' ' + hay.slice(at + product.length + 1)).trim().split(' ').filter(Boolean)
-  return rest.every((w) => w.length <= 2 || GENERIC.has(w) || FORM_WORDS.has(w) || /^\d+$/.test(w))
+  return rest.every((w) => w.length <= 2 || GENERIC.has(w) || FORM_WORDS.has(w) || DESCRIPTORS.has(w) || /^\d+$/.test(w))
 }
 
 type Entry = { p: CatalogueProduct; other: boolean; nums: boolean; c: string; cNoSyn: string; base: string }
@@ -262,6 +267,10 @@ export function matchRow(row: OrderRow, idx: ProductIndex): Match[] {
       else {
         const b = e.nums ? bases.nums : bases.plain
         if (b && e.base === b && distinctive(b)) add(matches, e.p, 'same molecule, other salt or form (check)', 60)
+        else if (dry(c) !== c || dry(e.c) !== e.c) {
+          const d = dry(c)
+          if (d.length >= 8 && d.includes(' ') && d === dry(e.c)) add(matches, e.p, 'same molecule, other salt or form (check)', 60)
+        }
       }
     }
   }

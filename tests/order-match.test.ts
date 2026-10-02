@@ -134,3 +134,16 @@ test('review v2: brackets and free text never give an unlabelled wrong match', (
   for (const l of lines) assert.ok(l.matches.every((m) => m.how.includes('check')), l.requested)
   assert.deepEqual(lines[0].matches, [])
 })
+
+test('grade words, solutions and water content do not hide a product; all are labelled (check)', () => {
+  const ps: CatalogueProduct[] = [
+    { id: 1, name: 'Acetonitrile', sources: src(1) },
+    { id: 2, name: 'Chlorhexidine gluconate solution', sources: src(2) },
+    { id: 3, name: 'Calcium chloride', sources: src(3) },
+    { id: 4, name: 'Potassium chloride', sources: src(4) },
+    { id: 5, name: 'Methanol anhydrous', sources: src(5) },
+  ]
+  const lines = matchOrder([{ text: 'Acetonitrile HPLC grade' }, { text: 'Chlorhexidine gluconate 20%' }, { text: 'Calcium Chloride Dihydrate' }, { text: 'Sodium chloride' }], '', ps)
+  assert.deepEqual(lines.map((l) => l.matches.map((m) => m.productId)), [[1], [2], [3], []])
+  assert.ok(lines.slice(0, 3).every((l) => l.matches[0].how.includes('(check)')))
+})
