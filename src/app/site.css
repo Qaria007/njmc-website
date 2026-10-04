@@ -115,3 +115,8 @@ main { min-height: 60vh; }
 .cat-facts dt { background: var(--bg-soft); font-weight: 600; color: var(--navy); padding: 10px 14px; }
 .cat-facts dd { margin: 0; padding: 10px 14px; }
 .hero-badge a { color: inherit; }
+
+/* Company registration (trust page): the business licence scan. */
+.prose figure.licence { margin: 1.5rem 0; }
+.prose figure.licence img { display: block; width: 100%; height: auto; border: 1px solid #d8dde6; border-radius: 6px; }
+.prose figure.licence figcaption { font-size: 0.9rem; color: #5b6472; margin-top: 0.5rem; }
