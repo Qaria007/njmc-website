@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto'
 import type { CollectionBeforeChangeHook, CollectionConfig, Payload, PayloadHandler, PayloadRequest } from 'payload'
 
 import { BLOCKS_SENDING, docNumber, emailsIn, nextSeq, safeFileName, supplierMessage, type SupplierOrderDoc, supplierOrderGaps, type SupplierOrderItem, type SupplierOrderKind, supplierOrderSpec } from '../lib/trade-docs.ts'
-import { aiErrorMessage, readQuoteWithAi } from '../lib/ai.ts'
+import { aiErrorMessage, AiReadError, readQuoteWithAi } from '../lib/ai.ts'
 import { type CleanQuote, cleanQuote, type QuoteSubmission } from '../lib/order-desk.ts'
 import { SITE_URL } from '../lib/site.ts'
 import { renderPdf } from '../lib/trade-pdf.ts'
@@ -261,7 +261,7 @@ async function saveQuote(req: PayloadRequest, doc: AnyDoc, q: CleanQuote, source
 }
 
 // POST { text? }: AI mode only. Reads the supplier's reply (the text sent, else the pasted reply on
-// the record) and returns the quotation for review. Nothing is saved here.
+// the record) and returns the quotation for review. Nothing is saved here (apply-quote saves).
 const aiReadEndpoint: PayloadHandler = async (req) => {
   if (!admin(req)) return denied()
   const body = await jsonBody<{ text?: string }>(req)
@@ -269,23 +269,25 @@ const aiReadEndpoint: PayloadHandler = async (req) => {
   const ai = await loadAi(req.payload, req)
   if (!ai) return Response.json({ error: 'AI mode is off, or no API key is saved (Orders, Company details for documents)' }, { status: 400 })
   const doc = (await req.payload.findByID({ collection: 'supplier-orders', id: s(req.routeParams?.id), depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
+  if (doc.kind !== 'rfq') return Response.json({ error: 'Only an enquiry takes a quotation' }, { status: 400 })
   const text = (s(body.text).trim() || s(doc.supplierReply).trim()).slice(0, 60000)
   if (!text) return Response.json({ error: 'Paste the supplier\'s reply first' }, { status: 400 })
   const items = ((doc.items as (SupplierOrderItem & { id: string })[]) ?? []).map((i) => ({ id: s(i.id), material: i.material, spec: i.spec, quantity: i.quantity, unit: i.unit }))
   try {
     const read = await readQuoteWithAi(ai.apiKey, ai.model, text, items)
-    if (text !== s(doc.supplierReply).trim()) await req.payload.update({ collection: 'supplier-orders', id: doc.id, depth: 0, overrideAccess: true, req, data: { supplierReply: text } as never })
-    return Response.json({ quote: read, items })
+    return Response.json({ quote: read, items, text })
   } catch (e) {
-    req.payload.logger.error({ err: e }, 'AI quotation reading failed')
-    return Response.json({ error: e instanceof Error && !('status' in e) ? e.message : aiErrorMessage(e) }, { status: 502 })
+    // Never log or return the raw error: an SDK error can quote request headers.
+    const x = e as { name?: string; status?: number; requestID?: string }
+    req.payload.logger.error({ name: x?.name, status: x?.status, requestID: x?.requestID }, 'AI quotation reading failed')
+    return Response.json({ error: e instanceof AiReadError ? e.message : aiErrorMessage(e) }, { status: 502 })
   }
 }
 
 // POST { quote }: saves a quotation the user has checked (after the AI reading, possibly edited).
 const applyQuoteEndpoint: PayloadHandler = async (req) => {
   if (!admin(req)) return denied()
-  const body = await jsonBody<{ quote?: QuoteSubmission }>(req)
+  const body = await jsonBody<{ quote?: QuoteSubmission; text?: string }>(req)
   if (!body?.quote) return notJson()
   const doc = (await req.payload.findByID({ collection: 'supplier-orders', id: s(req.routeParams?.id), depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
   if (doc.kind !== 'rfq') return Response.json({ error: 'Only an enquiry takes a quotation' }, { status: 400 })
@@ -293,6 +295,12 @@ const applyQuoteEndpoint: PayloadHandler = async (req) => {
   const q = cleanQuote(body.quote, items.map((i) => s(i.id)), CURRENCIES, INCOTERMS)
   if ('error' in q) return Response.json({ error: q.error }, { status: 400 })
   const priced = await saveQuote(req, doc, q, 'email', `read by AI from the pasted reply and checked by ${s(req.user?.email)}`)
+  // Keep the reply that was read, added under any reply pasted before.
+  const reply = s(body.text).trim().slice(0, 60000)
+  const before = s(doc.supplierReply).trim()
+  if (reply && !before.includes(reply)) {
+    await req.payload.update({ collection: 'supplier-orders', id: doc.id, depth: 0, overrideAccess: true, req, data: { supplierReply: [before, reply].filter(Boolean).join('\n\n---\n\n') } as never })
+  }
   return Response.json({ ok: true, priced })
 }
 

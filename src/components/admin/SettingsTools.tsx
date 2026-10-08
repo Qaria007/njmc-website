@@ -31,7 +31,7 @@ export function RatesTools() {
     <div style={box}>
       <p style={{ margin: '0 0 8px' }}>
         {mode === 'manual'
-          ? 'You type the rates yourself. They stay as you set them.'
+          ? 'You type the rates yourself. They stay as you set them, unless you press the button below, which replaces them with today\'s reference rates.'
           : 'Automatic: the rates are fetched once a day from the European Central Bank reference rates. To use your bank\'s rate instead, choose "I type them myself".'}
       </p>
       <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }} disabled={busy} onClick={run}>

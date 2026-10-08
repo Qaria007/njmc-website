@@ -51,6 +51,9 @@ Copy only what the supplier wrote. Never estimate, convert or calculate a price,
 If a price is per a different unit than the enquiry item (for example per ton when the item is in kg), leave the price empty and say so in that item's note.
 Write notes in English even when the reply is in Chinese.`
 
+// A problem with the answer itself (refused, too long, not readable). Its message is safe to show.
+export class AiReadError extends Error {}
+
 export function aiErrorMessage(e: unknown): string {
   if (e instanceof Anthropic.AuthenticationError) return 'The AI key was refused (wrong or expired). Paste a new key in Company details.'
   if (e instanceof Anthropic.PermissionDeniedError) return 'The AI service refused access: the key has no access to this model, or this server\'s country is not supported.'
@@ -71,11 +74,16 @@ export async function readQuoteWithAi(apiKey: string, model: string, reply: stri
     fallbacks: 'default',
     output_config: { effort: 'low', format: { type: 'json_schema', schema: SCHEMA } },
     messages: [{ role: 'user', content: `Enquiry items:\n${list}\n\nSupplier's reply:\n<reply>\n${reply.slice(0, 60000)}\n</reply>` }],
-  } as never) as unknown as Anthropic.Beta.BetaMessage
-  if (res.stop_reason === 'refusal') throw new Error('The AI declined to read this text.')
-  if (res.stop_reason === 'max_tokens') throw new Error('The reply is too long for one reading.')
+  })
+  if (res.stop_reason === 'refusal') throw new AiReadError('The AI declined to read this text.')
+  if (res.stop_reason === 'max_tokens') throw new AiReadError('The reply is too long for one reading.')
   const text = res.content.map((b) => (b.type === 'text' ? b.text : '')).join('')
-  const out = JSON.parse(text) as AiQuote
+  let out: AiQuote
+  try {
+    out = JSON.parse(text) as AiQuote
+  } catch {
+    throw new AiReadError('The AI answer could not be read. Try again.')
+  }
   const ids = new Set(items.map((i) => i.id))
   out.items = (out.items ?? []).filter((i) => ids.has(i.id))
   return out

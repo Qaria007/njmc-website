@@ -13,7 +13,8 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "trade_settings" ADD COLUMN "new_ai_key" varchar;
   ALTER TABLE "trade_settings" ADD COLUMN "ai_key_hint" varchar;
   ALTER TABLE "trade_settings" ADD COLUMN "remove_ai_key" boolean DEFAULT false;
-  ALTER TABLE "trade_settings" ADD COLUMN "ai_key_sealed" varchar;`)
+  ALTER TABLE "trade_settings" ADD COLUMN "ai_key_sealed" varchar;
+  UPDATE "trade_settings" SET "rate_mode" = 'manual' WHERE "cny_per_usd" IS NOT NULL OR "usd_per_eur" IS NOT NULL;`)
 }
 
 export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {

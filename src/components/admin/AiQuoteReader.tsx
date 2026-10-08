@@ -1,5 +1,6 @@
 'use client'
 
+import { useFormModified } from '@payloadcms/ui'
 import { useState } from 'react'
 
 // AI mode on an enquiry: paste the supplier's email or WeChat reply, let AI read it, check and
@@ -28,6 +29,8 @@ export function AiQuoteReader({ id, onSaved }: { id: number | string; onSaved: (
   const [items, setItems] = useState<Item[]>([])
   const [busy, setBusy] = useState('')
   const [note, setNote] = useState('')
+  const [readText, setReadText] = useState('')
+  const modified = useFormModified()
 
   const read = async () => {
     setBusy('AI is reading the reply')
@@ -36,6 +39,7 @@ export function AiQuoteReader({ id, onSaved }: { id: number | string; onSaved: (
       const r = await post(`/api/supplier-orders/${id}/ai-read/`, { text })
       const byId = new Map((r.quote.items as Q['items']).map((i) => [i.id, i]))
       setItems(r.items)
+      setReadText(r.text)
       setQ({ ...r.quote, items: (r.items as Item[]).map((i) => byId.get(i.id) ?? { id: i.id, price: '', moq: '', leadTime: '', note: '' }) })
     } catch (e) {
       setNote((e as Error).message)
@@ -47,10 +51,11 @@ export function AiQuoteReader({ id, onSaved }: { id: number | string; onSaved: (
     setBusy('Saving')
     setNote('')
     try {
-      const r = await post(`/api/supplier-orders/${id}/apply-quote/`, { quote: q })
-      setNote(`Saved: prices for ${r.priced} items. Reload the page to see them in the items.`)
-      setQ(null)
+      await post(`/api/supplier-orders/${id}/apply-quote/`, { quote: q, text: readText })
       await onSaved()
+      // The open form still holds the old items: reload so a later Save cannot wipe the prices.
+      window.location.reload()
+      return
     } catch (e) {
       setNote((e as Error).message)
     }
@@ -110,7 +115,8 @@ export function AiQuoteReader({ id, onSaved }: { id: number | string; onSaved: (
             Remarks
             <textarea style={{ ...input, minHeight: 60 }} value={q.notes} onChange={(e) => setHead('notes', e.target.value)} />
           </label>
-          <button type="button" className="btn btn--style-primary btn--size-small" style={{ margin: 0 }} disabled={busy !== ''} onClick={save}>Save as the supplier's quotation</button>
+          <button type="button" className="btn btn--style-primary btn--size-small" style={{ margin: 0 }} disabled={busy !== '' || modified} onClick={save}>Save as the supplier's quotation</button>
+          {modified ? <span style={{ marginInlineStart: 10 }}>Save your other changes on this page first.</span> : null}
         </>
       ) : null}
       {note ? <p style={{ margin: '8px 0 0' }}>{note}</p> : null}

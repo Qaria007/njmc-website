@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import type { FieldHook, GlobalConfig, Payload, PayloadHandler, PayloadRequest } from 'payload'
+import { APIError, type FieldHook, type GlobalConfig, type Payload, type PayloadHandler, type PayloadRequest } from 'payload'
 
 import { AI_MODELS, aiErrorMessage, DEFAULT_AI_MODEL, testAiKey } from '../lib/ai.ts'
 import type { Rates } from '../lib/order-desk.ts'
@@ -14,7 +14,10 @@ import { signedIn } from './access.ts'
 // lists, and used to sign the emails to suppliers. Private: bank details live here.
 // A pasted key is encrypted into aiKeySealed and the plain text is never stored.
 const storeKey: FieldHook = ({ value, siblingData }) => {
-  const k = String(value ?? '').trim()
+  // Spaces and line breaks picked up while copying are removed. Anything else that is not a plain
+  // key character is refused; the message never repeats what was pasted.
+  const k = String(value ?? '').replace(/\s+/g, '')
+  if (k && !/^[A-Za-z0-9_-]{20,300}$/.test(k)) throw new APIError('That does not look like an API key. Copy it again from console.anthropic.com', 400, undefined, true)
   if (k) {
     siblingData.aiKeySealed = seal(k)
     siblingData.aiKeyHint = `${keyHint(k)} (saved ${new Date().toISOString().slice(0, 10)})`
