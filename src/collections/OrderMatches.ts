@@ -312,9 +312,9 @@ const makePiEndpoint: PayloadHandler = async (req) => {
 // material. Private (customer data).
 export const OrderMatches: CollectionConfig = {
   slug: 'order-matches',
-  labels: { singular: 'Order matching', plural: 'Order matching' },
+  labels: { singular: 'Customer order', plural: 'Customer orders' },
   admin: {
-    group: 'Catalogue',
+    group: 'Orders',
     useAsTitle: 'title',
     defaultColumns: ['title', 'customer', 'status', 'matchedAt'],
     description: 'Attach a customer order (Excel, CSV, Word, PDF) or type the materials, then Save. The suppliers table appears below, with an Excel download.',
@@ -332,6 +332,7 @@ export const OrderMatches: CollectionConfig = {
   ],
   timestamps: true,
   fields: [
+    { name: 'timeline', type: 'ui', admin: { components: { Field: '/components/admin/OrderTimeline#OrderTimeline' } } },
     { name: 'title', type: 'text', required: true, admin: { description: 'e.g. customer name + date' } },
     {
       type: 'row',

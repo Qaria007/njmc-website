@@ -9,6 +9,7 @@ import sharp from 'sharp'
 import { AccountsOverview } from './collections/AccountsOverview.ts'
 import { BuyerDocuments } from './collections/BuyerDocuments.ts'
 import { Clients } from './collections/Clients.ts'
+import { deskEndpoints } from './collections/Desk.ts'
 import { Leads } from './collections/Leads.ts'
 import { Media } from './collections/Media.ts'
 import { OrderFiles } from './collections/OrderFiles.ts'
@@ -34,8 +35,11 @@ export default buildConfig({
     user: Users.slug,
     meta: { titleSuffix: ' | NJMC admin' },
     importMap: { baseDir: path.resolve(dirname) },
+    components: { beforeDashboard: ['/components/admin/HomeDashboard#HomeDashboard'] },
   },
-  collections: [Users, Media, Leads, Products, Suppliers, SupplierCertificates, OrderMatches, OrderFiles, Clients, SupplierOrders, BuyerDocuments, TradeFiles, Payments],
+  // Order of the menu: the daily work first.
+  collections: [OrderMatches, Clients, SupplierOrders, BuyerDocuments, TradeFiles, Payments, Products, Suppliers, SupplierCertificates, OrderFiles, Leads, Media, Users],
+  endpoints: deskEndpoints,
   globals: [TradeSettings, AccountsOverview],
   localization: {
     locales: [

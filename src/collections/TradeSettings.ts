@@ -3,7 +3,7 @@ import path from 'node:path'
 
 import { APIError, type FieldHook, type GlobalConfig, type Payload, type PayloadHandler, type PayloadRequest } from 'payload'
 
-import { AI_MODELS, aiErrorMessage, DEFAULT_AI_MODEL, testAiKey } from '../lib/ai.ts'
+import { AI_MODELS, aiErrorMessage, AiReadError, DEFAULT_AI_MODEL, testAiKey } from '../lib/ai.ts'
 import type { Rates } from '../lib/order-desk.ts'
 import { fetchRates } from '../lib/rates.ts'
 import { keyHint, open, seal } from '../lib/secret-box.ts'
@@ -50,7 +50,7 @@ const testAiEndpoint: PayloadHandler = async (req) => {
     await testAiKey(ai.apiKey, ai.model)
     return Response.json({ ok: true, model: ai.model })
   } catch (e) {
-    return Response.json({ error: aiErrorMessage(e) }, { status: 400 })
+    return Response.json({ error: e instanceof AiReadError ? e.message : aiErrorMessage(e) }, { status: 400 })
   }
 }
 
@@ -135,7 +135,7 @@ export const TradeSettings: GlobalConfig = {
           fields: [
             {
               name: 'newAiKey', type: 'text', label: 'Paste a new API key',
-              admin: { description: 'From console.anthropic.com > API keys. It is stored encrypted and never shown again. Leave empty to keep the current key' },
+              admin: { description: 'A Claude key (console.anthropic.com) or an OpenAI key (platform.openai.com), matching the model above. Stored encrypted and never shown again. Leave empty to keep the current key' },
               hooks: { beforeChange: [storeKey] },
             },
             { name: 'aiKeyHint', type: 'text', label: 'Key in use', access: { create: () => false, update: () => false }, admin: { readOnly: true } },

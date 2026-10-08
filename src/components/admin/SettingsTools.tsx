@@ -61,7 +61,7 @@ export function AiTools() {
       <p style={{ margin: '0 0 8px' }}>
         {on
           ? 'AI mode is on: on a supplier enquiry, "Read the reply with AI" fills in the prices from a pasted email or WeChat message. You check them before they are saved. Each reading uses the API key and costs a few cents.'
-          : 'Simple mode: everything works without AI and without any AI cost. Switch AI mode on to let AI read supplier replies.'}
+          : 'Simple mode: everything works without AI and without any AI cost. Switch AI mode on to let AI read supplier replies. Works with a Claude (Anthropic) key or an OpenAI key: choose the matching model.'}
       </p>
       <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }} disabled={busy} onClick={run}>
         Test the saved key

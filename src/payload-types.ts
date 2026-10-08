@@ -67,30 +67,25 @@ export interface Config {
   };
   blocks: {};
   collections: {
-    users: User;
-    media: Media;
-    leads: Lead;
-    products: Product;
-    suppliers: Supplier;
-    'supplier-certificates': SupplierCertificate;
     'order-matches': OrderMatch;
-    'order-files': OrderFile;
     clients: Client;
     'supplier-orders': SupplierOrder;
     'buyer-documents': BuyerDocument;
     'trade-files': TradeFile;
     payments: Payment;
+    products: Product;
+    suppliers: Supplier;
+    'supplier-certificates': SupplierCertificate;
+    'order-files': OrderFile;
+    leads: Lead;
+    media: Media;
+    users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {
-    suppliers: {
-      orders: 'supplier-orders';
-      payments: 'payments';
-      documents: 'trade-files';
-    };
     'order-matches': {
       documents: 'trade-files';
     };
@@ -103,21 +98,26 @@ export interface Config {
       payments: 'payments';
       documents: 'trade-files';
     };
+    suppliers: {
+      orders: 'supplier-orders';
+      payments: 'payments';
+      documents: 'trade-files';
+    };
   };
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
-    media: MediaSelect<false> | MediaSelect<true>;
-    leads: LeadsSelect<false> | LeadsSelect<true>;
-    products: ProductsSelect<false> | ProductsSelect<true>;
-    suppliers: SuppliersSelect<false> | SuppliersSelect<true>;
-    'supplier-certificates': SupplierCertificatesSelect<false> | SupplierCertificatesSelect<true>;
     'order-matches': OrderMatchesSelect<false> | OrderMatchesSelect<true>;
-    'order-files': OrderFilesSelect<false> | OrderFilesSelect<true>;
     clients: ClientsSelect<false> | ClientsSelect<true>;
     'supplier-orders': SupplierOrdersSelect<false> | SupplierOrdersSelect<true>;
     'buyer-documents': BuyerDocumentsSelect<false> | BuyerDocumentsSelect<true>;
     'trade-files': TradeFilesSelect<false> | TradeFilesSelect<true>;
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
+    suppliers: SuppliersSelect<false> | SuppliersSelect<true>;
+    'supplier-certificates': SupplierCertificatesSelect<false> | SupplierCertificatesSelect<true>;
+    'order-files': OrderFilesSelect<false> | OrderFilesSelect<true>;
+    leads: LeadsSelect<false> | LeadsSelect<true>;
+    media: MediaSelect<false> | MediaSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -162,275 +162,6 @@ export interface UserAuthOperations {
     email: string;
     password: string;
   };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: number;
-  name?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  resetPasswordRequestedAt?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'users';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: number;
-  alt: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "leads".
- */
-export interface Lead {
-  id: number;
-  type: 'rfq' | 'verification';
-  status?: ('new' | 'replied' | 'quoted' | 'won' | 'closed') | null;
-  name: string;
-  company?: string | null;
-  role?: string | null;
-  country: string;
-  email: string;
-  /**
-   * Phone or WhatsApp
-   */
-  phone?: string | null;
-  service?: string | null;
-  /**
-   * Verification orders: supplier or product to check
-   */
-  supplier?: string | null;
-  message: string;
-  heardAbout?: string | null;
-  consent: boolean;
-  page?: string | null;
-  utmFirst?: string | null;
-  utmLast?: string | null;
-  /**
-   * Notification reached the mail relay
-   */
-  emailed?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "products".
- */
-export interface Product {
-  id: number;
-  name: string;
-  /**
-   * Web address: /catalogue/<slug>/ (lower case, hyphens)
-   */
-  slug: string;
-  /**
-   * Shown on the public catalogue
-   */
-  published?: boolean | null;
-  category: 'api' | 'excipient' | 'colour' | 'intermediate' | 'finished-dosage' | 'extract' | 'device' | 'other';
-  /**
-   * Therapeutic class, or colour type
-   */
-  productClass?: string | null;
-  otherNames?: string | null;
-  cas?: string | null;
-  ciNumber?: string | null;
-  grades?: ('EP' | 'USP' | 'BP' | 'JP' | 'ChP' | 'IP' | 'In-house')[] | null;
-  /**
-   * Private: manufacturers and their documents for this product
-   */
-  sources?:
-    | {
-        supplier: number | Supplier;
-        /**
-         * e.g. CEP, US DMF, WC, EU GMP
-         */
-        documents?: string | null;
-        /**
-         * e.g. permitted in: India, EU, USA
-         */
-        marketStatus?: string | null;
-        details?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  internalNotes?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "suppliers".
- */
-export interface Supplier {
-  id: number;
-  name: string;
-  nameLocal?: string | null;
-  country: string;
-  city?: string | null;
-  address?: string | null;
-  website?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  /**
-   * Name and title, e.g. from the business card
-   */
-  contactPerson?: string | null;
-  wechat?: string | null;
-  supplies?: ('api' | 'intermediate' | 'excipient' | 'colour' | 'device' | 'consumable' | 'other')[] | null;
-  status?: ('new' | 'contacted' | 'samples' | 'qualified' | 'approved' | 'on-hold' | 'rejected') | null;
-  /**
-   * Where we met them, e.g. CPHI Shanghai 2026
-   */
-  source?: string | null;
-  /**
-   * Link to the Drive folder or files
-   */
-  documentsFolder?: string | null;
-  notes?: string | null;
-  orders?: {
-    docs?: (number | SupplierOrder)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  payments?: {
-    docs?: (number | Payment)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  documents?: {
-    docs?: (number | TradeFile)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * An enquiry asks a supplier for prices. A purchase order orders the goods. Each one has a PDF and a message that is sent to the supplier only after you confirm.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "supplier-orders".
- */
-export interface SupplierOrder {
-  id: number;
-  /**
-   * Given automatically
-   */
-  number?: string | null;
-  kind: 'rfq' | 'po';
-  status?: ('draft' | 'sent' | 'supplier replied' | 'confirmed' | 'cancelled') | null;
-  date?: string | null;
-  supplier: number | Supplier;
-  /**
-   * Taken from the supplier record; change it here if needed. Several addresses: separate with commas.
-   */
-  toEmail?: string | null;
-  items?:
-    | {
-        material: string;
-        spec?: string | null;
-        quantity?: number | null;
-        unit?: string | null;
-        /**
-         * Needed for a purchase order
-         */
-        unitPrice?: number | null;
-        supplierProduct?: string | null;
-        note?: string | null;
-        /**
-         * From the quotation page or their email
-         */
-        quotedPrice?: number | null;
-        moq?: string | null;
-        leadTime?: string | null;
-        quoteNote?: string | null;
-        requested?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  currency?: ('USD' | 'CNY' | 'EUR') | null;
-  incoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
-  /**
-   * e.g. Shanghai
-   */
-  incotermPlace?: string | null;
-  /**
-   * e.g. 30% T/T in advance, 70% before shipment
-   */
-  paymentTerms?: string | null;
-  /**
-   * e.g. within 20 days of the order
-   */
-  delivery?: string | null;
-  /**
-   * Country or port. The customer name is never sent to suppliers.
-   */
-  destination?: string | null;
-  documentsRequired?: string | null;
-  notes?: string | null;
-  subject?: string | null;
-  /**
-   * Written automatically. You can edit it before sending.
-   */
-  message?: string | null;
-  rewriteMessage?: boolean | null;
-  subjectAuto?: string | null;
-  messageAuto?: string | null;
-  /**
-   * For our records only
-   */
-  order?: (number | null) | OrderMatch;
-  fromEnquiry?: (number | null) | SupplierOrder;
-  sentAt?: string | null;
-  sentTo?: string | null;
-  sendLog?: string | null;
-  quoteCurrency?: ('USD' | 'CNY' | 'EUR') | null;
-  quoteIncoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
-  quoteIncotermPlace?: string | null;
-  quoteValidUntil?: string | null;
-  quotePaymentTerms?: string | null;
-  quoteContact?: string | null;
-  quoteSource?: ('supplier form' | 'email' | 'WeChat or phone') | null;
-  quoteReceivedAt?: string | null;
-  quoteNotes?: string | null;
-  supplierReply?: string | null;
-  quoteLog?: string | null;
-  quoteToken?: string | null;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * Attach a customer order (Excel, CSV, Word, PDF) or type the materials, then Save. The suppliers table appears below, with an Excel download.
@@ -684,6 +415,150 @@ export interface BuyerDocument {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "suppliers".
+ */
+export interface Supplier {
+  id: number;
+  name: string;
+  nameLocal?: string | null;
+  country: string;
+  city?: string | null;
+  address?: string | null;
+  website?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  /**
+   * Name and title, e.g. from the business card
+   */
+  contactPerson?: string | null;
+  wechat?: string | null;
+  supplies?: ('api' | 'intermediate' | 'excipient' | 'colour' | 'device' | 'consumable' | 'other')[] | null;
+  status?: ('new' | 'contacted' | 'samples' | 'qualified' | 'approved' | 'on-hold' | 'rejected') | null;
+  /**
+   * Where we met them, e.g. CPHI Shanghai 2026
+   */
+  source?: string | null;
+  /**
+   * Link to the Drive folder or files
+   */
+  documentsFolder?: string | null;
+  rating?: ('5' | '4' | '3' | '2' | '1') | null;
+  problems?: string | null;
+  notes?: string | null;
+  orders?: {
+    docs?: (number | SupplierOrder)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  payments?: {
+    docs?: (number | Payment)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  documents?: {
+    docs?: (number | TradeFile)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * An enquiry asks a supplier for prices. A purchase order orders the goods. Each one has a PDF and a message that is sent to the supplier only after you confirm.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-orders".
+ */
+export interface SupplierOrder {
+  id: number;
+  /**
+   * Given automatically
+   */
+  number?: string | null;
+  kind: 'rfq' | 'po';
+  status?: ('draft' | 'sent' | 'supplier replied' | 'confirmed' | 'cancelled') | null;
+  date?: string | null;
+  supplier: number | Supplier;
+  /**
+   * Taken from the supplier record; change it here if needed. Several addresses: separate with commas.
+   */
+  toEmail?: string | null;
+  items?:
+    | {
+        material: string;
+        spec?: string | null;
+        quantity?: number | null;
+        unit?: string | null;
+        /**
+         * Needed for a purchase order
+         */
+        unitPrice?: number | null;
+        supplierProduct?: string | null;
+        note?: string | null;
+        /**
+         * From the quotation page or their email
+         */
+        quotedPrice?: number | null;
+        moq?: string | null;
+        leadTime?: string | null;
+        quoteNote?: string | null;
+        requested?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  currency?: ('USD' | 'CNY' | 'EUR') | null;
+  incoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
+  /**
+   * e.g. Shanghai
+   */
+  incotermPlace?: string | null;
+  /**
+   * e.g. 30% T/T in advance, 70% before shipment
+   */
+  paymentTerms?: string | null;
+  /**
+   * e.g. within 20 days of the order
+   */
+  delivery?: string | null;
+  /**
+   * Country or port. The customer name is never sent to suppliers.
+   */
+  destination?: string | null;
+  documentsRequired?: string | null;
+  notes?: string | null;
+  subject?: string | null;
+  /**
+   * Written automatically. You can edit it before sending.
+   */
+  message?: string | null;
+  rewriteMessage?: boolean | null;
+  subjectAuto?: string | null;
+  messageAuto?: string | null;
+  /**
+   * For our records only
+   */
+  order?: (number | null) | OrderMatch;
+  fromEnquiry?: (number | null) | SupplierOrder;
+  sentAt?: string | null;
+  sentTo?: string | null;
+  sendLog?: string | null;
+  quoteCurrency?: ('USD' | 'CNY' | 'EUR') | null;
+  quoteIncoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
+  quoteIncotermPlace?: string | null;
+  quoteValidUntil?: string | null;
+  quotePaymentTerms?: string | null;
+  quoteContact?: string | null;
+  quoteSource?: ('supplier form' | 'email' | 'WeChat or phone') | null;
+  quoteReceivedAt?: string | null;
+  quoteNotes?: string | null;
+  supplierReply?: string | null;
+  quoteLog?: string | null;
+  quoteToken?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Every payment received from a client, paid to a supplier, and every cost (freight, bank charges). Link it to the sale or the purchase order so the balances add up.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -813,6 +688,52 @@ export interface OrderFile {
   focalY?: number | null;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  name: string;
+  /**
+   * Web address: /catalogue/<slug>/ (lower case, hyphens)
+   */
+  slug: string;
+  /**
+   * Shown on the public catalogue
+   */
+  published?: boolean | null;
+  category: 'api' | 'excipient' | 'colour' | 'intermediate' | 'finished-dosage' | 'extract' | 'device' | 'other';
+  /**
+   * Therapeutic class, or colour type
+   */
+  productClass?: string | null;
+  otherNames?: string | null;
+  cas?: string | null;
+  ciNumber?: string | null;
+  grades?: ('EP' | 'USP' | 'BP' | 'JP' | 'ChP' | 'IP' | 'In-house')[] | null;
+  /**
+   * Private: manufacturers and their documents for this product
+   */
+  sources?:
+    | {
+        supplier: number | Supplier;
+        /**
+         * e.g. CEP, US DMF, WC, EU GMP
+         */
+        documents?: string | null;
+        /**
+         * e.g. permitted in: India, EU, USA
+         */
+        marketStatus?: string | null;
+        details?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  internalNotes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Sort by "Valid until" to see what expires next.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -857,6 +778,87 @@ export interface SupplierCertificate {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "leads".
+ */
+export interface Lead {
+  id: number;
+  type: 'rfq' | 'verification';
+  status?: ('new' | 'replied' | 'quoted' | 'won' | 'closed') | null;
+  name: string;
+  company?: string | null;
+  role?: string | null;
+  country: string;
+  email: string;
+  /**
+   * Phone or WhatsApp
+   */
+  phone?: string | null;
+  service?: string | null;
+  /**
+   * Verification orders: supplier or product to check
+   */
+  supplier?: string | null;
+  message: string;
+  heardAbout?: string | null;
+  consent: boolean;
+  page?: string | null;
+  utmFirst?: string | null;
+  utmLast?: string | null;
+  /**
+   * Notification reached the mail relay
+   */
+  emailed?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  alt: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  name?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -880,36 +882,8 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
-        relationTo: 'users';
-        value: number | User;
-      } | null)
-    | ({
-        relationTo: 'media';
-        value: number | Media;
-      } | null)
-    | ({
-        relationTo: 'leads';
-        value: number | Lead;
-      } | null)
-    | ({
-        relationTo: 'products';
-        value: number | Product;
-      } | null)
-    | ({
-        relationTo: 'suppliers';
-        value: number | Supplier;
-      } | null)
-    | ({
-        relationTo: 'supplier-certificates';
-        value: number | SupplierCertificate;
-      } | null)
-    | ({
         relationTo: 'order-matches';
         value: number | OrderMatch;
-      } | null)
-    | ({
-        relationTo: 'order-files';
-        value: number | OrderFile;
       } | null)
     | ({
         relationTo: 'clients';
@@ -930,6 +904,34 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'payments';
         value: number | Payment;
+      } | null)
+    | ({
+        relationTo: 'products';
+        value: number | Product;
+      } | null)
+    | ({
+        relationTo: 'suppliers';
+        value: number | Supplier;
+      } | null)
+    | ({
+        relationTo: 'supplier-certificates';
+        value: number | SupplierCertificate;
+      } | null)
+    | ({
+        relationTo: 'order-files';
+        value: number | OrderFile;
+      } | null)
+    | ({
+        relationTo: 'leads';
+        value: number | Lead;
+      } | null)
+    | ({
+        relationTo: 'media';
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: number | User;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -975,145 +977,6 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
- */
-export interface UsersSelect<T extends boolean = true> {
-  name?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  email?: T;
-  resetPasswordToken?: T;
-  resetPasswordExpiration?: T;
-  salt?: T;
-  hash?: T;
-  resetPasswordRequestedAt?: T;
-  loginAttempts?: T;
-  lockUntil?: T;
-  sessions?:
-    | T
-    | {
-        id?: T;
-        createdAt?: T;
-        expiresAt?: T;
-      };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
- */
-export interface MediaSelect<T extends boolean = true> {
-  alt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "leads_select".
- */
-export interface LeadsSelect<T extends boolean = true> {
-  type?: T;
-  status?: T;
-  name?: T;
-  company?: T;
-  role?: T;
-  country?: T;
-  email?: T;
-  phone?: T;
-  service?: T;
-  supplier?: T;
-  message?: T;
-  heardAbout?: T;
-  consent?: T;
-  page?: T;
-  utmFirst?: T;
-  utmLast?: T;
-  emailed?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "products_select".
- */
-export interface ProductsSelect<T extends boolean = true> {
-  name?: T;
-  slug?: T;
-  published?: T;
-  category?: T;
-  productClass?: T;
-  otherNames?: T;
-  cas?: T;
-  ciNumber?: T;
-  grades?: T;
-  sources?:
-    | T
-    | {
-        supplier?: T;
-        documents?: T;
-        marketStatus?: T;
-        details?: T;
-        id?: T;
-      };
-  internalNotes?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "suppliers_select".
- */
-export interface SuppliersSelect<T extends boolean = true> {
-  name?: T;
-  nameLocal?: T;
-  country?: T;
-  city?: T;
-  address?: T;
-  website?: T;
-  email?: T;
-  phone?: T;
-  contactPerson?: T;
-  wechat?: T;
-  supplies?: T;
-  status?: T;
-  source?: T;
-  documentsFolder?: T;
-  notes?: T;
-  orders?: T;
-  payments?: T;
-  documents?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "supplier-certificates_select".
- */
-export interface SupplierCertificatesSelect<T extends boolean = true> {
-  title?: T;
-  supplier?: T;
-  type?: T;
-  number?: T;
-  issuer?: T;
-  scope?: T;
-  issued?: T;
-  validUntil?: T;
-  state?: T;
-  sourceFile?: T;
-  notes?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "order-matches_select".
  */
 export interface OrderMatchesSelect<T extends boolean = true> {
@@ -1151,24 +1014,6 @@ export interface OrderMatchesSelect<T extends boolean = true> {
   documents?: T;
   updatedAt?: T;
   createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "order-files_select".
- */
-export interface OrderFilesSelect<T extends boolean = true> {
-  note?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1382,6 +1227,165 @@ export interface PaymentsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  published?: T;
+  category?: T;
+  productClass?: T;
+  otherNames?: T;
+  cas?: T;
+  ciNumber?: T;
+  grades?: T;
+  sources?:
+    | T
+    | {
+        supplier?: T;
+        documents?: T;
+        marketStatus?: T;
+        details?: T;
+        id?: T;
+      };
+  internalNotes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "suppliers_select".
+ */
+export interface SuppliersSelect<T extends boolean = true> {
+  name?: T;
+  nameLocal?: T;
+  country?: T;
+  city?: T;
+  address?: T;
+  website?: T;
+  email?: T;
+  phone?: T;
+  contactPerson?: T;
+  wechat?: T;
+  supplies?: T;
+  status?: T;
+  source?: T;
+  documentsFolder?: T;
+  rating?: T;
+  problems?: T;
+  notes?: T;
+  orders?: T;
+  payments?: T;
+  documents?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-certificates_select".
+ */
+export interface SupplierCertificatesSelect<T extends boolean = true> {
+  title?: T;
+  supplier?: T;
+  type?: T;
+  number?: T;
+  issuer?: T;
+  scope?: T;
+  issued?: T;
+  validUntil?: T;
+  state?: T;
+  sourceFile?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "order-files_select".
+ */
+export interface OrderFilesSelect<T extends boolean = true> {
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "leads_select".
+ */
+export interface LeadsSelect<T extends boolean = true> {
+  type?: T;
+  status?: T;
+  name?: T;
+  company?: T;
+  role?: T;
+  country?: T;
+  email?: T;
+  phone?: T;
+  service?: T;
+  supplier?: T;
+  message?: T;
+  heardAbout?: T;
+  consent?: T;
+  page?: T;
+  utmFirst?: T;
+  utmLast?: T;
+  emailed?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users_select".
+ */
+export interface UsersSelect<T extends boolean = true> {
+  name?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  resetPasswordRequestedAt?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -1478,9 +1482,9 @@ export interface TradeSetting {
    */
   defaultMargin?: number | null;
   aiMode?: boolean | null;
-  aiModel?: ('claude-opus-5-5' | 'claude-sonnet-5-5' | 'claude-haiku-5-5') | null;
+  aiModel?: ('claude-opus-5-5' | 'claude-sonnet-5-5' | 'claude-haiku-5-5' | 'gpt-5' | 'gpt-5-mini') | null;
   /**
-   * From console.anthropic.com > API keys. It is stored encrypted and never shown again. Leave empty to keep the current key
+   * A Claude key (console.anthropic.com) or an OpenAI key (platform.openai.com), matching the model above. Stored encrypted and never shown again. Leave empty to keep the current key
    */
   newAiKey?: string | null;
   aiKeyHint?: string | null;
