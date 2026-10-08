@@ -168,3 +168,14 @@ documents in English only ("I use English everywhere for formal documents"). Bui
   `documents` (not under public media), listed on the client, supplier, order and sale.
 - Optional logo in Company details, printed on every PDF (the logo is public anyway; the stamp
   still is not uploaded, see 2026-10-02).
+
+## 2026-10-08 Exchange rates, AI mode, API key in the admin (owner request)
+- Rates: "Automatic" fetches the ECB reference rates (api.frankfurter.dev, free, no key) at most
+  every 12 hours; "I type them myself" keeps typed rates. Existing rows with typed rates were set
+  to manual by the migration, so nothing the owner typed is overwritten.
+- AI mode switch (off = simple mode: no AI, no AI cost). Model choice: Opus 5.5 (default),
+  Sonnet 5.5, Haiku 5.5. First AI feature: read a pasted supplier reply into the quotation; the
+  result is only a proposal, saved after the user checks it.
+- The API key is pasted in Company details and stored encrypted (AES-256-GCM, key derived from
+  PAYLOAD_SECRET); it is never readable through the API or the admin, never logged, and only the
+  last 4 characters are shown. Rotating PAYLOAD_SECRET makes the saved key unreadable: paste it again.

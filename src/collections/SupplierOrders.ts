@@ -3,11 +3,12 @@ import { randomBytes } from 'node:crypto'
 import type { CollectionBeforeChangeHook, CollectionConfig, Payload, PayloadHandler, PayloadRequest } from 'payload'
 
 import { BLOCKS_SENDING, docNumber, emailsIn, nextSeq, safeFileName, supplierMessage, type SupplierOrderDoc, supplierOrderGaps, type SupplierOrderItem, type SupplierOrderKind, supplierOrderSpec } from '../lib/trade-docs.ts'
-import { cleanQuote, type QuoteSubmission } from '../lib/order-desk.ts'
+import { aiErrorMessage, AiReadError, readQuoteWithAi } from '../lib/ai.ts'
+import { type CleanQuote, cleanQuote, type QuoteSubmission } from '../lib/order-desk.ts'
 import { SITE_URL } from '../lib/site.ts'
 import { renderPdf } from '../lib/trade-pdf.ts'
 import { signedIn } from './access.ts'
-import { loadSeller } from './TradeSettings.ts'
+import { loadAi, loadSeller } from './TradeSettings.ts'
 
 type AnyDoc = Record<string, unknown> & { id: number | string }
 const s = (v: unknown) => (v == null ? '' : String(v))
@@ -118,7 +119,7 @@ const checkEndpoint: PayloadHandler = async (req) => {
   return Response.json({
     number: doc.number, kind: doc.kind, status: doc.status, supplier: s(supplier?.name), to, copyTo: emailsIn(seller.copyTo), gaps, subject: doc.subject, message: doc.message,
     sentAt: doc.sentAt ?? null, phone: s(supplier?.phone), wechat: s(supplier?.wechat), you: s(req.user?.email),
-    quoteLink: data.quoteLink || '', quoteReceivedAt: doc.quoteReceivedAt ?? null,
+    quoteLink: data.quoteLink || '', quoteReceivedAt: doc.quoteReceivedAt ?? null, aiMode: seller.aiMode,
   })
 }
 
@@ -235,6 +236,74 @@ export async function enquiryByToken(payload: Payload, token: string, req?: Payl
   return doc
 }
 
+// Writes a cleaned quotation into the enquiry's quotation fields and logs where it came from.
+async function saveQuote(req: PayloadRequest, doc: AnyDoc, q: CleanQuote, source: string, how: string): Promise<number> {
+  const items = (doc.items as (SupplierOrderItem & { id: string })[]) ?? []
+  const now = new Date().toISOString()
+  const priced = q.items.filter((i) => i.price != null).length
+  const log = `${now.slice(0, 16).replace('T', ' ')} UTC: prices for ${priced} of ${items.length} items ${how}`
+  await req.payload.update({
+    collection: 'supplier-orders', id: doc.id, depth: 0, overrideAccess: true, req,
+    data: {
+      status: doc.status === 'draft' || doc.status === 'sent' ? 'supplier replied' : doc.status,
+      items: items.map((i) => {
+        const a = q.items.find((x) => x.id === s(i.id))
+        return { ...i, quotedPrice: a?.price ?? null, moq: a?.moq ?? '', leadTime: a?.leadTime ?? '', quoteNote: a?.note ?? '' }
+      }),
+      quoteCurrency: q.currency, quoteIncoterm: q.incoterm || null, quoteIncotermPlace: q.incotermPlace,
+      // Noon UTC: the same calendar day in every time zone.
+      quoteValidUntil: q.validUntil ? `${q.validUntil}T12:00:00.000Z` : null,
+      quotePaymentTerms: q.paymentTerms, quoteContact: q.contactName, quoteNotes: q.notes, quoteSource: source, quoteReceivedAt: now,
+      quoteLog: [s(doc.quoteLog), log].filter(Boolean).join('\n'),
+    } as never,
+  })
+  return priced
+}
+
+// POST { text? }: AI mode only. Reads the supplier's reply (the text sent, else the pasted reply on
+// the record) and returns the quotation for review. Nothing is saved here (apply-quote saves).
+const aiReadEndpoint: PayloadHandler = async (req) => {
+  if (!admin(req)) return denied()
+  const body = await jsonBody<{ text?: string }>(req)
+  if (!body) return notJson()
+  const ai = await loadAi(req.payload, req)
+  if (!ai) return Response.json({ error: 'AI mode is off, or no API key is saved (Orders, Company details for documents)' }, { status: 400 })
+  const doc = (await req.payload.findByID({ collection: 'supplier-orders', id: s(req.routeParams?.id), depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
+  if (doc.kind !== 'rfq') return Response.json({ error: 'Only an enquiry takes a quotation' }, { status: 400 })
+  const text = (s(body.text).trim() || s(doc.supplierReply).trim()).slice(0, 60000)
+  if (!text) return Response.json({ error: 'Paste the supplier\'s reply first' }, { status: 400 })
+  const items = ((doc.items as (SupplierOrderItem & { id: string })[]) ?? []).map((i) => ({ id: s(i.id), material: i.material, spec: i.spec, quantity: i.quantity, unit: i.unit }))
+  try {
+    const read = await readQuoteWithAi(ai.apiKey, ai.model, text, items)
+    return Response.json({ quote: read, items, text })
+  } catch (e) {
+    // Never log or return the raw error: an SDK error can quote request headers.
+    const x = e as { name?: string; status?: number; requestID?: string }
+    req.payload.logger.error({ name: x?.name, status: x?.status, requestID: x?.requestID }, 'AI quotation reading failed')
+    return Response.json({ error: e instanceof AiReadError ? e.message : aiErrorMessage(e) }, { status: 502 })
+  }
+}
+
+// POST { quote }: saves a quotation the user has checked (after the AI reading, possibly edited).
+const applyQuoteEndpoint: PayloadHandler = async (req) => {
+  if (!admin(req)) return denied()
+  const body = await jsonBody<{ quote?: QuoteSubmission; text?: string }>(req)
+  if (!body?.quote) return notJson()
+  const doc = (await req.payload.findByID({ collection: 'supplier-orders', id: s(req.routeParams?.id), depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
+  if (doc.kind !== 'rfq') return Response.json({ error: 'Only an enquiry takes a quotation' }, { status: 400 })
+  const items = (doc.items as { id: string }[]) ?? []
+  const q = cleanQuote(body.quote, items.map((i) => s(i.id)), CURRENCIES, INCOTERMS)
+  if ('error' in q) return Response.json({ error: q.error }, { status: 400 })
+  const priced = await saveQuote(req, doc, q, 'email', `read by AI from the pasted reply and checked by ${s(req.user?.email)}`)
+  // Keep the reply that was read, added under any reply pasted before.
+  const reply = s(body.text).trim().slice(0, 60000)
+  const before = s(doc.supplierReply).trim()
+  if (reply && !before.includes(reply)) {
+    await req.payload.update({ collection: 'supplier-orders', id: doc.id, depth: 0, overrideAccess: true, req, data: { supplierReply: [before, reply].filter(Boolean).join('\n\n---\n\n') } as never })
+  }
+  return Response.json({ ok: true, priced })
+}
+
 // POST { token, currency, incoterm, ..., items: [{ id, price, moq, leadTime, note }] } from the public
 // quotation page. No login: the long random token in the link is the key, and it only ever writes
 // the quotation fields of that one enquiry. A second answer replaces the first (both are logged).
@@ -246,23 +315,7 @@ const publicQuoteEndpoint: PayloadHandler = async (req) => {
   const items = (doc.items as (SupplierOrderItem & { id: string })[]) ?? []
   const q = cleanQuote(body, items.map((i) => s(i.id)), CURRENCIES, INCOTERMS)
   if ('error' in q) return Response.json({ error: q.error }, { status: 400 })
-  const now = new Date().toISOString()
-  const priced = q.items.filter((i) => i.price != null).length
-  const log = `${now.slice(0, 16).replace('T', ' ')} UTC: prices for ${priced} of ${items.length} items entered on the quotation page${q.contactName ? ` by ${q.contactName}` : ''}`
-  await req.payload.update({
-    collection: 'supplier-orders', id: doc.id, depth: 0, overrideAccess: true, req,
-    data: {
-      status: doc.status === 'draft' || doc.status === 'sent' ? 'supplier replied' : doc.status,
-      items: items.map((i) => {
-        const a = q.items.find((x) => x.id === s(i.id))
-        return { ...i, quotedPrice: a?.price ?? null, moq: a?.moq ?? '', leadTime: a?.leadTime ?? '', quoteNote: a?.note ?? '' }
-      }),
-      quoteCurrency: q.currency, quoteIncoterm: q.incoterm || null, quoteIncotermPlace: q.incotermPlace, // Noon UTC: the same calendar day in every time zone.
-      quoteValidUntil: q.validUntil ? `${q.validUntil}T12:00:00.000Z` : null,
-      quotePaymentTerms: q.paymentTerms, quoteContact: q.contactName, quoteNotes: q.notes, quoteSource: 'supplier form', quoteReceivedAt: now,
-      quoteLog: [s(doc.quoteLog), log].filter(Boolean).join('\n'),
-    } as never,
-  })
+  const priced = await saveQuote(req, doc, q, 'supplier form', `entered on the quotation page${q.contactName ? ` by ${q.contactName}` : ''}`)
   // Tell us by email; a failure here never loses the quotation.
   try {
     const seller = await loadSeller(req.payload, req)
@@ -298,6 +351,8 @@ export const SupplierOrders: CollectionConfig = {
     { path: '/:id/send', method: 'post', handler: sendEndpoint },
     { path: '/:id/to-po', method: 'post', handler: toPoEndpoint },
     { path: '/public-quote', method: 'post', handler: publicQuoteEndpoint },
+    { path: '/:id/ai-read', method: 'post', handler: aiReadEndpoint },
+    { path: '/:id/apply-quote', method: 'post', handler: applyQuoteEndpoint },
   ],
   timestamps: true,
   fields: [

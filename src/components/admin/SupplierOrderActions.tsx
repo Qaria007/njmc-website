@@ -3,11 +3,13 @@
 import { useDocumentInfo, useFormModified } from '@payloadcms/ui'
 import { useCallback, useEffect, useState } from 'react'
 
+import { AiQuoteReader } from './AiQuoteReader.tsx'
+
 // Buttons on a supplier enquiry or purchase order: the PDF, a test email to yourself, and the
 // send to the supplier, which always shows who gets it and asks for a confirmation first.
 type Check = {
   number: string; kind: 'rfq' | 'po'; status: string; supplier: string; to: string[]; copyTo: string[]; gaps: string[]; subject: string; message: string
-  sentAt: string | null; phone: string; wechat: string; you: string; quoteLink: string; quoteReceivedAt: string | null
+  sentAt: string | null; phone: string; wechat: string; you: string; quoteLink: string; quoteReceivedAt: string | null; aiMode: boolean
 }
 
 const box: React.CSSProperties = { border: '1px solid var(--theme-elevation-150)', borderRadius: 4, padding: 14, margin: '0 0 18px' }
@@ -107,6 +109,7 @@ export function SupplierOrderActions() {
           </button>
         </p>
       ) : null}
+      {check.kind === 'rfq' && check.aiMode ? <AiQuoteReader id={id} onSaved={load} /> : null}
       {check.to.length === 0 ? (
         <p style={{ margin: '10px 0 0' }}>
           No email for this supplier. Open the PDF and send it yourself by WeChat or phone: {[check.phone, check.wechat].filter(Boolean).join(' / ') || 'no phone or WeChat on file'}.
