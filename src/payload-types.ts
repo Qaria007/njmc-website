@@ -1464,18 +1464,28 @@ export interface TradeSetting {
    * Pre-filled on new proforma invoices
    */
   buyerPaymentTerms?: string | null;
+  rateMode?: ('auto' | 'manual') | null;
+  /**
+   * Automatic mode fills this in; switch to "I type them myself" to use your own rate
+   */
+  cnyPerUsd?: number | null;
+  usdPerEur?: number | null;
+  ratesDate?: string | null;
+  ratesSource?: string | null;
+  ratesCheckedAt?: string | null;
   /**
    * Selling price = cost + this %. Pre-filled when a proforma invoice is made from the supplier prices; you can change it per item
    */
   defaultMargin?: number | null;
+  aiMode?: boolean | null;
+  aiModel?: ('claude-opus-5-5' | 'claude-sonnet-5-5' | 'claude-haiku-5-5') | null;
   /**
-   * e.g. 7.10. Used to compare prices and for the accounts
+   * From console.anthropic.com > API keys. It is stored encrypted and never shown again. Leave empty to keep the current key
    */
-  cnyPerUsd?: number | null;
-  /**
-   * e.g. 1.08
-   */
-  usdPerEur?: number | null;
+  newAiKey?: string | null;
+  aiKeyHint?: string | null;
+  removeAiKey?: boolean | null;
+  aiKeySealed?: string | null;
   /**
    * Pre-filled on new purchase orders
    */
@@ -1511,9 +1521,19 @@ export interface TradeSettingsSelect<T extends boolean = true> {
   bankDetails?: T;
   supplierPaymentTerms?: T;
   buyerPaymentTerms?: T;
-  defaultMargin?: T;
+  rateMode?: T;
   cnyPerUsd?: T;
   usdPerEur?: T;
+  ratesDate?: T;
+  ratesSource?: T;
+  ratesCheckedAt?: T;
+  defaultMargin?: T;
+  aiMode?: T;
+  aiModel?: T;
+  newAiKey?: T;
+  aiKeyHint?: T;
+  removeAiKey?: T;
+  aiKeySealed?: T;
   documentsRequired?: T;
   updatedAt?: T;
   createdAt?: T;
