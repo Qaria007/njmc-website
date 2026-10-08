@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 
 import type { OrderTable, TableRow } from '@/lib/order-table.ts'
 
+import { QuotesPanel } from './QuotesPanel.tsx'
 import { TradePanel } from './TradePanel.tsx'
 
 // Results table on the Order matching page: one row per material + supplier, with contacts.
@@ -52,6 +53,7 @@ export function OrderResults() {
   return (
     <div style={{ margin: '24px 0' }}>
       <TradePanel id={id} />
+      <QuotesPanel id={id} />
       <h3 style={{ margin: '0 0 6px' }}>Suppliers for this order</h3>
       <p style={{ margin: '0 0 10px' }}>{table.summary}</p>
       <p style={{ margin: '0 0 12px', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>

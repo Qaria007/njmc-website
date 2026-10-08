@@ -108,9 +108,9 @@ export function TradePanel({ id }: { id: number | string }) {
           1. Message the suppliers (ask for prices)
         </button>
         <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }} disabled={busy !== ''} onClick={buyerDocs}>
-          3. {trade.buyerDocuments.length ? 'Open' : 'Prepare'} buyer documents (PI, invoice, packing list)
+          {trade.buyerDocuments.length ? 'Open the proforma invoice' : 'Or start an empty proforma invoice (type the prices yourself)'}
         </button>
-        <span style={{ opacity: 0.75 }}>2. When a supplier answers, open their enquiry below and make the purchase order from it.</span>
+        <span style={{ opacity: 0.75 }}>2. Each enquiry has a link where the supplier types the prices. They appear in the price table below.</span>
       </p>
       {busy ? <p style={{ margin: '0 0 10px' }}>{busy}, please wait</p> : null}
       {error ? <p style={{ margin: '0 0 10px', color: 'var(--theme-error-500)' }}>{error}</p> : null}

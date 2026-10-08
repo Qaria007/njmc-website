@@ -4,7 +4,7 @@ import { SITE_URL } from '@/lib/site.ts'
 
 // docs/03: search engines and the main AI crawlers are welcome; admin and API are not.
 export default function robots(): MetadataRoute.Robots {
-  const disallow = ['/admin/', '/api/']
+  const disallow = ['/admin/', '/api/', '/quote/']
   return {
     rules: [
       { userAgent: '*', allow: '/', disallow },

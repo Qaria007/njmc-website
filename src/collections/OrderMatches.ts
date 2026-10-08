@@ -6,6 +6,7 @@ import type { CollectionBeforeChangeHook, CollectionConfig, PayloadHandler, Payl
 import { type CatalogueProduct, matchOrder, type OrderRow } from '../lib/order-match.ts'
 import { parseOrder, typedToOrder } from '../lib/order-parse.ts'
 import { buildOrderTable, orderTableXlsx } from '../lib/order-table.ts'
+import { compareQuotes, convert, type QuotedEnquiry, sellPrice } from '../lib/order-desk.ts'
 import { emailsIn, parseQuantity } from '../lib/trade-docs.ts'
 import { signedIn } from './access.ts'
 import { ORDERS_DIR } from './OrderFiles.ts'
@@ -208,7 +209,7 @@ const enquiriesEndpoint: PayloadHandler = async (req) => {
           // A sure match is asked for under the supplier's own product name (customer spelling can be off);
           // a "(check)" match keeps the customer's wording so the supplier sees what is really wanted.
           const sure = r.product && r.match.includes('check') === false && r.product.includes(';') === false
-          return { material: sure ? r.product : r.requested, spec: r.grade, quantity: q.quantity, unit: q.unit || 'kg', supplierProduct: r.product, note: q.quantity == null && r.quantity ? `Quantity: ${r.quantity}` : '' }
+          return { material: sure ? r.product : r.requested, requested: r.requested, spec: r.grade, quantity: q.quantity, unit: q.unit || 'kg', supplierProduct: r.product, note: q.quantity == null && r.quantity ? `Quantity: ${r.quantity}` : '' }
         }),
       } as never,
     })) as unknown as Doc
@@ -227,13 +228,83 @@ const buyerDocsEndpoint: PayloadHandler = async (req) => {
   const made = (await req.payload.create({
     collection: 'buyer-documents', depth: 0, overrideAccess: true, req,
     data: {
-      buyerName: str(order.customer) || str(order.title), order: Number(id) || id, paymentTerms: seller.buyerPaymentTerms,
+      buyerName: str(order.customer) || str(order.title), ...(idOf(order.client as Rel) ? { client: idOf(order.client as Rel) } : {}), order: Number(id) || id, paymentTerms: seller.buyerPaymentTerms,
       items: ((order.lines as Doc[]) ?? []).map((l) => {
         const q = parseQuantity(l.quantity)
         return { description: str(l.requested), spec: str(l.grade), quantity: q.quantity, unit: q.unit || 'kg', origin: 'China' }
       }),
     } as never,
   })) as unknown as Doc
+  return Response.json({ id: made.id, piNumber: made.piNumber })
+}
+
+// The prices suppliers sent for this order, per order line, cheapest first in the chosen currency.
+async function quotesFor(req: PayloadRequest, id: string, currency: string) {
+  const order = (await req.payload.findByID({ collection: 'order-matches', id, depth: 0, overrideAccess: true, req })) as unknown as Doc
+  const rfqs = await req.payload.find({ collection: 'supplier-orders', where: { and: [{ order: { equals: id } }, { kind: { equals: 'rfq' } }] }, limit: 500, depth: 1, pagination: false, overrideAccess: true, req })
+  const enquiries: QuotedEnquiry[] = (rfqs.docs as unknown as Doc[]).map((e) => ({
+    id: e.id, number: str(e.number), supplierId: String(idOf(e.supplier as Rel)), supplier: e.supplier && typeof e.supplier === 'object' ? str((e.supplier as Doc).name) : '',
+    status: str(e.status), currency: str(e.quoteCurrency) || str(e.currency), incoterm: str(e.quoteIncoterm) || str(e.incoterm), incotermPlace: str(e.quoteIncotermPlace) || str(e.incotermPlace),
+    quoteValidUntil: str(e.quoteValidUntil), quoteReceivedAt: str(e.quoteReceivedAt), items: (e.items as never) ?? [],
+  }))
+  const seller = await loadSeller(req.payload, req)
+  const lines = compareQuotes(((order.lines as Doc[]) ?? []).map((l) => ({ requested: str(l.requested), quantity: str(l.quantity) })), enquiries, currency, seller.rates)
+  return { order, enquiries, lines, seller }
+}
+
+const CURRENCY = /^(USD|CNY|EUR)$/
+
+// GET ?currency=USD: the comparison table for the panel on the order.
+const quotesEndpoint: PayloadHandler = async (req) => {
+  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  const q = (req.query ?? {}) as Record<string, unknown>
+  const currency = CURRENCY.test(str(q.currency)) ? str(q.currency) : 'USD'
+  const { order, enquiries, lines, seller } = await quotesFor(req, String(req.routeParams?.id), currency)
+  return Response.json({
+    currency, defaultMargin: seller.defaultMargin, rates: seller.rates, client: idOf(order.client as Rel) ?? null,
+    enquiries: enquiries.map((e) => ({ id: e.id, number: e.number, supplier: e.supplier, status: e.status, answered: str(e.quoteReceivedAt).slice(0, 10) })),
+    lines,
+  })
+}
+
+// POST { currency, client?, lines: [{ rfqId, itemId, margin, requested }] }: a draft proforma invoice
+// with one item per chosen price, selling price = cost converted to the PI currency plus the margin.
+// The cost and the supplier are kept on each item (never printed) for the profit figures.
+const makePiEndpoint: PayloadHandler = async (req) => {
+  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  const body = await jsonBody<{ currency?: string; client?: number | string | null; lines?: { rfqId?: unknown; itemId?: unknown; margin?: unknown; requested?: unknown }[] }>(req)
+  if (!body) return notJson()
+  const currency = CURRENCY.test(str(body.currency)) ? str(body.currency) : 'USD'
+  const picks = Array.isArray(body.lines) ? body.lines.slice(0, 500) : []
+  if (!picks.length) return Response.json({ error: 'Choose at least one price' }, { status: 400 })
+  const id = String(req.routeParams?.id)
+  const { order, enquiries, lines, seller } = await quotesFor(req, id, currency)
+  const items = []
+  for (const p of picks) {
+    const e = enquiries.find((x) => String(x.id) === str(p.rfqId))
+    const i = e?.items.find((x) => str(x.id) === str(p.itemId))
+    const margin = Number(p.margin)
+    if (!e || !i || i.quotedPrice == null) return Response.json({ error: 'A chosen price no longer exists: reload the page' }, { status: 400 })
+    if (!Number.isFinite(margin) || margin < 0 || margin > 1000) return Response.json({ error: `The markup for ${i.material} is not a number` }, { status: 400 })
+    const cost = convert(i.quotedPrice, e.currency, currency, seller.rates)
+    if (cost == null) return Response.json({ error: `No exchange rate for ${e.currency} to ${currency}: fill it in under Orders, Company details for documents` }, { status: 400 })
+    const line = lines.find((l) => l.options.some((o) => String(o.rfqId) === String(e.id) && o.itemId === str(i.id)))
+    const quantity = i.quantity ?? parseQuantity(line?.quantity).quantity
+    items.push({
+      description: str(p.requested) || line?.requested || i.material, spec: str(i.spec), quantity, unit: str(i.unit) || 'kg', origin: 'China',
+      unitPrice: sellPrice(cost, margin), costPrice: cost, costSupplier: Number(e.supplierId) || e.supplierId,
+      costNote: `${e.number}: ${e.currency || 'USD'} ${i.quotedPrice} per ${str(i.unit) || 'unit'}${e.currency && e.currency !== currency ? ` (= ${currency} ${cost})` : ''}, markup ${margin}% on cost`,
+    })
+  }
+  const clientId = body.client ?? idOf(order.client as Rel) ?? null
+  const made = (await req.payload.create({
+    collection: 'buyer-documents', depth: 0, overrideAccess: true, req,
+    data: {
+      buyerName: str(order.customer) || str(order.title), ...(clientId ? { client: clientId } : {}), order: Number(id) || id, currency, paymentTerms: seller.buyerPaymentTerms || undefined,
+      items,
+    } as never,
+  })) as unknown as Doc
+  if (order.status === 'new' || order.status === 'suppliers contacted') await req.payload.update({ collection: 'order-matches', id, depth: 0, overrideAccess: true, req, data: { status: 'quoted' } as never })
   return Response.json({ id: made.id, piNumber: made.piNumber })
 }
 
@@ -256,6 +327,8 @@ export const OrderMatches: CollectionConfig = {
     { path: '/:id/trade', method: 'get', handler: tradeEndpoint },
     { path: '/:id/enquiries', method: 'post', handler: enquiriesEndpoint },
     { path: '/:id/buyer-documents', method: 'post', handler: buyerDocsEndpoint },
+    { path: '/:id/quotes', method: 'get', handler: quotesEndpoint },
+    { path: '/:id/make-pi', method: 'post', handler: makePiEndpoint },
   ],
   timestamps: true,
   fields: [
@@ -264,6 +337,7 @@ export const OrderMatches: CollectionConfig = {
       type: 'row',
       fields: [
         { name: 'customer', type: 'text' },
+        { name: 'client', type: 'relationship', relationTo: 'clients', admin: { description: 'The client record, used for the proforma invoice' } },
         {
           name: 'status',
           type: 'select',
@@ -315,5 +389,6 @@ export const OrderMatches: CollectionConfig = {
       ],
     },
     { name: 'notes', type: 'textarea' },
+    { name: 'documents', type: 'join', collection: 'trade-files', on: 'order', admin: { defaultColumns: ['filename', 'kind', 'client', 'supplier', 'date'] } },
   ],
 }
