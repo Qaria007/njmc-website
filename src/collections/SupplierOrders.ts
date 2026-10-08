@@ -157,6 +157,10 @@ const sendEndpoint: PayloadHandler = async (req) => {
     }
     return Response.json({ ok: true, test: true, to: me })
   }
+  // Never send a message that points the supplier to another enquiry's price page.
+  if (/\/quote\//.test(s(doc.message)) && (!data.quoteLink || !s(doc.message).includes(data.quoteLink))) {
+    return Response.json({ error: 'Not sent: the message has a price-page link that is not this enquiry\'s. Tick "Write the message again" and save' }, { status: 400 })
+  }
   const blocking = gaps.filter((g) => BLOCKS_SENDING.test(g))
   if (blocking.length) return Response.json({ error: `Not sent: ${blocking.join('; ')}` }, { status: 400 })
   if (doc.sentAt && !body.again) return Response.json({ error: `Already sent on ${s(doc.sentAt).slice(0, 10)}` }, { status: 409 })
@@ -308,7 +312,7 @@ export const SupplierOrders: CollectionConfig = {
           access: { update: () => false },
         },
         {
-          name: 'status', type: 'select', defaultValue: 'draft',
+          name: 'status', type: 'select', defaultValue: 'draft', hooks: { beforeDuplicate: [() => 'draft'] },
           options: ['draft', 'sent', 'supplier replied', 'confirmed', 'cancelled'].map((v) => ({ label: v, value: v })),
         },
         { name: 'date', type: 'date', admin: { date: { displayFormat: 'yyyy-MM-dd' } } },
@@ -377,12 +381,12 @@ export const SupplierOrders: CollectionConfig = {
     },
     { name: 'documentsRequired', type: 'textarea', label: 'Documents required with the goods (purchase order)' },
     { name: 'notes', type: 'textarea', label: 'Notes printed on the document' },
-    { name: 'subject', type: 'text', label: 'Email subject' },
-    { name: 'message', type: 'textarea', label: 'Email message', admin: { rows: 14, description: 'Written automatically. You can edit it before sending.' } },
+    { hooks: { beforeDuplicate: [() => null] }, name: 'subject', type: 'text', label: 'Email subject' },
+    { hooks: { beforeDuplicate: [() => null] }, name: 'message', type: 'textarea', label: 'Email message', admin: { rows: 14, description: 'Written automatically. You can edit it before sending.' } },
     { name: 'rewriteMessage', type: 'checkbox', label: 'Write the message again from the items when I save', defaultValue: false },
     // The subject and message as last written automatically: tells a hand-edited message apart.
-    { name: 'subjectAuto', type: 'text', access: { create: () => false, update: () => false }, admin: { hidden: true } },
-    { name: 'messageAuto', type: 'textarea', access: { create: () => false, update: () => false }, admin: { hidden: true } },
+    { hooks: { beforeDuplicate: [() => null] }, name: 'subjectAuto', type: 'text', access: { create: () => false, update: () => false }, admin: { hidden: true } },
+    { hooks: { beforeDuplicate: [() => null] }, name: 'messageAuto', type: 'textarea', access: { create: () => false, update: () => false }, admin: { hidden: true } },
     {
       type: 'row',
       fields: [
@@ -406,9 +410,9 @@ export const SupplierOrders: CollectionConfig = {
         {
           type: 'row',
           fields: [
-            { name: 'quoteCurrency', type: 'select', label: 'Quoted in', options: CURRENCIES.map((v) => ({ label: v, value: v })) },
-            { name: 'quoteIncoterm', type: 'select', label: 'Quoted price basis', options: INCOTERMS.map((v) => ({ label: v, value: v })) },
-            { name: 'quoteIncotermPlace', type: 'text', label: 'Port or place' },
+            { hooks: { beforeDuplicate: [() => null] }, name: 'quoteCurrency', type: 'select', label: 'Quoted in', options: CURRENCIES.map((v) => ({ label: v, value: v })) },
+            { hooks: { beforeDuplicate: [() => null] }, name: 'quoteIncoterm', type: 'select', label: 'Quoted price basis', options: INCOTERMS.map((v) => ({ label: v, value: v })) },
+            { hooks: { beforeDuplicate: [() => null] }, name: 'quoteIncotermPlace', type: 'text', label: 'Port or place' },
             { hooks: { beforeDuplicate: [() => null] }, name: 'quoteValidUntil', type: 'date', label: 'Prices valid until', admin: { date: { displayFormat: 'yyyy-MM-dd' } } },
           ],
         },
@@ -422,7 +426,7 @@ export const SupplierOrders: CollectionConfig = {
           ],
         },
         { hooks: { beforeDuplicate: [() => null] }, name: 'quoteNotes', type: 'textarea', label: "Supplier's remarks", admin: { rows: 3 } },
-        { name: 'supplierReply', type: 'textarea', label: 'Their email or message, pasted (for the record)' },
+        { hooks: { beforeDuplicate: [() => null] }, name: 'supplierReply', type: 'textarea', label: 'Their email or message, pasted (for the record)' },
         { hooks: { beforeDuplicate: [() => null] }, name: 'quoteLog', type: 'textarea', label: 'Quotation history', access: { create: () => false, update: () => false }, admin: { readOnly: true, rows: 2 } },
         // The key in the supplier's quotation link. Never shown or changed in the admin.
         { name: 'quoteToken', type: 'text', unique: true, index: true, hooks: { beforeDuplicate: [() => null] }, admin: { hidden: true } },
