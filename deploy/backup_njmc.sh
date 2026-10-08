@@ -18,6 +18,18 @@ if [ "$SIZE" -lt 200 ]; then echo "NJMC BACKUP FAILED: $OUT is $SIZE bytes" >&2;
 ls -1t "$DIR"/njmc-*.dump.gz 2>/dev/null | tail -n +15 | while read -r old; do rm -f "$old"; done
 echo "$(date -u +%FT%TZ) njmc backup ok: $OUT ($SIZE bytes)"
 
+# Private order files and deal documents (volume njmc_orders: customer orders, contracts, payment
+# slips). Read through the running container; a failure here does not stop the database backup.
+ORD="$DIR/njmc-orders-$(date -u +%Y%m%dT%H%M%SZ).tar.gz"
+if docker exec njmc-web tar czf - -C /app/private-orders . > "$ORD" && [ -s "$ORD" ]; then
+  chmod 600 "$ORD"
+  echo "$(date -u +%FT%TZ) njmc order files ok: $ORD ($(stat -c %s "$ORD") bytes)"
+  ls -1t "$DIR"/njmc-orders-*.tar.gz 2>/dev/null | tail -n +15 | while read -r old; do rm -f "$old"; done
+else
+  rm -f "$ORD"
+  echo "NJMC ORDER FILES BACKUP FAILED" >&2
+fi
+
 UPLOAD_PY="
 import json, sys
 import google.auth

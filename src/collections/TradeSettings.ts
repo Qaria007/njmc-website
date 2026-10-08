@@ -1,5 +1,9 @@
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
+
 import type { GlobalConfig, Payload, PayloadRequest } from 'payload'
 
+import type { Rates } from '../lib/order-desk.ts'
 import type { Seller } from '../lib/trade-docs.ts'
 import { signedIn } from './access.ts'
 
@@ -11,6 +15,7 @@ export const TradeSettings: GlobalConfig = {
   admin: { group: 'Orders', description: 'Printed on every enquiry, purchase order, proforma invoice, invoice and packing list. Fill in once.' },
   access: { read: signedIn, update: signedIn },
   fields: [
+    { name: 'logo', type: 'upload', relationTo: 'media', admin: { description: 'Optional. A PNG or JPG logo printed at the top of every document' } },
     { name: 'companyName', type: 'text', required: true, defaultValue: 'NJMC Medical Supplies Co., Ltd', admin: { description: 'The legal name of the company that buys and sells' } },
     { name: 'address', type: 'textarea', defaultValue: 'Jianye District, Nanjing, Jiangsu, China', admin: { description: 'Full registered address, as on the business licence' } },
     {
@@ -38,6 +43,14 @@ export const TradeSettings: GlobalConfig = {
       ],
     },
     {
+      type: 'row',
+      fields: [
+        { name: 'defaultMargin', type: 'number', min: 0, label: 'Usual markup on cost (%)', admin: { description: 'Selling price = cost + this %. Pre-filled when a proforma invoice is made from the supplier prices; you can change it per item' } },
+        { name: 'cnyPerUsd', type: 'number', min: 0, label: 'Exchange rate: CNY for 1 USD', admin: { description: 'e.g. 7.10. Used to compare prices and for the accounts' } },
+        { name: 'usdPerEur', type: 'number', min: 0, label: 'Exchange rate: USD for 1 EUR', admin: { description: 'e.g. 1.08' } },
+      ],
+    },
+    {
       name: 'documentsRequired',
       type: 'textarea',
       label: 'Documents required from the supplier',
@@ -47,11 +60,26 @@ export const TradeSettings: GlobalConfig = {
   ],
 }
 
-type Settings = Record<string, string | null | undefined>
+type Settings = Record<string, string | null | undefined> & { logo?: { filename?: string | null } | number | null; defaultMargin?: number | null; cnyPerUsd?: number | null; usdPerEur?: number | null }
 
-export async function loadSeller(payload: Payload, req?: PayloadRequest): Promise<Seller & { copyTo: string; supplierPaymentTerms: string; buyerPaymentTerms: string; documentsRequired: string }> {
-  const g = (await payload.findGlobal({ slug: 'trade-settings', depth: 0, overrideAccess: true, req })) as unknown as Settings
+// The logo file from the public media folder, when it is a PNG or a JPG.
+async function logoOf(g: Settings): Promise<Seller['logo']> {
+  const name = g.logo && typeof g.logo === 'object' ? path.basename(String(g.logo.filename ?? '')) : ''
+  const type = /\.png$/i.test(name) ? 'png' : /\.jpe?g$/i.test(name) ? 'jpg' : null
+  if (!type) return null
+  try {
+    return { data: new Uint8Array(await readFile(path.resolve(process.env.MEDIA_DIR || 'media', name))), type }
+  } catch {
+    return null
+  }
+}
+
+export async function loadSeller(payload: Payload, req?: PayloadRequest): Promise<Seller & { copyTo: string; supplierPaymentTerms: string; buyerPaymentTerms: string; documentsRequired: string; defaultMargin: number | null; rates: Rates }> {
+  const g = (await payload.findGlobal({ slug: 'trade-settings', depth: 1, overrideAccess: true, req })) as unknown as Settings
   return {
+    logo: await logoOf(g),
+    defaultMargin: g.defaultMargin ?? null,
+    rates: { cnyPerUsd: g.cnyPerUsd ?? null, usdPerEur: g.usdPerEur ?? null },
     companyName: g.companyName || 'NJMC Medical Supplies Co., Ltd',
     address: g.address,
     phone: g.phone,

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from 'react'
 // send to the supplier, which always shows who gets it and asks for a confirmation first.
 type Check = {
   number: string; kind: 'rfq' | 'po'; status: string; supplier: string; to: string[]; copyTo: string[]; gaps: string[]; subject: string; message: string
-  sentAt: string | null; phone: string; wechat: string; you: string
+  sentAt: string | null; phone: string; wechat: string; you: string; quoteLink: string; quoteReceivedAt: string | null
 }
 
 const box: React.CSSProperties = { border: '1px solid var(--theme-elevation-150)', borderRadius: 4, padding: 14, margin: '0 0 18px' }
@@ -97,6 +97,16 @@ export function SupplierOrderActions() {
           </button>
         ) : null}
       </p>
+      {check.kind === 'rfq' && check.quoteLink ? (
+        <p style={{ margin: '10px 0 0' }}>
+          {check.quoteReceivedAt ? `Prices received on ${String(check.quoteReceivedAt).slice(0, 10)} (see "The supplier's quotation" below). ` : 'No prices yet. '}
+          The supplier's price page (it is in the email; you can also send it by WeChat):{' '}
+          <a href={check.quoteLink} target="_blank" rel="noreferrer">{check.quoteLink}</a>{' '}
+          <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }} onClick={() => void navigator.clipboard?.writeText(check.quoteLink)}>
+            Copy link
+          </button>
+        </p>
+      ) : null}
       {check.to.length === 0 ? (
         <p style={{ margin: '10px 0 0' }}>
           No email for this supplier. Open the PDF and send it yourself by WeChat or phone: {[check.phone, check.wechat].filter(Boolean).join(' / ') || 'no phone or WeChat on file'}.

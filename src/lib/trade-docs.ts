@@ -12,6 +12,7 @@ export type Seller = {
   signatoryName?: string | null
   signatoryTitle?: string | null
   bankDetails?: string | null
+  logo?: { data: Uint8Array; type: 'png' | 'jpg' } | null
 }
 
 export type SupplierOrderKind = 'rfq' | 'po'
@@ -43,6 +44,8 @@ export type SupplierOrderDoc = {
   destination?: string | null
   documentsRequired?: string | null
   notes?: string | null
+  // Enquiries only: the page where the supplier types the prices (no login).
+  quoteLink?: string | null
 }
 
 export type BuyerItem = {
@@ -229,7 +232,9 @@ export function supplierMessage(d: SupplierOrderDoc, seller: Seller): { subject:
         list,
         `Please send us:\n${DEFAULT_ASK.map((a) => `- ${a}`).join('\n')}`,
         [d.destination ? `Destination: ${t(d.destination)}.` : '', d.delivery ? `Delivery needed: ${t(d.delivery)}.` : '', t(d.notes)].filter(Boolean).join('\n'),
-        `The enquiry is attached as a PDF (${d.number}). Please reply to this email.`,
+        d.quoteLink
+          ? `The enquiry is attached as a PDF (${d.number}). The quickest way to answer is to enter your prices on this page (no login needed):\n${t(d.quoteLink)}\nYou can also reply to this email.`
+          : `The enquiry is attached as a PDF (${d.number}). Please reply to this email.`,
         `Best regards,\n${sign}`,
       ].filter(Boolean).join('\n\n'),
     }
@@ -280,7 +285,7 @@ export function supplierOrderSpec(d: SupplierOrderDoc, seller: Seller): DocSpec 
     sections: [
       { heading: 'Terms', text: terms.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join('\n') },
       rfq
-        ? { heading: 'Please quote', text: DEFAULT_ASK.map((a) => `- ${a}`).join('\n') }
+        ? { heading: 'Please quote', text: [...DEFAULT_ASK.map((a) => `- ${a}`), d.quoteLink ? `\nEnter your prices online: ${t(d.quoteLink)}` : ''].filter(Boolean).join('\n') }
         : { heading: 'Documents required with the goods', text: t(d.documentsRequired) },
       { heading: 'Notes', text: t(d.notes) },
     ].filter((s) => s.text),

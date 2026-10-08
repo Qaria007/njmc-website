@@ -70,5 +70,15 @@ export const Suppliers: CollectionConfig = {
     { name: 'source', type: 'text', admin: { description: 'Where we met them, e.g. CPHI Shanghai 2026' } },
     { name: 'documentsFolder', type: 'text', admin: { description: 'Link to the Drive folder or files' } },
     { name: 'notes', type: 'textarea' },
+    {
+      type: 'collapsible',
+      label: 'Enquiries, purchase orders, payments and documents',
+      admin: { initCollapsed: true },
+      fields: [
+        { name: 'orders', type: 'join', collection: 'supplier-orders', on: 'supplier', admin: { defaultColumns: ['number', 'kind', 'status', 'sentAt'] } },
+        { name: 'payments', type: 'join', collection: 'payments', on: 'supplier', admin: { defaultColumns: ['date', 'amount', 'currency', 'reference'] } },
+        { name: 'documents', type: 'join', collection: 'trade-files', on: 'supplier', admin: { defaultColumns: ['filename', 'kind', 'date', 'title'] } },
+      ],
+    },
   ],
 }

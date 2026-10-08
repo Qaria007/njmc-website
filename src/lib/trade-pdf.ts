@@ -89,14 +89,24 @@ export async function renderPdf(spec: DocSpec): Promise<Uint8Array> {
     if (y - h < M + 24) newPage(withHead)
   }
 
-  // Seller header.
+  // Seller header, with the logo on the right when there is one (a bad image file is skipped).
+  if (spec.seller.logo) {
+    try {
+      const img = spec.seller.logo.type === 'png' ? await pdf.embedPng(spec.seller.logo.data) : await pdf.embedJpg(spec.seller.logo.data)
+      const s = Math.min(150 / img.width, 44 / img.height)
+      page.drawImage(img, { x: W - M - img.width * s, y: y - img.height * s + 4, width: img.width * s, height: img.height * s })
+    } catch {
+      // no logo
+    }
+  }
   text(spec.seller.companyName, M, y - 12, 15, bold)
   y -= 26
   const contact = [spec.seller.phone ? `Tel ${spec.seller.phone}` : '', spec.seller.email ?? '', spec.seller.website ?? ''].filter(Boolean).join('  |  ')
-  for (const l of [...wrap(spec.seller.address ?? '', font, 8.5, W - 2 * M), contact].filter(Boolean)) {
+  for (const l of [...wrap(spec.seller.address ?? '', font, 8.5, W - 2 * M - (spec.seller.logo ? 160 : 0)), contact].filter(Boolean)) {
     text(l, M, y, 8.5, font, GREY)
     y -= 11
   }
+  if (spec.seller.logo) y = Math.min(y, H - M - 44)
   y -= 4
   rule(y)
   y -= 26

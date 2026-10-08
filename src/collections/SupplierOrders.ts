@@ -1,6 +1,10 @@
+import { randomBytes } from 'node:crypto'
+
 import type { CollectionBeforeChangeHook, CollectionConfig, Payload, PayloadHandler, PayloadRequest } from 'payload'
 
 import { BLOCKS_SENDING, docNumber, emailsIn, nextSeq, safeFileName, supplierMessage, type SupplierOrderDoc, supplierOrderGaps, type SupplierOrderItem, type SupplierOrderKind, supplierOrderSpec } from '../lib/trade-docs.ts'
+import { cleanQuote, type QuoteSubmission } from '../lib/order-desk.ts'
+import { SITE_URL } from '../lib/site.ts'
 import { renderPdf } from '../lib/trade-pdf.ts'
 import { signedIn } from './access.ts'
 import { loadSeller } from './TradeSettings.ts'
@@ -51,8 +55,14 @@ function toDoc(d: Record<string, unknown>, supplier: AnyDoc | undefined): Suppli
     destination: s(d.destination),
     documentsRequired: s(d.documentsRequired),
     notes: s(d.notes),
+    quoteLink: d.kind === 'rfq' && s(d.quoteToken) ? quoteLink(s(d.quoteToken)) : '',
   }
 }
+
+export const quoteLink = (token: string) => `${SITE_URL.replace(/\/$/, '')}/quote/${token}`
+// A supplier can answer through the link for this many days after the enquiry date.
+export const QUOTE_LINK_DAYS = 120
+export const newQuoteToken = () => randomBytes(24).toString('base64url')
 
 async function load(req: PayloadRequest) {
   const doc = (await req.payload.findByID({ collection: 'supplier-orders', id: s(req.routeParams?.id), depth: 1, overrideAccess: true, req })) as unknown as AnyDoc
@@ -71,6 +81,8 @@ const prepare: CollectionBeforeChangeHook = async ({ data, originalDoc, operatio
   const kind = (data.kind ?? originalDoc?.kind ?? 'rfq') as SupplierOrderKind
   if (operation === 'create' || !s(data.number ?? originalDoc?.number)) data.number = await nextNumber(req.payload, 'supplier-orders', 'number', kind === 'po' ? 'PO' : 'RFQ', req)
   if (!data.date && !originalDoc?.date) data.date = new Date().toISOString()
+  // A new record (also a duplicate, which arrives with the original's token) always gets its own key.
+  if (kind === 'rfq' && (operation === 'create' || !s(originalDoc?.quoteToken))) data.quoteToken = newQuoteToken()
   const supplierId = idOf(data.supplier ?? originalDoc?.supplier)
   const supplier = supplierId ? ((await req.payload.findByID({ collection: 'suppliers', id: supplierId, depth: 0, overrideAccess: true, req })) as unknown as AnyDoc) : undefined
   if (operation === 'create' && !s(data.toEmail)) data.toEmail = emailsIn(supplier?.email).join(', ')
@@ -102,10 +114,11 @@ const pdfEndpoint: PayloadHandler = async (req) => {
 // What the confirmation step shows before anything is sent.
 const checkEndpoint: PayloadHandler = async (req) => {
   if (!admin(req)) return denied()
-  const { doc, supplier, to, gaps, seller } = await load(req)
+  const { doc, supplier, to, gaps, seller, data } = await load(req)
   return Response.json({
     number: doc.number, kind: doc.kind, status: doc.status, supplier: s(supplier?.name), to, copyTo: emailsIn(seller.copyTo), gaps, subject: doc.subject, message: doc.message,
     sentAt: doc.sentAt ?? null, phone: s(supplier?.phone), wechat: s(supplier?.wechat), you: s(req.user?.email),
+    quoteLink: data.quoteLink || '', quoteReceivedAt: doc.quoteReceivedAt ?? null,
   })
 }
 
@@ -143,6 +156,10 @@ const sendEndpoint: PayloadHandler = async (req) => {
       return failed(err)
     }
     return Response.json({ ok: true, test: true, to: me })
+  }
+  // Never send a message that points the supplier to another enquiry's price page.
+  if (/\/quote\//.test(s(doc.message)) && (!data.quoteLink || !s(doc.message).includes(data.quoteLink))) {
+    return Response.json({ error: 'Not sent: the message has a price-page link that is not this enquiry\'s. Tick "Write the message again" and save' }, { status: 400 })
   }
   const blocking = gaps.filter((g) => BLOCKS_SENDING.test(g))
   if (blocking.length) return Response.json({ error: `Not sent: ${blocking.join('; ')}` }, { status: 400 })
@@ -185,12 +202,82 @@ const toPoEndpoint: PayloadHandler = async (req) => {
     collection: 'supplier-orders', depth: 0, overrideAccess: true, req,
     data: {
       kind: 'po', status: 'draft', supplier: idOf(doc.supplier), order: idOf(doc.order) ?? undefined, fromEnquiry: doc.id, toEmail: doc.toEmail,
-      items: ((doc.items as SupplierOrderItem[]) ?? []).map((i) => ({ material: i.material, supplierProduct: i.supplierProduct, spec: i.spec, quantity: i.quantity, unit: i.unit, unitPrice: i.unitPrice, note: i.note })),
-      currency: doc.currency || 'USD', incoterm: doc.incoterm, incotermPlace: doc.incotermPlace, paymentTerms: s(doc.paymentTerms) || seller.supplierPaymentTerms, delivery: doc.delivery,
+      // The supplier's quoted price and terms when they answered; else what the enquiry had.
+      items: ((doc.items as (SupplierOrderItem & { quotedPrice?: number | null; requested?: string | null })[]) ?? []).map((i) => ({
+        material: i.material, requested: i.requested, supplierProduct: i.supplierProduct, spec: i.spec, quantity: i.quantity, unit: i.unit, unitPrice: i.quotedPrice ?? i.unitPrice, note: i.note,
+      })),
+      currency: doc.quoteCurrency || doc.currency || 'USD', incoterm: doc.quoteIncoterm || doc.incoterm, incotermPlace: s(doc.quoteIncotermPlace) || doc.incotermPlace,
+      paymentTerms: s(doc.quotePaymentTerms) || s(doc.paymentTerms) || seller.supplierPaymentTerms, delivery: doc.delivery,
       destination: doc.destination, documentsRequired: seller.documentsRequired, notes: doc.notes,
     } as never,
   })
   return Response.json({ id: po.id, number: (po as unknown as AnyDoc).number })
+}
+
+// The enquiry behind a quotation link, or null when the link is wrong, cancelled or too old.
+export async function enquiryByToken(payload: Payload, token: string, req?: PayloadRequest): Promise<AnyDoc | null> {
+  if (!/^[A-Za-z0-9_-]{30,40}$/.test(token)) return null
+  const res = await payload.find({ collection: 'supplier-orders', where: { quoteToken: { equals: token } }, limit: 2, depth: 0, overrideAccess: true, req })
+  // The key is unique; two hits would mean a copied key, and then nobody gets in.
+  if (res.docs.length !== 1) return null
+  const doc = res.docs[0] as unknown as AnyDoc
+  if (doc.kind !== 'rfq' || doc.status === 'cancelled' || doc.status === 'confirmed') return null
+  // Closed once a purchase order was made from it.
+  const po = await payload.find({ collection: 'supplier-orders', where: { fromEnquiry: { equals: doc.id } }, limit: 1, depth: 0, overrideAccess: true, req })
+  if (po.docs.some((d) => (d as unknown as AnyDoc).status !== 'cancelled')) return null
+  const supplierId = idOf(doc.supplier)
+  if (supplierId) {
+    const sup = await payload.findByID({ collection: 'suppliers', id: supplierId, depth: 0, select: { name: true }, overrideAccess: true, req })
+    doc.supplier = { id: supplierId, name: (sup as unknown as AnyDoc).name }
+  }
+  const start = Date.parse(s(doc.date) || s(doc.createdAt))
+  if (Number.isFinite(start) && Date.now() - start > QUOTE_LINK_DAYS * 86_400_000) return null
+  return doc
+}
+
+// POST { token, currency, incoterm, ..., items: [{ id, price, moq, leadTime, note }] } from the public
+// quotation page. No login: the long random token in the link is the key, and it only ever writes
+// the quotation fields of that one enquiry. A second answer replaces the first (both are logged).
+const publicQuoteEndpoint: PayloadHandler = async (req) => {
+  const body = await jsonBody<QuoteSubmission & { token?: unknown }>(req)
+  if (!body) return notJson()
+  const doc = await enquiryByToken(req.payload, s(body.token), req)
+  if (!doc) return Response.json({ error: 'This link is no longer active. Please reply to our email instead.' }, { status: 404 })
+  const items = (doc.items as (SupplierOrderItem & { id: string })[]) ?? []
+  const q = cleanQuote(body, items.map((i) => s(i.id)), CURRENCIES, INCOTERMS)
+  if ('error' in q) return Response.json({ error: q.error }, { status: 400 })
+  const now = new Date().toISOString()
+  const priced = q.items.filter((i) => i.price != null).length
+  const log = `${now.slice(0, 16).replace('T', ' ')} UTC: prices for ${priced} of ${items.length} items entered on the quotation page${q.contactName ? ` by ${q.contactName}` : ''}`
+  await req.payload.update({
+    collection: 'supplier-orders', id: doc.id, depth: 0, overrideAccess: true, req,
+    data: {
+      status: doc.status === 'draft' || doc.status === 'sent' ? 'supplier replied' : doc.status,
+      items: items.map((i) => {
+        const a = q.items.find((x) => x.id === s(i.id))
+        return { ...i, quotedPrice: a?.price ?? null, moq: a?.moq ?? '', leadTime: a?.leadTime ?? '', quoteNote: a?.note ?? '' }
+      }),
+      quoteCurrency: q.currency, quoteIncoterm: q.incoterm || null, quoteIncotermPlace: q.incotermPlace, // Noon UTC: the same calendar day in every time zone.
+      quoteValidUntil: q.validUntil ? `${q.validUntil}T12:00:00.000Z` : null,
+      quotePaymentTerms: q.paymentTerms, quoteContact: q.contactName, quoteNotes: q.notes, quoteSource: 'supplier form', quoteReceivedAt: now,
+      quoteLog: [s(doc.quoteLog), log].filter(Boolean).join('\n'),
+    } as never,
+  })
+  // Tell us by email; a failure here never loses the quotation.
+  try {
+    const seller = await loadSeller(req.payload, req)
+    const to = emailsIn([seller.copyTo, seller.email].join(','))
+    const supplier = doc.supplier && typeof doc.supplier === 'object' ? s((doc.supplier as AnyDoc).name) : ''
+    if (to.length && process.env.SMTP_HOST) {
+      await req.payload.sendEmail({
+        to, subject: `Prices received: ${s(doc.number)} (${supplier})`,
+        text: `${supplier} entered prices for ${priced} of ${items.length} items on enquiry ${s(doc.number)}.\n\nOpen it in the admin: ${SITE_URL.replace(/\/$/, '')}/admin/collections/supplier-orders/${doc.id}`,
+      })
+    }
+  } catch (err) {
+    req.payload.logger.error({ err }, 'quotation notice failed')
+  }
+  return Response.json({ ok: true, priced })
 }
 
 // Enquiries (RFQ) and purchase orders (PO) to suppliers. Private: supplier names, prices.
@@ -210,6 +297,7 @@ export const SupplierOrders: CollectionConfig = {
     { path: '/:id/check', method: 'get', handler: checkEndpoint },
     { path: '/:id/send', method: 'post', handler: sendEndpoint },
     { path: '/:id/to-po', method: 'post', handler: toPoEndpoint },
+    { path: '/public-quote', method: 'post', handler: publicQuoteEndpoint },
   ],
   timestamps: true,
   fields: [
@@ -224,7 +312,7 @@ export const SupplierOrders: CollectionConfig = {
           access: { update: () => false },
         },
         {
-          name: 'status', type: 'select', defaultValue: 'draft',
+          name: 'status', type: 'select', defaultValue: 'draft', hooks: { beforeDuplicate: [() => 'draft'] },
           options: ['draft', 'sent', 'supplier replied', 'confirmed', 'cancelled'].map((v) => ({ label: v, value: v })),
         },
         { name: 'date', type: 'date', admin: { date: { displayFormat: 'yyyy-MM-dd' } } },
@@ -262,6 +350,17 @@ export const SupplierOrders: CollectionConfig = {
             { name: 'note', type: 'text' },
           ],
         },
+        {
+          type: 'row',
+          fields: [
+            { hooks: { beforeDuplicate: [() => null] }, name: 'quotedPrice', type: 'number', min: 0, label: "Supplier's price (per unit)", admin: { description: 'From the quotation page or their email' } },
+            { hooks: { beforeDuplicate: [() => null] }, name: 'moq', type: 'text', label: 'Minimum order' },
+            { hooks: { beforeDuplicate: [() => null] }, name: 'leadTime', type: 'text', label: 'Lead time' },
+            { hooks: { beforeDuplicate: [() => null] }, name: 'quoteNote', type: 'text', label: "Supplier's note" },
+          ],
+        },
+        // The customer's own wording of the line this item answers (to compare prices per line).
+        { name: 'requested', type: 'text', admin: { hidden: true } },
       ],
     },
     {
@@ -282,12 +381,12 @@ export const SupplierOrders: CollectionConfig = {
     },
     { name: 'documentsRequired', type: 'textarea', label: 'Documents required with the goods (purchase order)' },
     { name: 'notes', type: 'textarea', label: 'Notes printed on the document' },
-    { name: 'subject', type: 'text', label: 'Email subject' },
-    { name: 'message', type: 'textarea', label: 'Email message', admin: { rows: 14, description: 'Written automatically. You can edit it before sending.' } },
+    { hooks: { beforeDuplicate: [() => null] }, name: 'subject', type: 'text', label: 'Email subject' },
+    { hooks: { beforeDuplicate: [() => null] }, name: 'message', type: 'textarea', label: 'Email message', admin: { rows: 14, description: 'Written automatically. You can edit it before sending.' } },
     { name: 'rewriteMessage', type: 'checkbox', label: 'Write the message again from the items when I save', defaultValue: false },
     // The subject and message as last written automatically: tells a hand-edited message apart.
-    { name: 'subjectAuto', type: 'text', access: { create: () => false, update: () => false }, admin: { hidden: true } },
-    { name: 'messageAuto', type: 'textarea', access: { create: () => false, update: () => false }, admin: { hidden: true } },
+    { hooks: { beforeDuplicate: [() => null] }, name: 'subjectAuto', type: 'text', access: { create: () => false, update: () => false }, admin: { hidden: true } },
+    { hooks: { beforeDuplicate: [() => null] }, name: 'messageAuto', type: 'textarea', access: { create: () => false, update: () => false }, admin: { hidden: true } },
     {
       type: 'row',
       fields: [
@@ -298,11 +397,40 @@ export const SupplierOrders: CollectionConfig = {
     {
       type: 'row',
       fields: [
-        { name: 'sentAt', type: 'date', access: { create: () => false, update: () => false }, admin: { readOnly: true, date: { pickerAppearance: 'dayAndTime' } } },
-        { name: 'sentTo', type: 'text', access: { create: () => false, update: () => false }, admin: { readOnly: true } },
+        { hooks: { beforeDuplicate: [() => null] }, name: 'sentAt', type: 'date', access: { create: () => false, update: () => false }, admin: { readOnly: true, date: { pickerAppearance: 'dayAndTime' } } },
+        { hooks: { beforeDuplicate: [() => null] }, name: 'sentTo', type: 'text', access: { create: () => false, update: () => false }, admin: { readOnly: true } },
       ],
     },
-    { name: 'sendLog', type: 'textarea', label: 'Sending history', access: { create: () => false, update: () => false }, admin: { readOnly: true, rows: 2 } },
-    { name: 'supplierReply', type: 'textarea', label: 'What the supplier answered (prices, lead time)' },
+    { hooks: { beforeDuplicate: [() => null] }, name: 'sendLog', type: 'textarea', label: 'Sending history', access: { create: () => false, update: () => false }, admin: { readOnly: true, rows: 2 } },
+    {
+      type: 'collapsible',
+      label: "The supplier's quotation",
+      admin: { initCollapsed: false, condition: (d) => d?.kind !== 'po' },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            { hooks: { beforeDuplicate: [() => null] }, name: 'quoteCurrency', type: 'select', label: 'Quoted in', options: CURRENCIES.map((v) => ({ label: v, value: v })) },
+            { hooks: { beforeDuplicate: [() => null] }, name: 'quoteIncoterm', type: 'select', label: 'Quoted price basis', options: INCOTERMS.map((v) => ({ label: v, value: v })) },
+            { hooks: { beforeDuplicate: [() => null] }, name: 'quoteIncotermPlace', type: 'text', label: 'Port or place' },
+            { hooks: { beforeDuplicate: [() => null] }, name: 'quoteValidUntil', type: 'date', label: 'Prices valid until', admin: { date: { displayFormat: 'yyyy-MM-dd' } } },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            { hooks: { beforeDuplicate: [() => null] }, name: 'quotePaymentTerms', type: 'text', label: "Supplier's payment terms" },
+            { hooks: { beforeDuplicate: [() => null] }, name: 'quoteContact', type: 'text', label: 'Answered by' },
+            { hooks: { beforeDuplicate: [() => null] }, name: 'quoteSource', type: 'select', label: 'How it came', options: ['supplier form', 'email', 'WeChat or phone'].map((v) => ({ label: v, value: v })) },
+            { hooks: { beforeDuplicate: [() => null] }, name: 'quoteReceivedAt', type: 'date', label: 'Received', admin: { date: { pickerAppearance: 'dayAndTime' } } },
+          ],
+        },
+        { hooks: { beforeDuplicate: [() => null] }, name: 'quoteNotes', type: 'textarea', label: "Supplier's remarks", admin: { rows: 3 } },
+        { hooks: { beforeDuplicate: [() => null] }, name: 'supplierReply', type: 'textarea', label: 'Their email or message, pasted (for the record)' },
+        { hooks: { beforeDuplicate: [() => null] }, name: 'quoteLog', type: 'textarea', label: 'Quotation history', access: { create: () => false, update: () => false }, admin: { readOnly: true, rows: 2 } },
+        // The key in the supplier's quotation link. Never shown or changed in the admin.
+        { name: 'quoteToken', type: 'text', unique: true, index: true, hooks: { beforeDuplicate: [() => null] }, admin: { hidden: true } },
+      ],
+    },
   ],
 }

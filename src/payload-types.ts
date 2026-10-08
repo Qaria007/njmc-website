@@ -75,14 +75,35 @@ export interface Config {
     'supplier-certificates': SupplierCertificate;
     'order-matches': OrderMatch;
     'order-files': OrderFile;
+    clients: Client;
     'supplier-orders': SupplierOrder;
     'buyer-documents': BuyerDocument;
+    'trade-files': TradeFile;
+    payments: Payment;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    suppliers: {
+      orders: 'supplier-orders';
+      payments: 'payments';
+      documents: 'trade-files';
+    };
+    'order-matches': {
+      documents: 'trade-files';
+    };
+    clients: {
+      sales: 'buyer-documents';
+      payments: 'payments';
+      documents: 'trade-files';
+    };
+    'buyer-documents': {
+      payments: 'payments';
+      documents: 'trade-files';
+    };
+  };
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
@@ -92,8 +113,11 @@ export interface Config {
     'supplier-certificates': SupplierCertificatesSelect<false> | SupplierCertificatesSelect<true>;
     'order-matches': OrderMatchesSelect<false> | OrderMatchesSelect<true>;
     'order-files': OrderFilesSelect<false> | OrderFilesSelect<true>;
+    clients: ClientsSelect<false> | ClientsSelect<true>;
     'supplier-orders': SupplierOrdersSelect<false> | SupplierOrdersSelect<true>;
     'buyer-documents': BuyerDocumentsSelect<false> | BuyerDocumentsSelect<true>;
+    'trade-files': TradeFilesSelect<false> | TradeFilesSelect<true>;
+    payments: PaymentsSelect<false> | PaymentsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -105,9 +129,11 @@ export interface Config {
   fallbackLocale: ('false' | 'none' | 'null') | false | null | ('en' | 'ar') | ('en' | 'ar')[];
   globals: {
     'trade-settings': TradeSetting;
+    'accounts-overview': AccountsOverview;
   };
   globalsSelect: {
     'trade-settings': TradeSettingsSelect<false> | TradeSettingsSelect<true>;
+    'accounts-overview': AccountsOverviewSelect<false> | AccountsOverviewSelect<true>;
   };
   locale: 'en' | 'ar';
   widgets: {
@@ -294,8 +320,497 @@ export interface Supplier {
    */
   documentsFolder?: string | null;
   notes?: string | null;
+  orders?: {
+    docs?: (number | SupplierOrder)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  payments?: {
+    docs?: (number | Payment)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  documents?: {
+    docs?: (number | TradeFile)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * An enquiry asks a supplier for prices. A purchase order orders the goods. Each one has a PDF and a message that is sent to the supplier only after you confirm.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-orders".
+ */
+export interface SupplierOrder {
+  id: number;
+  /**
+   * Given automatically
+   */
+  number?: string | null;
+  kind: 'rfq' | 'po';
+  status?: ('draft' | 'sent' | 'supplier replied' | 'confirmed' | 'cancelled') | null;
+  date?: string | null;
+  supplier: number | Supplier;
+  /**
+   * Taken from the supplier record; change it here if needed. Several addresses: separate with commas.
+   */
+  toEmail?: string | null;
+  items?:
+    | {
+        material: string;
+        spec?: string | null;
+        quantity?: number | null;
+        unit?: string | null;
+        /**
+         * Needed for a purchase order
+         */
+        unitPrice?: number | null;
+        supplierProduct?: string | null;
+        note?: string | null;
+        /**
+         * From the quotation page or their email
+         */
+        quotedPrice?: number | null;
+        moq?: string | null;
+        leadTime?: string | null;
+        quoteNote?: string | null;
+        requested?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  currency?: ('USD' | 'CNY' | 'EUR') | null;
+  incoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
+  /**
+   * e.g. Shanghai
+   */
+  incotermPlace?: string | null;
+  /**
+   * e.g. 30% T/T in advance, 70% before shipment
+   */
+  paymentTerms?: string | null;
+  /**
+   * e.g. within 20 days of the order
+   */
+  delivery?: string | null;
+  /**
+   * Country or port. The customer name is never sent to suppliers.
+   */
+  destination?: string | null;
+  documentsRequired?: string | null;
+  notes?: string | null;
+  subject?: string | null;
+  /**
+   * Written automatically. You can edit it before sending.
+   */
+  message?: string | null;
+  rewriteMessage?: boolean | null;
+  subjectAuto?: string | null;
+  messageAuto?: string | null;
+  /**
+   * For our records only
+   */
+  order?: (number | null) | OrderMatch;
+  fromEnquiry?: (number | null) | SupplierOrder;
+  sentAt?: string | null;
+  sentTo?: string | null;
+  sendLog?: string | null;
+  quoteCurrency?: ('USD' | 'CNY' | 'EUR') | null;
+  quoteIncoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
+  quoteIncotermPlace?: string | null;
+  quoteValidUntil?: string | null;
+  quotePaymentTerms?: string | null;
+  quoteContact?: string | null;
+  quoteSource?: ('supplier form' | 'email' | 'WeChat or phone') | null;
+  quoteReceivedAt?: string | null;
+  quoteNotes?: string | null;
+  supplierReply?: string | null;
+  quoteLog?: string | null;
+  quoteToken?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Attach a customer order (Excel, CSV, Word, PDF) or type the materials, then Save. The suppliers table appears below, with an Excel download.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "order-matches".
+ */
+export interface OrderMatch {
+  id: number;
+  /**
+   * e.g. customer name + date
+   */
+  title: string;
+  customer?: string | null;
+  /**
+   * The client record, used for the proforma invoice
+   */
+  client?: (number | null) | Client;
+  status?: ('new' | 'suppliers contacted' | 'quoted' | 'won' | 'lost') | null;
+  /**
+   * Excel, CSV, Word, PDF (with text) or .txt
+   */
+  orderFile?: (number | null) | OrderFile;
+  /**
+   * Optional: one material per line, e.g. "Mesalazine EP 500 kg" or a CAS number
+   */
+  typedMaterials?: string | null;
+  rematch?: boolean | null;
+  matchedAt?: string | null;
+  readNote?: string | null;
+  results?: string | null;
+  lines?:
+    | {
+        requested?: string | null;
+        cas?: string | null;
+        grade?: string | null;
+        quantity?: string | null;
+        supplierCount?: number | null;
+        matches?:
+          | {
+              supplier?: (number | null) | Supplier;
+              product?: (number | null) | Product;
+              matchedOn?: string | null;
+              documents?: string | null;
+              certificates?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  notes?: string | null;
+  documents?: {
+    docs?: (number | TradeFile)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Companies we sell to. Their documents, sales and payments are listed on each client.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "clients".
+ */
+export interface Client {
+  id: number;
+  /**
+   * In English, as it must appear on the invoice
+   */
+  name: string;
+  country?: string | null;
+  registrationNo?: string | null;
+  address?: string | null;
+  contactPerson?: string | null;
+  /**
+   * Documents are sent here. Several addresses: separate with commas
+   */
+  email?: string | null;
+  phone?: string | null;
+  currency?: ('USD' | 'CNY' | 'EUR') | null;
+  incoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
+  /**
+   * e.g. Aden
+   */
+  incotermPlace?: string | null;
+  paymentTerms?: string | null;
+  /**
+   * Only if different from the client
+   */
+  consignee?: string | null;
+  notifyParty?: string | null;
+  notes?: string | null;
+  sales?: {
+    docs?: (number | BuyerDocument)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  payments?: {
+    docs?: (number | Payment)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  documents?: {
+    docs?: (number | TradeFile)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Fill in the buyer, the items and the prices once. The proforma invoice, the invoice and the packing list are printed from the same record.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "buyer-documents".
+ */
+export interface BuyerDocument {
+  id: number;
+  /**
+   * Given automatically; you can change it
+   */
+  piNumber?: string | null;
+  piDate?: string | null;
+  validity?: string | null;
+  status?:
+    | ('draft' | 'PI sent' | 'confirmed' | 'paid' | 'in production' | 'shipped' | 'delivered' | 'closed' | 'cancelled')
+    | null;
+  /**
+   * Given automatically when you fill in the invoice date. Also printed on the packing list
+   */
+  invoiceNumber?: string | null;
+  /**
+   * Fill in when the goods ship
+   */
+  invoiceDate?: string | null;
+  buyerReference?: string | null;
+  /**
+   * Choose the client and save: the buyer details below fill in by themselves
+   */
+  client?: (number | null) | Client;
+  /**
+   * Several addresses: separate with commas
+   */
+  buyerEmail?: string | null;
+  buyerName: string;
+  buyerCountry?: string | null;
+  buyerContact?: string | null;
+  buyerAddress?: string | null;
+  /**
+   * Only if different from the buyer
+   */
+  consignee?: string | null;
+  notifyParty?: string | null;
+  items?:
+    | {
+        description: string;
+        spec?: string | null;
+        quantity?: number | null;
+        unit?: string | null;
+        unitPrice?: number | null;
+        hsCode?: string | null;
+        origin?: string | null;
+        /**
+         * Packing list
+         */
+        packages?: number | null;
+        /**
+         * e.g. 25 kg fibre drums
+         */
+        packageType?: string | null;
+        netWeight?: number | null;
+        grossWeight?: number | null;
+        batchNo?: string | null;
+        mfgDate?: string | null;
+        expDate?: string | null;
+        /**
+         * In the currency of this document
+         */
+        costPrice?: number | null;
+        costSupplier?: (number | null) | Supplier;
+        costNote?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  currency?: ('USD' | 'CNY' | 'EUR') | null;
+  incoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
+  /**
+   * e.g. Aden
+   */
+  incotermPlace?: string | null;
+  /**
+   * e.g. 100% T/T in advance
+   */
+  paymentTerms?: string | null;
+  /**
+   * Only if shown separately
+   */
+  freight?: number | null;
+  insurance?: number | null;
+  discount?: number | null;
+  portOfLoading?: string | null;
+  portOfDischarge?: string | null;
+  shipmentBy?: ('Sea' | 'Air' | 'Courier' | 'Land') | null;
+  /**
+   * e.g. 30 days after payment
+   */
+  deliveryTime?: string | null;
+  /**
+   * Invoice and packing list
+   */
+  vessel?: string | null;
+  blNumber?: string | null;
+  shippingMarks?: string | null;
+  remarks?: string | null;
+  /**
+   * For our records only
+   */
+  order?: (number | null) | OrderMatch;
+  internalNotes?: string | null;
+  readyDate?: string | null;
+  etd?: string | null;
+  eta?: string | null;
+  forwarder?: string | null;
+  documentsSent?:
+    | (
+        | 'Proforma invoice'
+        | 'Commercial invoice'
+        | 'Packing list'
+        | 'Certificate of analysis'
+        | 'Certificate of origin'
+        | 'B/L or AWB copy'
+        | 'Original documents by courier'
+        | 'Insurance certificate'
+      )[]
+    | null;
+  followUp?: string | null;
+  sendLog?: string | null;
+  payments?: {
+    docs?: (number | Payment)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  documents?: {
+    docs?: (number | TradeFile)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Every payment received from a client, paid to a supplier, and every cost (freight, bank charges). Link it to the sale or the purchase order so the balances add up.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments".
+ */
+export interface Payment {
+  id: number;
+  date: string;
+  direction: 'in' | 'out' | 'expense';
+  category?:
+    | (
+        | 'freight'
+        | 'customs and duties'
+        | 'bank charges'
+        | 'inspection and testing'
+        | 'samples'
+        | 'travel'
+        | 'commission'
+        | 'office'
+        | 'other'
+      )
+    | null;
+  amount: number;
+  currency: 'USD' | 'CNY' | 'EUR';
+  /**
+   * The rate the bank used. Empty: the rate in Company details
+   */
+  usdRate?: number | null;
+  amountUsd?: number | null;
+  buyerDocument?: (number | null) | BuyerDocument;
+  supplierOrder?: (number | null) | SupplierOrder;
+  order?: (number | null) | OrderMatch;
+  /**
+   * Filled from the sale when empty
+   */
+  client?: (number | null) | Client;
+  /**
+   * Filled from the purchase order when empty
+   */
+  supplier?: (number | null) | Supplier;
+  /**
+   * e.g. the forwarder
+   */
+  paidTo?: string | null;
+  method?: ('T/T bank transfer' | 'L/C' | 'PayPal' | 'Alipay' | 'WeChat Pay' | 'Cash' | 'Other') | null;
+  /**
+   * Transfer number or slip number
+   */
+  reference?: string | null;
+  /**
+   * Upload it under Documents first, then choose it here
+   */
+  proof?: (number | null) | TradeFile;
+  notes?: string | null;
+  void?: boolean | null;
+  voidReason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Upload any paper of a deal and link it to the client, the supplier and the order. It then shows on each of them.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "trade-files".
+ */
+export interface TradeFile {
+  id: number;
+  /**
+   * Short description; the file name when empty
+   */
+  title?: string | null;
+  kind?:
+    | (
+        | 'client-order'
+        | 'contract'
+        | 'pi'
+        | 'quotation'
+        | 'invoice'
+        | 'packing-list'
+        | 'coa'
+        | 'co'
+        | 'bl'
+        | 'payment'
+        | 'photo'
+        | 'correspondence'
+        | 'other'
+      )
+    | null;
+  date?: string | null;
+  client?: (number | null) | Client;
+  supplier?: (number | null) | Supplier;
+  order?: (number | null) | OrderMatch;
+  buyerDocument?: (number | null) | BuyerDocument;
+  supplierOrder?: (number | null) | SupplierOrder;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * Uploaded customer orders (private).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "order-files".
+ */
+export interface OrderFile {
+  id: number;
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * Sort by "Valid until" to see what expires next.
@@ -337,248 +852,6 @@ export interface SupplierCertificate {
    */
   sourceFile?: string | null;
   notes?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Attach a customer order (Excel, CSV, Word, PDF) or type the materials, then Save. The suppliers table appears below, with an Excel download.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "order-matches".
- */
-export interface OrderMatch {
-  id: number;
-  /**
-   * e.g. customer name + date
-   */
-  title: string;
-  customer?: string | null;
-  status?: ('new' | 'suppliers contacted' | 'quoted' | 'won' | 'lost') | null;
-  /**
-   * Excel, CSV, Word, PDF (with text) or .txt
-   */
-  orderFile?: (number | null) | OrderFile;
-  /**
-   * Optional: one material per line, e.g. "Mesalazine EP 500 kg" or a CAS number
-   */
-  typedMaterials?: string | null;
-  rematch?: boolean | null;
-  matchedAt?: string | null;
-  readNote?: string | null;
-  results?: string | null;
-  lines?:
-    | {
-        requested?: string | null;
-        cas?: string | null;
-        grade?: string | null;
-        quantity?: string | null;
-        supplierCount?: number | null;
-        matches?:
-          | {
-              supplier?: (number | null) | Supplier;
-              product?: (number | null) | Product;
-              matchedOn?: string | null;
-              documents?: string | null;
-              certificates?: string | null;
-              id?: string | null;
-            }[]
-          | null;
-        id?: string | null;
-      }[]
-    | null;
-  notes?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Uploaded customer orders (private).
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "order-files".
- */
-export interface OrderFile {
-  id: number;
-  note?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * An enquiry asks a supplier for prices. A purchase order orders the goods. Each one has a PDF and a message that is sent to the supplier only after you confirm.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "supplier-orders".
- */
-export interface SupplierOrder {
-  id: number;
-  /**
-   * Given automatically
-   */
-  number?: string | null;
-  kind: 'rfq' | 'po';
-  status?: ('draft' | 'sent' | 'supplier replied' | 'confirmed' | 'cancelled') | null;
-  date?: string | null;
-  supplier: number | Supplier;
-  /**
-   * Taken from the supplier record; change it here if needed. Several addresses: separate with commas.
-   */
-  toEmail?: string | null;
-  items?:
-    | {
-        material: string;
-        spec?: string | null;
-        quantity?: number | null;
-        unit?: string | null;
-        /**
-         * Needed for a purchase order
-         */
-        unitPrice?: number | null;
-        supplierProduct?: string | null;
-        note?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  currency?: ('USD' | 'CNY' | 'EUR') | null;
-  incoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
-  /**
-   * e.g. Shanghai
-   */
-  incotermPlace?: string | null;
-  /**
-   * e.g. 30% T/T in advance, 70% before shipment
-   */
-  paymentTerms?: string | null;
-  /**
-   * e.g. within 20 days of the order
-   */
-  delivery?: string | null;
-  /**
-   * Country or port. The customer name is never sent to suppliers.
-   */
-  destination?: string | null;
-  documentsRequired?: string | null;
-  notes?: string | null;
-  subject?: string | null;
-  /**
-   * Written automatically. You can edit it before sending.
-   */
-  message?: string | null;
-  rewriteMessage?: boolean | null;
-  subjectAuto?: string | null;
-  messageAuto?: string | null;
-  /**
-   * For our records only
-   */
-  order?: (number | null) | OrderMatch;
-  fromEnquiry?: (number | null) | SupplierOrder;
-  sentAt?: string | null;
-  sentTo?: string | null;
-  sendLog?: string | null;
-  supplierReply?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Fill in the buyer, the items and the prices once. The proforma invoice, the invoice and the packing list are printed from the same record.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "buyer-documents".
- */
-export interface BuyerDocument {
-  id: number;
-  /**
-   * Given automatically; you can change it
-   */
-  piNumber?: string | null;
-  piDate?: string | null;
-  validity?: string | null;
-  status?: ('draft' | 'PI sent' | 'paid' | 'shipped' | 'closed' | 'cancelled') | null;
-  /**
-   * Given automatically when you fill in the invoice date. Also printed on the packing list
-   */
-  invoiceNumber?: string | null;
-  /**
-   * Fill in when the goods ship
-   */
-  invoiceDate?: string | null;
-  buyerReference?: string | null;
-  buyerName: string;
-  buyerCountry?: string | null;
-  buyerContact?: string | null;
-  buyerAddress?: string | null;
-  /**
-   * Only if different from the buyer
-   */
-  consignee?: string | null;
-  notifyParty?: string | null;
-  items?:
-    | {
-        description: string;
-        spec?: string | null;
-        quantity?: number | null;
-        unit?: string | null;
-        unitPrice?: number | null;
-        hsCode?: string | null;
-        origin?: string | null;
-        /**
-         * Packing list
-         */
-        packages?: number | null;
-        /**
-         * e.g. 25 kg fibre drums
-         */
-        packageType?: string | null;
-        netWeight?: number | null;
-        grossWeight?: number | null;
-        batchNo?: string | null;
-        mfgDate?: string | null;
-        expDate?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  currency?: ('USD' | 'CNY' | 'EUR') | null;
-  incoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
-  /**
-   * e.g. Aden
-   */
-  incotermPlace?: string | null;
-  /**
-   * e.g. 100% T/T in advance
-   */
-  paymentTerms?: string | null;
-  /**
-   * Only if shown separately
-   */
-  freight?: number | null;
-  insurance?: number | null;
-  discount?: number | null;
-  portOfLoading?: string | null;
-  portOfDischarge?: string | null;
-  shipmentBy?: ('Sea' | 'Air' | 'Courier' | 'Land') | null;
-  /**
-   * e.g. 30 days after payment
-   */
-  deliveryTime?: string | null;
-  /**
-   * Invoice and packing list
-   */
-  vessel?: string | null;
-  blNumber?: string | null;
-  shippingMarks?: string | null;
-  remarks?: string | null;
-  /**
-   * For our records only
-   */
-  order?: (number | null) | OrderMatch;
-  internalNotes?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -639,12 +912,24 @@ export interface PayloadLockedDocument {
         value: number | OrderFile;
       } | null)
     | ({
+        relationTo: 'clients';
+        value: number | Client;
+      } | null)
+    | ({
         relationTo: 'supplier-orders';
         value: number | SupplierOrder;
       } | null)
     | ({
         relationTo: 'buyer-documents';
         value: number | BuyerDocument;
+      } | null)
+    | ({
+        relationTo: 'trade-files';
+        value: number | TradeFile;
+      } | null)
+    | ({
+        relationTo: 'payments';
+        value: number | Payment;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -802,6 +1087,9 @@ export interface SuppliersSelect<T extends boolean = true> {
   source?: T;
   documentsFolder?: T;
   notes?: T;
+  orders?: T;
+  payments?: T;
+  documents?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -831,6 +1119,7 @@ export interface SupplierCertificatesSelect<T extends boolean = true> {
 export interface OrderMatchesSelect<T extends boolean = true> {
   title?: T;
   customer?: T;
+  client?: T;
   status?: T;
   orderFile?: T;
   typedMaterials?: T;
@@ -859,6 +1148,7 @@ export interface OrderMatchesSelect<T extends boolean = true> {
         id?: T;
       };
   notes?: T;
+  documents?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -882,6 +1172,31 @@ export interface OrderFilesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "clients_select".
+ */
+export interface ClientsSelect<T extends boolean = true> {
+  name?: T;
+  country?: T;
+  registrationNo?: T;
+  address?: T;
+  contactPerson?: T;
+  email?: T;
+  phone?: T;
+  currency?: T;
+  incoterm?: T;
+  incotermPlace?: T;
+  paymentTerms?: T;
+  consignee?: T;
+  notifyParty?: T;
+  notes?: T;
+  sales?: T;
+  payments?: T;
+  documents?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "supplier-orders_select".
  */
 export interface SupplierOrdersSelect<T extends boolean = true> {
@@ -901,6 +1216,11 @@ export interface SupplierOrdersSelect<T extends boolean = true> {
         unitPrice?: T;
         supplierProduct?: T;
         note?: T;
+        quotedPrice?: T;
+        moq?: T;
+        leadTime?: T;
+        quoteNote?: T;
+        requested?: T;
         id?: T;
       };
   currency?: T;
@@ -921,7 +1241,18 @@ export interface SupplierOrdersSelect<T extends boolean = true> {
   sentAt?: T;
   sentTo?: T;
   sendLog?: T;
+  quoteCurrency?: T;
+  quoteIncoterm?: T;
+  quoteIncotermPlace?: T;
+  quoteValidUntil?: T;
+  quotePaymentTerms?: T;
+  quoteContact?: T;
+  quoteSource?: T;
+  quoteReceivedAt?: T;
+  quoteNotes?: T;
   supplierReply?: T;
+  quoteLog?: T;
+  quoteToken?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -937,6 +1268,8 @@ export interface BuyerDocumentsSelect<T extends boolean = true> {
   invoiceNumber?: T;
   invoiceDate?: T;
   buyerReference?: T;
+  client?: T;
+  buyerEmail?: T;
   buyerName?: T;
   buyerCountry?: T;
   buyerContact?: T;
@@ -960,6 +1293,9 @@ export interface BuyerDocumentsSelect<T extends boolean = true> {
         batchNo?: T;
         mfgDate?: T;
         expDate?: T;
+        costPrice?: T;
+        costSupplier?: T;
+        costNote?: T;
         id?: T;
       };
   currency?: T;
@@ -979,6 +1315,68 @@ export interface BuyerDocumentsSelect<T extends boolean = true> {
   remarks?: T;
   order?: T;
   internalNotes?: T;
+  readyDate?: T;
+  etd?: T;
+  eta?: T;
+  forwarder?: T;
+  documentsSent?: T;
+  followUp?: T;
+  sendLog?: T;
+  payments?: T;
+  documents?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "trade-files_select".
+ */
+export interface TradeFilesSelect<T extends boolean = true> {
+  title?: T;
+  kind?: T;
+  date?: T;
+  client?: T;
+  supplier?: T;
+  order?: T;
+  buyerDocument?: T;
+  supplierOrder?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments_select".
+ */
+export interface PaymentsSelect<T extends boolean = true> {
+  date?: T;
+  direction?: T;
+  category?: T;
+  amount?: T;
+  currency?: T;
+  usdRate?: T;
+  amountUsd?: T;
+  buyerDocument?: T;
+  supplierOrder?: T;
+  order?: T;
+  client?: T;
+  supplier?: T;
+  paidTo?: T;
+  method?: T;
+  reference?: T;
+  proof?: T;
+  notes?: T;
+  void?: T;
+  voidReason?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1031,6 +1429,10 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 export interface TradeSetting {
   id: number;
   /**
+   * Optional. A PNG or JPG logo printed at the top of every document
+   */
+  logo?: (number | null) | Media;
+  /**
    * The legal name of the company that buys and sells
    */
   companyName: string;
@@ -1063,9 +1465,32 @@ export interface TradeSetting {
    */
   buyerPaymentTerms?: string | null;
   /**
+   * Selling price = cost + this %. Pre-filled when a proforma invoice is made from the supplier prices; you can change it per item
+   */
+  defaultMargin?: number | null;
+  /**
+   * e.g. 7.10. Used to compare prices and for the accounts
+   */
+  cnyPerUsd?: number | null;
+  /**
+   * e.g. 1.08
+   */
+  usdPerEur?: number | null;
+  /**
    * Pre-filled on new purchase orders
    */
   documentsRequired?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Totals for a period, balances, profit per sale. Download the Excel for the accountant.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "accounts-overview".
+ */
+export interface AccountsOverview {
+  id: number;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1074,6 +1499,7 @@ export interface TradeSetting {
  * via the `definition` "trade-settings_select".
  */
 export interface TradeSettingsSelect<T extends boolean = true> {
+  logo?: T;
   companyName?: T;
   address?: T;
   phone?: T;
@@ -1085,7 +1511,19 @@ export interface TradeSettingsSelect<T extends boolean = true> {
   bankDetails?: T;
   supplierPaymentTerms?: T;
   buyerPaymentTerms?: T;
+  defaultMargin?: T;
+  cnyPerUsd?: T;
+  usdPerEur?: T;
   documentsRequired?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "accounts-overview_select".
+ */
+export interface AccountsOverviewSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

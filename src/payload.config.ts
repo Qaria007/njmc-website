@@ -6,15 +6,19 @@ import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
 
+import { AccountsOverview } from './collections/AccountsOverview.ts'
 import { BuyerDocuments } from './collections/BuyerDocuments.ts'
+import { Clients } from './collections/Clients.ts'
 import { Leads } from './collections/Leads.ts'
 import { Media } from './collections/Media.ts'
 import { OrderFiles } from './collections/OrderFiles.ts'
 import { OrderMatches } from './collections/OrderMatches.ts'
+import { Payments } from './collections/Payments.ts'
 import { Products } from './collections/Products.ts'
 import { SupplierCertificates } from './collections/SupplierCertificates.ts'
 import { SupplierOrders } from './collections/SupplierOrders.ts'
 import { Suppliers } from './collections/Suppliers.ts'
+import { TradeFiles } from './collections/TradeFiles.ts'
 import { TradeSettings } from './collections/TradeSettings.ts'
 import { Users } from './collections/Users.ts'
 import { migrations } from './migrations/index.ts'
@@ -31,8 +35,8 @@ export default buildConfig({
     meta: { titleSuffix: ' | NJMC admin' },
     importMap: { baseDir: path.resolve(dirname) },
   },
-  collections: [Users, Media, Leads, Products, Suppliers, SupplierCertificates, OrderMatches, OrderFiles, SupplierOrders, BuyerDocuments],
-  globals: [TradeSettings],
+  collections: [Users, Media, Leads, Products, Suppliers, SupplierCertificates, OrderMatches, OrderFiles, Clients, SupplierOrders, BuyerDocuments, TradeFiles, Payments],
+  globals: [TradeSettings, AccountsOverview],
   localization: {
     locales: [
       { code: 'en', label: 'English' },

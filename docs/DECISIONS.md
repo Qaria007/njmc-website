@@ -140,3 +140,31 @@ Built as admin group "Orders" (all private, admin login only):
   never enter this repo.
 - PDFs are English only (built-in Latin fonts); Chinese or Arabic text is left out of the PDF.
 - No company stamp image: Media is public, so the stamp is added by hand after printing.
+
+## 2026-10-08 Order desk: supplier prices, margin to PI, client sending, accounts, documents (owner request)
+The owner asked for the whole order cycle in one place, sellable later as a product, with all trade
+documents in English only ("I use English everywhere for formal documents"). Built on the Orders group:
+- Supplier price page: every enquiry gets a random 32-character key (`quoteToken`). The email and
+  the PDF carry https://njmcmedicsupp.com/quote/<key>; the supplier types prices, MOQ, lead time,
+  validity and terms without a login. The key is the only access; the page shows what the enquiry
+  PDF already shows (never the customer) and can only write the quotation fields of that enquiry.
+  It closes when the enquiry is cancelled or confirmed, or 120 days after its date. Not indexed
+  (robots + noindex). We get an email when prices arrive.
+- Why a form and not AI reading of emails first: exact numbers, no paid model call, works for every
+  buyer of the software without an API key. Reading free-form supplier emails with AI is phase 2
+  (needs inbox access and the owner's choice of model key).
+- Price comparison on the order: every quoted price per order line, cheapest first, converted to
+  the PI currency with the rates typed in Company details (never guessed: a missing rate blocks).
+  Margin per line (default in Company details) makes the selling price; "Make the proforma invoice"
+  creates a draft PI. Each PI item keeps the cost and the supplier in fields that are never printed.
+- Clients collection: details typed once, copied onto PIs. PI, invoice and packing list can be sent
+  to the client (PDF, Excel optional) only after a confirm panel, or as a test to oneself.
+  The Excel is built from the same layout as the PDF, so the two always match.
+- Accounts (group "Accounts"): Money in and out (received from clients, paid to suppliers, costs),
+  kept in USD at the rate used, void instead of delete. Accounts overview: period totals, what
+  clients still owe, what we owe suppliers, profit per sale, Excel for the accountant. A management
+  view, not bookkeeping for tax: the accountant keeps the statutory books.
+- Documents (`trade-files`): any paper of a deal, private, in the orders volume sub-folder
+  `documents` (not under public media), listed on the client, supplier, order and sale.
+- Optional logo in Company details, printed on every PDF (the logo is public anyway; the stamp
+  still is not uploaded, see 2026-10-02).
