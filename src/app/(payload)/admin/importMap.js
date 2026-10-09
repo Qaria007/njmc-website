@@ -1,5 +1,6 @@
 import { OrderTimeline as OrderTimeline_56867a5a6eff441b80743a5a2de0ad10 } from '../../../components/admin/OrderTimeline'
 import { OrderResults as OrderResults_df059ed6ac9d3cf5c93bf9dc8184c213 } from '../../../components/admin/OrderResults'
+import { PortalInvite as PortalInvite_b83e43da27c03911dd95278a1ae115f4 } from '../../../components/admin/PortalInvite'
 import { SupplierOrderActions as SupplierOrderActions_05049ef5fcaf08e07969f3cb583c09b7 } from '../../../components/admin/SupplierOrderActions'
 import { BuyerDocActions as BuyerDocActions_921ee1d0d22751b4720613730ce5722d } from '../../../components/admin/BuyerDocActions'
 import { PharmaTrustCheck as PharmaTrustCheck_1c22b98f0e14a7ef04dba14619de66d6 } from '../../../components/admin/PharmaTrustCheck'
@@ -15,6 +16,7 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 export const importMap = {
   "/components/admin/OrderTimeline#OrderTimeline": OrderTimeline_56867a5a6eff441b80743a5a2de0ad10,
   "/components/admin/OrderResults#OrderResults": OrderResults_df059ed6ac9d3cf5c93bf9dc8184c213,
+  "/components/admin/PortalInvite#PortalInvite": PortalInvite_b83e43da27c03911dd95278a1ae115f4,
   "/components/admin/SupplierOrderActions#SupplierOrderActions": SupplierOrderActions_05049ef5fcaf08e07969f3cb583c09b7,
   "/components/admin/BuyerDocActions#BuyerDocActions": BuyerDocActions_921ee1d0d22751b4720613730ce5722d,
   "/components/admin/PharmaTrustCheck#PharmaTrustCheck": PharmaTrustCheck_1c22b98f0e14a7ef04dba14619de66d6,

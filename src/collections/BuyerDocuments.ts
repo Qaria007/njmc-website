@@ -18,6 +18,8 @@ const day = (v: unknown) => s(v).slice(0, 10)
 const admin = (req: PayloadRequest) => isStaff(req)
 export const TYPES: BuyerDocType[] = ['pi', 'invoice', 'packing-list']
 
+export const toBuyerDoc = (d: AnyDoc): BuyerDoc => toDoc(d)
+
 function toDoc(d: AnyDoc): BuyerDoc {
   return {
     piNumber: s(d.piNumber), piDate: day(d.piDate), invoiceNumber: s(d.invoiceNumber), invoiceDate: day(d.invoiceDate),

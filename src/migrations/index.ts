@@ -11,6 +11,7 @@ import * as migration_20261008_170534_phase_a from './20261008_170534_phase_a';
 import * as migration_20261009_022940_phase_b from './20261009_022940_phase_b';
 import * as migration_20261009_023151_phase_b_coa from './20261009_023151_phase_b_coa';
 import * as migration_20261009_023800_roles_activity from './20261009_023800_roles_activity';
+import * as migration_20261009_024034_portal from './20261009_024034_portal';
 
 export const migrations = [
   {
@@ -76,6 +77,11 @@ export const migrations = [
   {
     up: migration_20261009_023800_roles_activity.up,
     down: migration_20261009_023800_roles_activity.down,
-    name: '20261009_023800_roles_activity'
+    name: '20261009_023800_roles_activity',
+  },
+  {
+    up: migration_20261009_024034_portal.up,
+    down: migration_20261009_024034_portal.down,
+    name: '20261009_024034_portal'
   },
 ];

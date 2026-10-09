@@ -64,6 +64,7 @@ export type SupportedTimezones =
 export interface Config {
   auth: {
     users: UserAuthOperations;
+    'portal-users': PortalUserAuthOperations;
   };
   blocks: {};
   collections: {
@@ -81,6 +82,7 @@ export interface Config {
     leads: Lead;
     media: Media;
     users: User;
+    'portal-users': PortalUser;
     'activity-log': ActivityLog;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -92,6 +94,7 @@ export interface Config {
       documents: 'trade-files';
     };
     clients: {
+      portalLogins: 'portal-users';
       sales: 'buyer-documents';
       payments: 'payments';
       documents: 'trade-files';
@@ -121,6 +124,7 @@ export interface Config {
     leads: LeadsSelect<false> | LeadsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    'portal-users': PortalUsersSelect<false> | PortalUsersSelect<true>;
     'activity-log': ActivityLogSelect<false> | ActivityLogSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -143,13 +147,31 @@ export interface Config {
   widgets: {
     collections: CollectionsWidget;
   };
-  user: User;
+  user: User | PortalUser;
   jobs: {
     tasks: unknown;
     workflows: unknown;
   };
 }
 export interface UserAuthOperations {
+  forgotPassword: {
+    email: string;
+    password: string;
+  };
+  login: {
+    email: string;
+    password: string;
+  };
+  registerFirstUser: {
+    email: string;
+    password: string;
+  };
+  unlock: {
+    email: string;
+    password: string;
+  };
+}
+export interface PortalUserAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -260,6 +282,11 @@ export interface Client {
   consignee?: string | null;
   notifyParty?: string | null;
   notes?: string | null;
+  portalLogins?: {
+    docs?: (number | PortalUser)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   sales?: {
     docs?: (number | BuyerDocument)[];
     hasNextPage?: boolean;
@@ -277,6 +304,35 @@ export interface Client {
   };
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "portal-users".
+ */
+export interface PortalUser {
+  id: number;
+  name?: string | null;
+  client: number | Client;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'portal-users';
 }
 /**
  * Fill in the buyer, the items and the prices once. The proforma invoice, the invoice and the packing list are printed from the same record.
@@ -1008,14 +1064,23 @@ export interface PayloadLockedDocument {
         value: number | User;
       } | null)
     | ({
+        relationTo: 'portal-users';
+        value: number | PortalUser;
+      } | null)
+    | ({
         relationTo: 'activity-log';
         value: number | ActivityLog;
       } | null);
   globalSlug?: string | null;
-  user: {
-    relationTo: 'users';
-    value: number | User;
-  };
+  user:
+    | {
+        relationTo: 'users';
+        value: number | User;
+      }
+    | {
+        relationTo: 'portal-users';
+        value: number | PortalUser;
+      };
   updatedAt: string;
   createdAt: string;
 }
@@ -1025,10 +1090,15 @@ export interface PayloadLockedDocument {
  */
 export interface PayloadPreference {
   id: number;
-  user: {
-    relationTo: 'users';
-    value: number | User;
-  };
+  user:
+    | {
+        relationTo: 'users';
+        value: number | User;
+      }
+    | {
+        relationTo: 'portal-users';
+        value: number | PortalUser;
+      };
   key?: string | null;
   value?:
     | {
@@ -1112,6 +1182,7 @@ export interface ClientsSelect<T extends boolean = true> {
   consignee?: T;
   notifyParty?: T;
   notes?: T;
+  portalLogins?: T;
   sales?: T;
   payments?: T;
   documents?: T;
@@ -1476,6 +1547,32 @@ export interface MediaSelect<T extends boolean = true> {
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   role?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  resetPasswordRequestedAt?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "portal-users_select".
+ */
+export interface PortalUsersSelect<T extends boolean = true> {
+  name?: T;
+  client?: T;
+  active?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
