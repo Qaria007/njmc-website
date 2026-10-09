@@ -31,10 +31,18 @@ export function QuotesPanel({ id }: { id: number | string }) {
   const [past, setPast] = useState<Record<number, Past[] | 'loading'>>({})
 
   const showPast = async (k: number, requested: string) => {
-    if (past[k]) return setPast({ ...past, [k]: undefined as never })
-    setPast({ ...past, [k]: 'loading' })
+    if (past[k]) {
+      setPast((p) => {
+        const n = { ...p }
+        delete n[k]
+        return n
+      })
+      return
+    }
+    setPast((p) => ({ ...p, [k]: 'loading' }))
     const r = await fetch(`/api/desk/price-history?q=${encodeURIComponent(requested)}`, { credentials: 'include' }).then((x) => x.json()).catch(() => ({ points: [] }))
-    setPast((p) => ({ ...p, [k]: (r.points as Past[]).slice(0, 8) }))
+    // Ignore the answer when the list was closed meanwhile.
+    setPast((p) => (p[k] === 'loading' ? { ...p, [k]: ((r.points ?? []) as Past[]).slice(0, 8) } : p))
   }
 
   const load = useCallback(async () => {

@@ -11,7 +11,7 @@ const daysBetween = (a: string, b: string) => Math.round((Date.parse(b) - Date.p
 // ---------- Rows the endpoints load ----------
 
 export type EnquiryRow = {
-  id: string; number: string; kind: 'rfq' | 'po'; status: string; supplierId: string; supplier: string; orderId: string | null; orderTitle: string
+  id: string; number: string; kind: 'rfq' | 'po'; status: string; supplierId: string; supplier: string; orderId: string | null; orderTitle: string; orderStatus?: string
   date: string; sentAt: string; quoteReceivedAt: string; quoteValidUntil: string; currency: string; fromEnquiry: string | null
   items: { material: string; requested?: string | null; quantity?: number | null; unit?: string | null; quotedPrice?: number | null; unitPrice?: number | null }[]
 }
@@ -34,9 +34,11 @@ export function buildTasks(
   replyDays = 3,
 ): Tasks {
   const today = day(now)
-  const rfqs = input.enquiries.filter((e) => e.kind === 'rfq' && e.status !== 'cancelled')
+  // Enquiries of orders that are won or lost need nothing more.
+  const rfqs = input.enquiries.filter((e) => e.kind === 'rfq' && e.status !== 'cancelled' && !['won', 'lost'].includes(e.orderStatus ?? ''))
   const poFrom = new Set(input.enquiries.filter((e) => e.kind === 'po' && e.status !== 'cancelled' && e.fromEnquiry).map((e) => e.fromEnquiry as string))
   const ordersWithSale = new Set(input.sales.filter((s) => s.status !== 'cancelled' && s.orderId).map((s) => s.orderId as string))
+  const ordersWithPo = new Set(input.enquiries.filter((e) => e.kind === 'po' && e.status !== 'cancelled' && e.orderId).map((e) => e.orderId as string))
   const by = <T extends Task>(xs: T[]) => xs.sort((a, b) => (b.age ?? 0) - (a.age ?? 0))
 
   const overdueReplies = by(
@@ -50,7 +52,7 @@ export function buildTasks(
   // Prices in, but no PI made for the order yet and no purchase order from this enquiry.
   const pricesToUse = by(
     rfqs
-      .filter((e) => e.quoteReceivedAt && !poFrom.has(e.id) && !(e.orderId && ordersWithSale.has(e.orderId)))
+      .filter((e) => e.quoteReceivedAt && !poFrom.has(e.id) && !(e.orderId && (ordersWithSale.has(e.orderId) || ordersWithPo.has(e.orderId))))
       .map((e) => ({
         kind: 'prices', title: `Prices from ${e.supplier} (${e.number})`, detail: e.orderTitle ? `Compare and make the PI on: ${e.orderTitle}` : 'Open the enquiry',
         href: e.orderId ? `/admin/collections/order-matches/${e.orderId}` : `/admin/collections/supplier-orders/${e.id}`, age: daysBetween(e.quoteReceivedAt, now),
@@ -80,26 +82,31 @@ export function buildTasks(
   // Goods ready, leaving or arriving within 14 days (or already past and not delivered).
   const soon = (d: string) => d && daysBetween(today, d) <= 14
   const shipments = input.sales
-    .filter((s) => !['delivered', 'closed', 'cancelled'].includes(s.status) && (soon(day(s.eta)) || soon(day(s.etd)) || soon(day(s.readyDate))))
+    .filter((s) => !['draft', 'delivered', 'closed', 'cancelled'].includes(s.status) && (soon(day(s.eta)) || soon(day(s.etd)) || soon(day(s.readyDate))))
     .map((s) => {
-      const [label, d] = s.eta ? ['arrives', day(s.eta)] : s.etd ? ['leaves', day(s.etd)] : ['ready', day(s.readyDate)]
+      // The earliest date that falls in the window is the one to act on.
+      const [label, d] = ([['ready', day(s.readyDate)], ['leaves', day(s.etd)], ['arrives', day(s.eta)]] as [string, string][]).filter(([, x]) => soon(x)).sort((a, b) => a[1].localeCompare(b[1]))[0]
       return { kind: 'ship', title: `${s.client}: ${s.invoiceNumber || s.number} ${label} ${d}`, detail: d < today ? 'Date passed: update the shipment' : '', href: `/admin/collections/buyer-documents/${s.id}`, due: d }
     })
     .sort((a, b) => a.due.localeCompare(b.due))
   const expiringQuotes = rfqs
-    .filter((e) => e.quoteValidUntil && !poFrom.has(e.id) && daysBetween(today, day(e.quoteValidUntil)) <= 7)
+    .filter((e) => {
+      if (!e.quoteValidUntil || poFrom.has(e.id) || (e.orderId && (ordersWithSale.has(e.orderId) || ordersWithPo.has(e.orderId)))) return false
+      const left = daysBetween(today, day(e.quoteValidUntil))
+      return left <= 7 && left >= -14
+    })
     .map((e) => {
       const d = day(e.quoteValidUntil)
       return { kind: 'quote', title: `${e.supplier} prices ${d < today ? 'expired' : 'expire'} ${d}`, detail: e.number, href: `/admin/collections/supplier-orders/${e.id}`, due: d }
     })
     .sort((a, b) => a.due.localeCompare(b.due))
   const certificates = input.certs
-    .filter((c) => c.validUntil && daysBetween(today, day(c.validUntil)) <= 60)
+    .filter((c) => c.validUntil && daysBetween(today, day(c.validUntil)) <= 60 && daysBetween(today, day(c.validUntil)) >= -90)
     .map((c) => {
       const d = day(c.validUntil)
       return { kind: 'cert', title: `${c.supplier}: ${c.type} ${d < today ? 'expired' : 'expires'} ${d}`, detail: 'Ask the supplier for the renewed certificate', href: `/admin/collections/suppliers/${c.supplierId}`, due: d }
     })
-    .sort((a, b) => b.due.localeCompare(a.due))
+    .sort((a, b) => a.due.localeCompare(b.due))
     .slice(0, 30)
   const newOrders = by(
     input.orders
@@ -198,7 +205,7 @@ export function supplierScores(enquiries: EnquiryRow[], certs: CertRow[], rates:
   for (const offers of lines.values()) {
     if (offers.length < 2) continue
     const low = Math.min(...offers.map((o) => o.usd))
-    for (const o of offers) if (o.usd === low) get(o.supplierId).cheapestLines++
+    for (const sup of new Set(offers.filter((o) => o.usd === low).map((o) => o.supplierId))) get(sup).cheapestLines++
   }
   const today = day(now)
   for (const c of certs) {

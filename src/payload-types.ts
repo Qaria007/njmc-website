@@ -71,6 +71,7 @@ export interface Config {
     clients: Client;
     'supplier-orders': SupplierOrder;
     'buyer-documents': BuyerDocument;
+    'inbox-messages': InboxMessage;
     'trade-files': TradeFile;
     payments: Payment;
     products: Product;
@@ -109,6 +110,7 @@ export interface Config {
     clients: ClientsSelect<false> | ClientsSelect<true>;
     'supplier-orders': SupplierOrdersSelect<false> | SupplierOrdersSelect<true>;
     'buyer-documents': BuyerDocumentsSelect<false> | BuyerDocumentsSelect<true>;
+    'inbox-messages': InboxMessagesSelect<false> | InboxMessagesSelect<true>;
     'trade-files': TradeFilesSelect<false> | TradeFilesSelect<true>;
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
     products: ProductsSelect<false> | ProductsSelect<true>;
@@ -308,6 +310,10 @@ export interface BuyerDocument {
    * Several addresses: separate with commas
    */
   buyerEmail?: string | null;
+  /**
+   * With the country code, e.g. +967 777 123 456
+   */
+  buyerPhone?: string | null;
   buyerName: string;
   buyerCountry?: string | null;
   buyerContact?: string | null;
@@ -400,6 +406,9 @@ export interface BuyerDocument {
       )[]
     | null;
   followUp?: string | null;
+  clientReplyAt?: string | null;
+  shareToken?: string | null;
+  shareCreatedAt?: string | null;
   sendLog?: string | null;
   payments?: {
     docs?: (number | Payment)[];
@@ -552,6 +561,17 @@ export interface SupplierOrder {
   quoteSource?: ('supplier form' | 'email' | 'WeChat or phone') | null;
   quoteReceivedAt?: string | null;
   quoteNotes?: string | null;
+  replyArrivedAt?: string | null;
+  aiProposal?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  aiProposalAt?: string | null;
   supplierReply?: string | null;
   quoteLog?: string | null;
   quoteToken?: string | null;
@@ -653,6 +673,10 @@ export interface TradeFile {
   order?: (number | null) | OrderMatch;
   buyerDocument?: (number | null) | BuyerDocument;
   supplierOrder?: (number | null) | SupplierOrder;
+  ptResult?: ('passed' | 'issues found' | 'could not be read') | null;
+  ptCheckedAt?: string | null;
+  ptReport?: string | null;
+  ptNotes?: string | null;
   notes?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -730,6 +754,28 @@ export interface Product {
       }[]
     | null;
   internalNotes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Replies about our enquiries, purchase orders and invoices, read from the sales mailbox. Tick Done when handled.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inbox-messages".
+ */
+export interface InboxMessage {
+  id: number;
+  receivedAt?: string | null;
+  from?: string | null;
+  docNumber?: string | null;
+  done?: boolean | null;
+  subject?: string | null;
+  supplierOrder?: (number | null) | SupplierOrder;
+  buyerDocument?: (number | null) | BuyerDocument;
+  text?: string | null;
+  attachments?: (number | TradeFile)[] | null;
+  aiNote?: string | null;
+  messageId?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -896,6 +942,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'buyer-documents';
         value: number | BuyerDocument;
+      } | null)
+    | ({
+        relationTo: 'inbox-messages';
+        value: number | InboxMessage;
       } | null)
     | ({
         relationTo: 'trade-files';
@@ -1095,6 +1145,9 @@ export interface SupplierOrdersSelect<T extends boolean = true> {
   quoteSource?: T;
   quoteReceivedAt?: T;
   quoteNotes?: T;
+  replyArrivedAt?: T;
+  aiProposal?: T;
+  aiProposalAt?: T;
   supplierReply?: T;
   quoteLog?: T;
   quoteToken?: T;
@@ -1115,6 +1168,7 @@ export interface BuyerDocumentsSelect<T extends boolean = true> {
   buyerReference?: T;
   client?: T;
   buyerEmail?: T;
+  buyerPhone?: T;
   buyerName?: T;
   buyerCountry?: T;
   buyerContact?: T;
@@ -1166,9 +1220,31 @@ export interface BuyerDocumentsSelect<T extends boolean = true> {
   forwarder?: T;
   documentsSent?: T;
   followUp?: T;
+  clientReplyAt?: T;
+  shareToken?: T;
+  shareCreatedAt?: T;
   sendLog?: T;
   payments?: T;
   documents?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inbox-messages_select".
+ */
+export interface InboxMessagesSelect<T extends boolean = true> {
+  receivedAt?: T;
+  from?: T;
+  docNumber?: T;
+  done?: T;
+  subject?: T;
+  supplierOrder?: T;
+  buyerDocument?: T;
+  text?: T;
+  attachments?: T;
+  aiNote?: T;
+  messageId?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1185,6 +1261,10 @@ export interface TradeFilesSelect<T extends boolean = true> {
   order?: T;
   buyerDocument?: T;
   supplierOrder?: T;
+  ptResult?: T;
+  ptCheckedAt?: T;
+  ptReport?: T;
+  ptNotes?: T;
   notes?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1490,6 +1570,23 @@ export interface TradeSetting {
   aiKeyHint?: string | null;
   removeAiKey?: boolean | null;
   aiKeySealed?: string | null;
+  inboxOn?: boolean | null;
+  imapHost?: string | null;
+  /**
+   * The mailbox that receives replies, e.g. contact@optelux.com
+   */
+  imapUser?: string | null;
+  /**
+   * Google account > Security > App passwords. Stored encrypted, never shown again
+   */
+  newImapPassword?: string | null;
+  imapPassHint?: string | null;
+  removeImapPassword?: boolean | null;
+  inboxCheckedAt?: string | null;
+  inboxStatus?: string | null;
+  imapPassSealed?: string | null;
+  inboxLastUid?: number | null;
+  inboxUidValidity?: string | null;
   /**
    * Pre-filled on new purchase orders
    */
@@ -1538,6 +1635,17 @@ export interface TradeSettingsSelect<T extends boolean = true> {
   aiKeyHint?: T;
   removeAiKey?: T;
   aiKeySealed?: T;
+  inboxOn?: T;
+  imapHost?: T;
+  imapUser?: T;
+  newImapPassword?: T;
+  imapPassHint?: T;
+  removeImapPassword?: T;
+  inboxCheckedAt?: T;
+  inboxStatus?: T;
+  imapPassSealed?: T;
+  inboxLastUid?: T;
+  inboxUidValidity?: T;
   documentsRequired?: T;
   updatedAt?: T;
   createdAt?: T;

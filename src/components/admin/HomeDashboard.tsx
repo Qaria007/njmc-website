@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 // The admin home page: search everything, quick actions, money at a glance, and the list of what
 // needs doing today, with reminders that are always shown and confirmed before they are sent.
-type Task = { kind: string; title: string; detail: string; href: string; age?: number; due?: string; action?: { type: 'remind-supplier' | 'remind-client'; id: string } }
+type Task = { kind: string; title: string; detail: string; href: string; age?: number; due?: string; done?: string; action?: { type: 'remind-supplier' | 'remind-client'; id: string } }
 type Tasks = Record<string, Task[]>
 type Totals = { received: number; paidSuppliers: number; expenses: number; cashNet: number; receivable: number; payable: number; profit: number }
 type Today = { tasks: Tasks; money: { month: Totals; all: Totals; missingRates: string[] } }
@@ -16,7 +16,9 @@ const muted: React.CSSProperties = { opacity: 0.7, fontSize: 12 }
 const fmt = (n: number | null | undefined) => (n == null ? 'n/a' : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
 
 const SECTIONS: [string, string, string][] = [
+  ['emails', 'Emails received about our documents', 'Read them, then mark done'],
   ['newOrders', 'New customer orders', 'Message the suppliers'],
+  ['coaChecks', 'Certificates of analysis to check', 'Check them with PharmaTrust'],
   ['overdueReplies', 'Suppliers who have not answered', 'Remind them'],
   ['pricesToUse', 'Prices received', 'Compare and make the PI'],
   ['waitingClient', 'PIs waiting for the client', 'Follow up'],
@@ -50,6 +52,7 @@ function Remind({ action, onDone }: { action: NonNullable<Task['action']>; onDon
   const [body, setBody] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState(false)
   useEffect(() => {
     get(`/api/desk/remind?type=${type}&id=${action.id}`)
       .then((j) => {
@@ -70,7 +73,10 @@ function Remind({ action, onDone }: { action: NonNullable<Task['action']>; onDon
       const j = await r.json().catch(() => ({}))
       if (!r.ok) throw new Error(j.error || 'not sent')
       setNote(test ? `Test sent to ${j.to.join(', ')}.` : `Sent to ${j.to.join(', ')}. ${j.warning ?? ''}`)
-      if (!test) setTimeout(onDone, 1200)
+      if (!test) {
+        setSent(true)
+        setTimeout(onDone, 1200)
+      }
     } catch (e) {
       setNote((e as Error).message)
     }
@@ -83,7 +89,7 @@ function Remind({ action, onDone }: { action: NonNullable<Task['action']>; onDon
       <input style={{ width: '100%', margin: '0 0 6px', padding: '4px 6px', font: 'inherit' }} value={subject} onChange={(e) => setSubject(e.target.value)} />
       <textarea style={{ width: '100%', minHeight: 150, padding: '4px 6px', font: 'inherit' }} value={body} onChange={(e) => setBody(e.target.value)} />
       <p style={{ margin: '6px 0 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button type="button" className="btn btn--style-primary btn--size-small" style={{ margin: 0 }} disabled={busy || !d.to.length} onClick={() => send(false)}>Confirm and send</button>
+        <button type="button" className="btn btn--style-primary btn--size-small" style={{ margin: 0 }} disabled={busy || sent || !d.to.length} onClick={() => send(false)}>{sent ? 'Sent' : 'Confirm and send'}</button>
         <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }} disabled={busy} onClick={() => send(true)}>Send a test to myself</button>
         <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }} disabled={busy} onClick={onDone}>Close</button>
       </p>
@@ -232,6 +238,19 @@ export function HomeDashboard() {
                       <div style={muted}>
                         {[t.detail, t.age != null && t.age > 0 ? `${t.age} day${t.age === 1 ? '' : 's'}` : ''].filter(Boolean).join(', ')}
                       </div>
+                      {t.done ? (
+                        <button
+                          type="button"
+                          className="btn btn--style-secondary btn--size-small"
+                          style={{ margin: '4px 0 0' }}
+                          onClick={async () => {
+                            await fetch('/api/desk/email-done/', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.done }) })
+                            load()
+                          }}
+                        >
+                          Mark done
+                        </button>
+                      ) : null}
                       {t.action ? (
                         open === key ? (
                           <Remind action={t.action} onDone={() => { setOpen(null); load() }} />

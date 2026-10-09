@@ -1,6 +1,10 @@
 import type { CollectionBeforeChangeHook, CollectionBeforeValidateHook, CollectionConfig, PayloadHandler, PayloadRequest } from 'payload'
 
+import { randomBytes } from 'node:crypto'
+
 import { clientMessage, saleMargin } from '../lib/order-desk.ts'
+import { SHARE_DAYS, waLink, waNumber } from '../lib/share.ts'
+import { SITE_URL } from '../lib/site.ts'
 import { docSpecXlsx } from '../lib/order-desk-xlsx.ts'
 import { type BuyerDoc, buyerDocGaps, buyerDocSpec, type BuyerDocType, type BuyerItem, emailsIn, safeFileName } from '../lib/trade-docs.ts'
 import { renderPdf } from '../lib/trade-pdf.ts'
@@ -12,7 +16,7 @@ type AnyDoc = Record<string, unknown> & { id: number | string }
 const s = (v: unknown) => (v == null ? '' : String(v))
 const day = (v: unknown) => s(v).slice(0, 10)
 const admin = (req: PayloadRequest) => req.user?.collection === 'users'
-const TYPES: BuyerDocType[] = ['pi', 'invoice', 'packing-list']
+export const TYPES: BuyerDocType[] = ['pi', 'invoice', 'packing-list']
 
 function toDoc(d: AnyDoc): BuyerDoc {
   return {
@@ -28,7 +32,7 @@ function toDoc(d: AnyDoc): BuyerDoc {
 }
 
 const idOf = (r: unknown) => (r && typeof r === 'object' ? (r as AnyDoc).id : (r as number | string | null | undefined))
-const PARTY = [['buyerName', 'name'], ['buyerAddress', 'address'], ['buyerCountry', 'country'], ['buyerContact', 'contactPerson'], ['buyerEmail', 'email'], ['consignee', 'consignee'], ['notifyParty', 'notifyParty']]
+const PARTY = [['buyerName', 'name'], ['buyerAddress', 'address'], ['buyerCountry', 'country'], ['buyerContact', 'contactPerson'], ['buyerEmail', 'email'], ['buyerPhone', 'phone'], ['consignee', 'consignee'], ['notifyParty', 'notifyParty']]
 const TERMS = [['incoterm', 'incoterm'], ['incotermPlace', 'incotermPlace'], ['paymentTerms', 'paymentTerms']]
 
 // Choosing a client copies its details. A new or changed client replaces the buyer's name, address
@@ -84,6 +88,48 @@ const xlsxEndpoint: PayloadHandler = async (req) => {
       'Cache-Control': 'no-store',
     },
   })
+}
+
+// POST { type }: the private link to this document for the client, and a WhatsApp link that opens
+// the sender's own WhatsApp with the message ready. Nothing is sent from here.
+const shareEndpoint: PayloadHandler = async (req) => {
+  if (!admin(req)) return Response.json({ error: 'Not allowed' }, { status: 403 })
+  const body = await jsonBody<{ type?: string }>(req)
+  if (!body) return notJson()
+  const type = s(body.type) as BuyerDocType
+  if (!TYPES.includes(type)) return Response.json({ error: 'Unknown document' }, { status: 400 })
+  let doc = (await req.payload.findByID({ collection: 'buyer-documents', id: s(req.routeParams?.id), depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
+  if (doc.status === 'cancelled') return Response.json({ error: 'This sale is cancelled' }, { status: 400 })
+  const fresh = s(doc.shareToken) && Date.now() - Date.parse(s(doc.shareCreatedAt)) < (SHARE_DAYS - 7) * 86_400_000
+  if (!fresh) {
+    doc = (await req.payload.update({
+      collection: 'buyer-documents', id: doc.id, depth: 0, overrideAccess: true, req,
+      data: { shareToken: randomBytes(24).toString('base64url'), shareCreatedAt: new Date().toISOString() } as never,
+    })) as unknown as AnyDoc
+  }
+  const seller = await loadSeller(req.payload, req)
+  const url = `${SITE_URL.replace(/\/$/, '')}/d/${s(doc.shareToken)}/${type}`
+  const m = clientMessage(toDoc(doc), seller, type)
+  // WhatsApp carries a link, not an attachment.
+  const text = `${m.body.split('\n\nBest regards')[0].replace('Please find attached', 'Here is')}\n\n${url}\n\n${seller.companyName}`
+  const log = `${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC: WhatsApp link for the ${type === 'pi' ? 'proforma invoice' : type} prepared by ${s(req.user?.email)}`
+  await req.payload.update({ collection: 'buyer-documents', id: doc.id, depth: 0, overrideAccess: true, req, data: { sendLog: [s(doc.sendLog), log].filter(Boolean).join('\n') } as never })
+  return Response.json({ url, wa: waLink(doc.buyerPhone, text), phone: waNumber(doc.buyerPhone) })
+}
+
+// The document behind a client's private link, or null when the link is wrong, old or cancelled.
+export async function saleByShareToken(token: string, req?: PayloadRequest) {
+  if (!/^[A-Za-z0-9_-]{30,40}$/.test(token) || !req) return null
+  const res = await req.payload.find({ collection: 'buyer-documents', where: { shareToken: { equals: token } }, limit: 2, depth: 0, overrideAccess: true, req })
+  if (res.docs.length !== 1) return null
+  const doc = res.docs[0] as unknown as AnyDoc
+  if (doc.status === 'cancelled' || Date.now() - Date.parse(s(doc.shareCreatedAt)) > SHARE_DAYS * 86_400_000) return null
+  return doc
+}
+
+export async function sharedPdf(doc: AnyDoc, type: BuyerDocType, req: PayloadRequest) {
+  const spec = buyerDocSpec(toDoc(doc), await loadSeller(req.payload, req), type)
+  return { bytes: await renderPdf(spec), fileName: safeFileName(spec.fileName) }
 }
 
 const checkEndpoint: PayloadHandler = async (req) => {
@@ -182,6 +228,7 @@ export const BuyerDocuments: CollectionConfig = {
     { path: '/:id/xlsx/:type', method: 'get', handler: xlsxEndpoint },
     { path: '/:id/check', method: 'get', handler: checkEndpoint },
     { path: '/:id/send', method: 'post', handler: sendEndpoint },
+    { path: '/:id/share', method: 'post', handler: shareEndpoint },
   ],
   timestamps: true,
   fields: [
@@ -211,6 +258,7 @@ export const BuyerDocuments: CollectionConfig = {
       fields: [
         { name: 'client', type: 'relationship', relationTo: 'clients', admin: { description: 'Choose the client and save: the buyer details below fill in by themselves' } },
         { name: 'buyerEmail', type: 'text', label: 'Send documents to (email)', admin: { description: 'Several addresses: separate with commas' } },
+        { name: 'buyerPhone', type: 'text', label: 'Client WhatsApp', admin: { description: 'With the country code, e.g. +967 777 123 456' } },
       ],
     },
     {
@@ -331,9 +379,13 @@ export const BuyerDocuments: CollectionConfig = {
           name: 'documentsSent', type: 'select', hasMany: true, label: 'Documents sent to the client',
           options: ['Proforma invoice', 'Commercial invoice', 'Packing list', 'Certificate of analysis', 'Certificate of origin', 'B/L or AWB copy', 'Original documents by courier', 'Insurance certificate'].map((v) => ({ label: v, value: v })),
         },
-        { name: 'followUp', type: 'textarea', label: 'Follow-up notes (complaints, feedback, next order)', admin: { rows: 3 } },
+        { name: 'followUp', type: 'textarea', label: 'Follow-up notes and client emails (complaints, feedback, next order)', admin: { rows: 3 } },
+        { name: 'clientReplyAt', type: 'date', label: 'Last email from the client', hooks: { beforeDuplicate: [() => null] }, admin: { readOnly: true, date: { pickerAppearance: 'dayAndTime' } } },
       ],
     },
+    // The key in the client's private document links (WhatsApp). Never shown or copied.
+    { name: 'shareToken', type: 'text', unique: true, index: true, hooks: { beforeDuplicate: [() => null] }, admin: { hidden: true } },
+    { name: 'shareCreatedAt', type: 'date', hooks: { beforeDuplicate: [() => null] }, admin: { hidden: true } },
     { name: 'sendLog', type: 'textarea', label: 'Sending history', access: { create: () => false, update: () => false }, admin: { readOnly: true, rows: 2 } },
     {
       type: 'collapsible',

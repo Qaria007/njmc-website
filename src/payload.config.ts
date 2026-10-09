@@ -10,6 +10,7 @@ import { AccountsOverview } from './collections/AccountsOverview.ts'
 import { BuyerDocuments } from './collections/BuyerDocuments.ts'
 import { Clients } from './collections/Clients.ts'
 import { deskEndpoints } from './collections/Desk.ts'
+import { InboxMessages, startInboxReader } from './collections/Inbox.ts'
 import { Leads } from './collections/Leads.ts'
 import { Media } from './collections/Media.ts'
 import { OrderFiles } from './collections/OrderFiles.ts'
@@ -38,8 +39,9 @@ export default buildConfig({
     components: { beforeDashboard: ['/components/admin/HomeDashboard#HomeDashboard'] },
   },
   // Order of the menu: the daily work first.
-  collections: [OrderMatches, Clients, SupplierOrders, BuyerDocuments, TradeFiles, Payments, Products, Suppliers, SupplierCertificates, OrderFiles, Leads, Media, Users],
+  collections: [OrderMatches, Clients, SupplierOrders, BuyerDocuments, InboxMessages, TradeFiles, Payments, Products, Suppliers, SupplierCertificates, OrderFiles, Leads, Media, Users],
   endpoints: deskEndpoints,
+  onInit: async (payload) => startInboxReader(payload),
   globals: [TradeSettings, AccountsOverview],
   localization: {
     locales: [

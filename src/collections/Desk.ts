@@ -19,8 +19,14 @@ const denied = () => Response.json({ error: 'Not allowed' }, { status: 403 })
 const q = (req: PayloadRequest, k: string) => s(((req.query ?? {}) as Record<string, unknown>)[k]).slice(0, 200)
 const CERT_LABEL = new Map(CERT_TYPES.map((c) => [c.value, c.label]))
 
+// Linked records come back with only the fields the dashboard shows (names, titles, statuses).
+const POPULATE = { 'order-matches': { title: true, status: true }, suppliers: { name: true, contactPerson: true }, clients: { name: true }, 'supplier-orders': { number: true } }
+
 async function find(req: PayloadRequest, collection: string, where?: object, depth = 1, select?: object) {
-  const res = await req.payload.find({ collection: collection as never, where: where as never, limit: 0, depth, pagination: false, overrideAccess: true, req, ...(select ? { select: select as never } : {}) })
+  const res = await req.payload.find({
+    collection: collection as never, where: where as never, limit: 0, depth, pagination: false, overrideAccess: true, req, populate: POPULATE as never, joins: false as never,
+    ...(select ? { select: select as never } : {}),
+  })
   return res.docs as unknown as Doc[]
 }
 
@@ -28,6 +34,7 @@ export async function loadEnquiries(req: PayloadRequest): Promise<EnquiryRow[]> 
   const docs = await find(req, 'supplier-orders', undefined, 1)
   return docs.map((e) => ({
     id: String(e.id), number: s(e.number), kind: e.kind as 'rfq' | 'po', status: s(e.status), supplierId: idOf(e.supplier) ?? '', supplier: nameOf(e.supplier), orderId: idOf(e.order), orderTitle: nameOf(e.order),
+    orderStatus: e.order && typeof e.order === 'object' ? s((e.order as Doc).status) : '',
     date: s(e.date), sentAt: s(e.sentAt), quoteReceivedAt: s(e.quoteReceivedAt), quoteValidUntil: s(e.quoteValidUntil),
     currency: e.kind === 'po' ? s(e.currency) || 'USD' : s(e.quoteCurrency) || s(e.currency) || 'USD', fromEnquiry: idOf(e.fromEnquiry), items: (e.items as EnquiryRow['items']) ?? [],
   }))
@@ -53,7 +60,7 @@ const monthStart = () => `${new Date().toISOString().slice(0, 7)}-01`
 const todayHandler: PayloadHandler = async (req) => {
   if (!admin(req)) return denied()
   const [overview, month, enquiries, certs, orderDocs] = await Promise.all([
-    loadOverview(req, '', ''), loadOverview(req, monthStart(), new Date().toISOString().slice(0, 10)), loadEnquiries(req), loadCerts(req), find(req, 'order-matches', undefined, 1),
+    loadOverview(req, '', ''), loadOverview(req, monthStart(), new Date().toISOString().slice(0, 10)), loadEnquiries(req), loadCerts(req), find(req, 'order-matches', { status: { equals: 'new' } }, 1, { title: true, status: true, client: true, customer: true, createdAt: true }),
   ])
   const outstanding = new Map(overview.sales.map((x) => [x.id, { outstandingUsd: x.outstandingUsd, committed: x.committed }]))
   const sales = await loadSales(req, outstanding)
@@ -65,6 +72,22 @@ const todayHandler: PayloadHandler = async (req) => {
     enquiries, sales, certs: certs.filter((c) => active.has(c.supplierId)), orders,
     poOwed: overview.purchases.map((p) => ({ id: p.id, number: p.number, supplier: p.supplier, owedUsd: p.owedUsd ?? 0, date: p.date })),
   })
+  // Certificates of analysis received in the last 90 days and not yet checked with PharmaTrust.
+  const coas = await req.payload.find({
+    collection: 'trade-files', where: { and: [{ kind: { equals: 'coa' } }, { ptResult: { exists: false } }, { createdAt: { greater_than: new Date(Date.now() - 90 * 86_400_000).toISOString() } }] },
+    sort: '-createdAt', limit: 30, depth: 1, overrideAccess: true, req, populate: POPULATE as never,
+  })
+  ;(tasks as Record<string, unknown>).coaChecks = (coas.docs as unknown as Doc[]).map((f) => ({
+    kind: 'coa', title: `Check with PharmaTrust: ${s(f.title) || s(f.filename)}`, detail: nameOf(f.supplier), href: `/admin/collections/trade-files/${f.id}`,
+    age: Math.round((Date.now() - Date.parse(s(f.createdAt))) / 86_400_000),
+  }))
+  // Emails about our documents that nobody marked done yet.
+  const mails = await req.payload.find({ collection: 'inbox-messages', where: { done: { equals: false } }, sort: '-receivedAt', limit: 50, depth: 0, overrideAccess: true, req })
+  ;(tasks as Record<string, unknown>).emails = (mails.docs as unknown as Doc[]).map((m) => ({
+    kind: 'email', title: `${s(m.from).replace(/<.*>/, '').replace(/"/g, '').trim() || 'Email'} about ${s(m.docNumber)}`, detail: [s(m.subject).slice(0, 90), s(m.aiNote)].filter(Boolean).join('. '),
+    href: idOf(m.supplierOrder) ? `/admin/collections/supplier-orders/${idOf(m.supplierOrder)}` : idOf(m.buyerDocument) ? `/admin/collections/buyer-documents/${idOf(m.buyerDocument)}` : `/admin/collections/inbox-messages/${m.id}`,
+    age: Math.round((Date.now() - Date.parse(s(m.receivedAt))) / 86_400_000), done: String(m.id),
+  }))
   return Response.json({ tasks, money: { month: month.totals, all: overview.totals, missingRates: overview.missingRates }, user: s(req.user?.email) })
 }
 
@@ -147,6 +170,7 @@ const timelineHandler: PayloadHandler = async (req) => {
 
 // The reminder draft for a supplier enquiry or a client sale.
 async function reminderDraft(req: PayloadRequest, type: string, id: string) {
+  if (!/^\d+$/.test(id)) return { error: 'Unknown record' }
   const seller = await loadSeller(req.payload, req)
   if (type === 'supplier') {
     const e = (await req.payload.findByID({ collection: 'supplier-orders', id, depth: 1, overrideAccess: true, req })) as unknown as Doc
@@ -164,7 +188,8 @@ async function reminderDraft(req: PayloadRequest, type: string, id: string) {
     const cur = s(b.currency) || 'USD'
     const perUnit = usdPerUnit(cur, seller.rates)
     const open = row?.outstandingUsd != null && perUnit ? row.outstandingUsd / perUnit : null
-    const m = clientReminder({ number: s(b.invoiceNumber) || s(b.piNumber), contact: s(b.buyerContact), outstanding: open != null ? money(open) : '', currency: open != null ? cur : 'USD', paid: committed }, seller)
+    if (committed && open == null) return { error: `No exchange rate for ${cur}: the open amount is unknown. Fill in the rates in Company details` }
+    const m = clientReminder({ number: s(b.invoiceNumber) || s(b.piNumber), contact: s(b.buyerContact), outstanding: open != null ? money(Math.round(open * 100) / 100) : '', currency: cur, paid: committed }, seller)
     return { to: emailsIn(b.buyerEmail), ...m, collection: 'buyer-documents' as const, doc: b }
   }
   return { error: 'Unknown reminder' }
@@ -214,6 +239,15 @@ const remindSend: PayloadHandler = async (req) => {
   return Response.json({ ok: true, to: d.to })
 }
 
+// POST { id }: mark an email received as handled.
+const emailDone: PayloadHandler = async (req) => {
+  if (!admin(req)) return denied()
+  const body = await jsonBody<{ id?: string }>(req)
+  if (!body || !/^\d+$/.test(s(body.id))) return notJson()
+  await req.payload.update({ collection: 'inbox-messages', id: s(body.id), depth: 0, overrideAccess: true, req, data: { done: true } as never })
+  return Response.json({ ok: true })
+}
+
 export const deskEndpoints: Endpoint[] = [
   { path: '/desk/today', method: 'get', handler: todayHandler },
   { path: '/desk/search', method: 'get', handler: searchHandler },
@@ -222,4 +256,5 @@ export const deskEndpoints: Endpoint[] = [
   { path: '/desk/order-timeline', method: 'get', handler: timelineHandler },
   { path: '/desk/remind', method: 'get', handler: remindPreview },
   { path: '/desk/remind', method: 'post', handler: remindSend },
+  { path: '/desk/email-done', method: 'post', handler: emailDone },
 ]

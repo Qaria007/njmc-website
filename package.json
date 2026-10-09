@@ -32,6 +32,8 @@
     "@payloadcms/ui": "3.90.2",
     "exceljs": "^4.4.0",
     "graphql": "^16.8.1",
+    "imapflow": "^2.3.0",
+    "mailparser": "^3.9.37",
     "mammoth": "^1.13.0",
     "next": "16.3.6",
     "payload": "3.90.2",
@@ -43,6 +45,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@types/mailparser": "^3.9.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

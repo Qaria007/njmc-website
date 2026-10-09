@@ -71,3 +71,34 @@ export function AiTools() {
     </div>
   )
 }
+
+export function InboxTools() {
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(false)
+  const run = async (test: boolean) => {
+    setBusy(true)
+    setNote(test ? 'Testing the login' : 'Reading the mailbox')
+    try {
+      const r = await fetch('/api/globals/trade-settings/check-inbox/', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ test }) })
+      const j = await r.json().catch(() => ({}))
+      setNote(j.message || (r.ok ? 'Done' : 'Failed'))
+    } catch {
+      setNote('Failed')
+    }
+    setBusy(false)
+  }
+  return (
+    <div style={box}>
+      <p style={{ margin: '0 0 8px' }}>
+        Replies from suppliers and clients that mention one of our numbers (NJMC-RFQ, PO, PI, INV) are added to the right enquiry or sale, their files go to Documents, and in AI mode
+        the prices are read for you to check. Other emails in the mailbox are never read.
+      </p>
+      <p style={{ margin: 0, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }} disabled={busy} onClick={() => run(true)}>Test the login</button>
+        <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }} disabled={busy} onClick={() => run(false)}>Read the mailbox now</button>
+      </p>
+      {note ? <p style={{ margin: '8px 0 0' }}>{note}</p> : null}
+      <p style={{ margin: '8px 0 0', opacity: 0.75 }}>Save first, then test.</p>
+    </div>
+  )
+}

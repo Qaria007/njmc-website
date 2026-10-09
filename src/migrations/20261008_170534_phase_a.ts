@@ -11,6 +11,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
 
 export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
+   UPDATE "trade_settings" SET "ai_model" = 'claude-opus-5-5' WHERE "ai_model" IN ('gpt-5', 'gpt-5-mini');
    ALTER TABLE "trade_settings" ALTER COLUMN "ai_model" SET DATA TYPE text;
   ALTER TABLE "trade_settings" ALTER COLUMN "ai_model" SET DEFAULT 'claude-opus-5-5'::text;
   DROP TYPE "public"."enum_trade_settings_ai_model";
