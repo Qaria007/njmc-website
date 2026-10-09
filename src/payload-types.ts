@@ -81,6 +81,7 @@ export interface Config {
     leads: Lead;
     media: Media;
     users: User;
+    'activity-log': ActivityLog;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -120,6 +121,7 @@ export interface Config {
     leads: LeadsSelect<false> | LeadsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    'activity-log': ActivityLogSelect<false> | ActivityLogSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -409,6 +411,7 @@ export interface BuyerDocument {
   clientReplyAt?: string | null;
   shareToken?: string | null;
   shareCreatedAt?: string | null;
+  sharedTypes?: string | null;
   sendLog?: string | null;
   payments?: {
     docs?: (number | Payment)[];
@@ -883,6 +886,10 @@ export interface Media {
 export interface User {
   id: number;
   name?: string | null;
+  /**
+   * An account without a role is an owner (accounts made before roles existed)
+   */
+  role?: ('owner' | 'staff' | 'importer') | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -902,6 +909,23 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * Who created or changed what, newest first.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "activity-log".
+ */
+export interface ActivityLog {
+  id: number;
+  user?: string | null;
+  action?: ('created' | 'changed') | null;
+  collectionName?: string | null;
+  docId?: string | null;
+  summary?: string | null;
+  fields?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -982,6 +1006,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'activity-log';
+        value: number | ActivityLog;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1223,6 +1251,7 @@ export interface BuyerDocumentsSelect<T extends boolean = true> {
   clientReplyAt?: T;
   shareToken?: T;
   shareCreatedAt?: T;
+  sharedTypes?: T;
   sendLog?: T;
   payments?: T;
   documents?: T;
@@ -1446,6 +1475,7 @@ export interface MediaSelect<T extends boolean = true> {
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  role?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1463,6 +1493,20 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "activity-log_select".
+ */
+export interface ActivityLogSelect<T extends boolean = true> {
+  user?: T;
+  action?: T;
+  collectionName?: T;
+  docId?: T;
+  summary?: T;
+  fields?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

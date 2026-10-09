@@ -8,7 +8,7 @@ import type { Rates } from '../lib/order-desk.ts'
 import { fetchRates } from '../lib/rates.ts'
 import { keyHint, open, seal } from '../lib/secret-box.ts'
 import type { Seller } from '../lib/trade-docs.ts'
-import { signedIn } from './access.ts'
+import { isOwner, ownerOnly } from './access.ts'
 
 // Company details printed on enquiries, purchase orders, proforma invoices, invoices and packing
 // lists, and used to sign the emails to suppliers. Private: bank details live here.
@@ -51,7 +51,7 @@ const dropImapPass: FieldHook = ({ value, siblingData }) => {
   return false
 }
 
-const admin = (req: PayloadRequest) => req.user?.collection === 'users'
+const admin = (req: PayloadRequest) => isOwner(req)
 
 // POST { test? }: read the mailbox now (or only test the login).
 const checkInboxEndpoint: PayloadHandler = async (req) => {
@@ -86,7 +86,7 @@ export const TradeSettings: GlobalConfig = {
   slug: 'trade-settings',
   label: 'Company details for documents',
   admin: { group: 'Orders', description: 'Printed on every enquiry, purchase order, proforma invoice, invoice and packing list. Fill in once.' },
-  access: { read: signedIn, update: signedIn },
+  access: { read: ownerOnly, update: ownerOnly },
   endpoints: [
     { path: '/refresh-rates', method: 'post', handler: refreshRatesEndpoint },
     { path: '/test-ai', method: 'post', handler: testAiEndpoint },

@@ -2,19 +2,19 @@ import { randomBytes } from 'node:crypto'
 
 import type { CollectionBeforeChangeHook, CollectionConfig, Payload, PayloadHandler, PayloadRequest } from 'payload'
 
-import { BLOCKS_SENDING, docNumber, emailsIn, nextSeq, safeFileName, supplierMessage, type SupplierOrderDoc, supplierOrderGaps, type SupplierOrderItem, type SupplierOrderKind, supplierOrderSpec } from '../lib/trade-docs.ts'
+import { BLOCKS_SENDING, docNumber, docPrefix, emailsIn, nextSeq, safeFileName, supplierMessage, type SupplierOrderDoc, supplierOrderGaps, type SupplierOrderItem, type SupplierOrderKind, supplierOrderSpec } from '../lib/trade-docs.ts'
 import { aiErrorMessage, AiReadError, readQuoteWithAi } from '../lib/ai.ts'
 import { type CleanQuote, cleanQuote, type QuoteSubmission } from '../lib/order-desk.ts'
 import { SITE_URL } from '../lib/site.ts'
 import { renderPdf } from '../lib/trade-pdf.ts'
-import { signedIn } from './access.ts'
+import { isStaff, signedIn } from './access.ts'
 import { loadAi, loadSeller } from './TradeSettings.ts'
 
 type AnyDoc = Record<string, unknown> & { id: number | string }
 const s = (v: unknown) => (v == null ? '' : String(v))
 const idOf = (r: unknown) => (r && typeof r === 'object' ? (r as AnyDoc).id : (r as number | string))
 const today = () => new Date().toISOString().slice(0, 10)
-const admin = (req: PayloadRequest) => req.user?.collection === 'users'
+const admin = (req: PayloadRequest) => isStaff(req)
 const denied = () => Response.json({ error: 'Not allowed' }, { status: 403 })
 
 // POST bodies must be JSON sent as JSON: a form or text/plain post from another page is refused.
@@ -33,7 +33,7 @@ export const CURRENCIES = ['USD', 'CNY', 'EUR']
 
 export async function nextNumber(payload: Payload, collection: 'supplier-orders' | 'buyer-documents', field: string, prefix: 'RFQ' | 'PO' | 'PI' | 'INV', req?: PayloadRequest): Promise<string> {
   const year = new Date().getUTCFullYear()
-  const res = await payload.find({ collection, where: { [field]: { like: `NJMC-${prefix}-${year}-` } }, limit: 5000, depth: 0, pagination: false, overrideAccess: true, req })
+  const res = await payload.find({ collection, where: { [field]: { like: `${docPrefix()}-${prefix}-${year}-` } }, limit: 5000, depth: 0, pagination: false, overrideAccess: true, req })
   return docNumber(prefix, year, nextSeq((res.docs as unknown as AnyDoc[]).map((d) => s(d[field])), prefix, year))
 }
 

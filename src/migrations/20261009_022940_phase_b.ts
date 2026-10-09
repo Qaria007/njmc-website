@@ -69,7 +69,7 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   ALTER TABLE "inbox_messages_rels" DISABLE ROW LEVEL SECURITY;
   DROP TABLE "inbox_messages" CASCADE;
   DROP TABLE "inbox_messages_rels" CASCADE;
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_inbox_messages_fk";
+  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT IF EXISTS "payload_locked_documents_rels_inbox_messages_fk";
   
   DROP INDEX "buyer_documents_share_token_idx";
   DROP INDEX "payload_locked_documents_rels_inbox_messages_id_idx";

@@ -6,10 +6,11 @@ const t = (v: unknown) => (v == null ? '' : String(v))
 export type DocRef = { prefix: 'RFQ' | 'PO' | 'PI' | 'INV'; number: string }
 
 // "Re: Enquiry NJMC-RFQ-2026-0012: 3 items" -> RFQ NJMC-RFQ-2026-0012. The first number wins.
-export function docRefIn(subject: unknown, body?: unknown): DocRef | null {
+export function docRefIn(subject: unknown, body?: unknown, company = 'NJMC'): DocRef | null {
+  const re = new RegExp(`${company}-(RFQ|PO|PI|INV)-(\\d{4})-(\\d{4})`, 'i')
   for (const text of [t(subject), t(body).slice(0, 4000)]) {
-    const m = /NJMC-(RFQ|PO|PI|INV)-(\d{4})-(\d{4})/i.exec(text)
-    if (m) return { prefix: m[1].toUpperCase() as DocRef['prefix'], number: `NJMC-${m[1].toUpperCase()}-${m[2]}-${m[3]}` }
+    const m = re.exec(text)
+    if (m) return { prefix: m[1].toUpperCase() as DocRef['prefix'], number: `${company}-${m[1].toUpperCase()}-${m[2]}-${m[3]}` }
   }
   return null
 }

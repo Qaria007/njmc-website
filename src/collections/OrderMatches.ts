@@ -8,7 +8,7 @@ import { parseOrder, typedToOrder } from '../lib/order-parse.ts'
 import { buildOrderTable, orderTableXlsx } from '../lib/order-table.ts'
 import { compareQuotes, convert, type QuotedEnquiry, sellPrice } from '../lib/order-desk.ts'
 import { emailsIn, parseQuantity } from '../lib/trade-docs.ts'
-import { signedIn } from './access.ts'
+import { isStaff, signedIn } from './access.ts'
 import { ORDERS_DIR } from './OrderFiles.ts'
 import { CERT_TYPES, certificateState } from './SupplierCertificates.ts'
 import { jsonBody, notJson } from './SupplierOrders.ts'
@@ -129,11 +129,11 @@ const findSuppliers: CollectionBeforeChangeHook = async ({ data, req, originalDo
 
 // Table data and Excel download for one order (signed-in admins only).
 const tableEndpoint: PayloadHandler = async (req) => {
-  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  if (!isStaff(req)) return Response.json({ error: 'Not allowed' }, { status: 403 })
   return Response.json(await buildOrderTable(req.payload, String(req.routeParams?.id), req))
 }
 const xlsxEndpoint: PayloadHandler = async (req) => {
-  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  if (!isStaff(req)) return Response.json({ error: 'Not allowed' }, { status: 403 })
   const t = await buildOrderTable(req.payload, String(req.routeParams?.id), req)
   const name = `Suppliers - ${t.title || 'order'}`.replace(/[^A-Za-z0-9 _.-]+/g, ' ').trim().slice(0, 80)
   return new Response(new Uint8Array(await orderTableXlsx(t)), {
@@ -156,7 +156,7 @@ async function supplierOrdersOf(req: PayloadRequest, orderId: string) {
 
 // GET: every supplier found for this order with its materials and email, plus what already exists.
 const tradeEndpoint: PayloadHandler = async (req) => {
-  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  if (!isStaff(req)) return Response.json({ error: 'Not allowed' }, { status: 403 })
   const id = String(req.routeParams?.id)
   const t = await buildOrderTable(req.payload, id, req)
   const existing = await supplierOrdersOf(req, id)
@@ -183,7 +183,7 @@ const tradeEndpoint: PayloadHandler = async (req) => {
 // POST { supplierIds: [...] }: a draft enquiry for each of these suppliers with the materials matched
 // to it. A supplier that already has an enquiry for this order keeps it (no second one). Nothing is sent here.
 const enquiriesEndpoint: PayloadHandler = async (req) => {
-  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  if (!isStaff(req)) return Response.json({ error: 'Not allowed' }, { status: 403 })
   const id = String(req.routeParams?.id)
   const body = await jsonBody<{ supplierIds?: unknown[] }>(req)
   if (!body) return notJson()
@@ -220,7 +220,7 @@ const enquiriesEndpoint: PayloadHandler = async (req) => {
 
 // POST: one buyer-documents record for this order (PI, invoice, packing list), items pre-filled.
 const buyerDocsEndpoint: PayloadHandler = async (req) => {
-  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  if (!isStaff(req)) return Response.json({ error: 'Not allowed' }, { status: 403 })
   if (!(await jsonBody(req))) return notJson()
   const id = String(req.routeParams?.id)
   const order = (await req.payload.findByID({ collection: 'order-matches', id, depth: 0, overrideAccess: true, req })) as unknown as Doc
@@ -256,7 +256,7 @@ const CURRENCY = /^(USD|CNY|EUR)$/
 
 // GET ?currency=USD: the comparison table for the panel on the order.
 const quotesEndpoint: PayloadHandler = async (req) => {
-  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  if (!isStaff(req)) return Response.json({ error: 'Not allowed' }, { status: 403 })
   const q = (req.query ?? {}) as Record<string, unknown>
   const currency = CURRENCY.test(str(q.currency)) ? str(q.currency) : 'USD'
   const { order, enquiries, lines, seller } = await quotesFor(req, String(req.routeParams?.id), currency)
@@ -271,7 +271,7 @@ const quotesEndpoint: PayloadHandler = async (req) => {
 // with one item per chosen price, selling price = cost converted to the PI currency plus the margin.
 // The cost and the supplier are kept on each item (never printed) for the profit figures.
 const makePiEndpoint: PayloadHandler = async (req) => {
-  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  if (!isStaff(req)) return Response.json({ error: 'Not allowed' }, { status: 403 })
   const body = await jsonBody<{ currency?: string; client?: number | string | null; lines?: { rfqId?: unknown; itemId?: unknown; margin?: unknown; requested?: unknown }[] }>(req)
   if (!body) return notJson()
   const currency = CURRENCY.test(str(body.currency)) ? str(body.currency) : 'USD'

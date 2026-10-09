@@ -7,6 +7,7 @@ import { buildConfig } from 'payload'
 import sharp from 'sharp'
 
 import { AccountsOverview } from './collections/AccountsOverview.ts'
+import { ActivityLog, logActivity } from './collections/ActivityLog.ts'
 import { BuyerDocuments } from './collections/BuyerDocuments.ts'
 import { Clients } from './collections/Clients.ts'
 import { deskEndpoints } from './collections/Desk.ts'
@@ -39,7 +40,9 @@ export default buildConfig({
     components: { beforeDashboard: ['/components/admin/HomeDashboard#HomeDashboard'] },
   },
   // Order of the menu: the daily work first.
-  collections: [OrderMatches, Clients, SupplierOrders, BuyerDocuments, InboxMessages, TradeFiles, Payments, Products, Suppliers, SupplierCertificates, OrderFiles, Leads, Media, Users],
+  collections: [OrderMatches, Clients, SupplierOrders, BuyerDocuments, InboxMessages, TradeFiles, Payments, Products, Suppliers, SupplierCertificates, OrderFiles, Leads, Media, Users, ActivityLog].map(
+    (c) => (c.slug === 'activity-log' || c.slug === 'media' ? c : { ...c, hooks: { ...c.hooks, afterChange: [...(c.hooks?.afterChange ?? []), logActivity(c.slug as never, String((c.labels?.singular as string) ?? c.slug))] } }),
+  ),
   endpoints: deskEndpoints,
   onInit: async (payload) => startInboxReader(payload),
   globals: [TradeSettings, AccountsOverview],

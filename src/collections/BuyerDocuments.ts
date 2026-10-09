@@ -8,14 +8,14 @@ import { SITE_URL } from '../lib/site.ts'
 import { docSpecXlsx } from '../lib/order-desk-xlsx.ts'
 import { type BuyerDoc, buyerDocGaps, buyerDocSpec, type BuyerDocType, type BuyerItem, emailsIn, safeFileName } from '../lib/trade-docs.ts'
 import { renderPdf } from '../lib/trade-pdf.ts'
-import { signedIn } from './access.ts'
+import { isOwner, isStaff, ownerField, signedIn } from './access.ts'
 import { CURRENCIES, INCOTERMS, jsonBody, nextNumber, notJson } from './SupplierOrders.ts'
 import { loadSeller } from './TradeSettings.ts'
 
 type AnyDoc = Record<string, unknown> & { id: number | string }
 const s = (v: unknown) => (v == null ? '' : String(v))
 const day = (v: unknown) => s(v).slice(0, 10)
-const admin = (req: PayloadRequest) => req.user?.collection === 'users'
+const admin = (req: PayloadRequest) => isStaff(req)
 export const TYPES: BuyerDocType[] = ['pi', 'invoice', 'packing-list']
 
 function toDoc(d: AnyDoc): BuyerDoc {
@@ -100,14 +100,18 @@ const shareEndpoint: PayloadHandler = async (req) => {
   if (!TYPES.includes(type)) return Response.json({ error: 'Unknown document' }, { status: 400 })
   let doc = (await req.payload.findByID({ collection: 'buyer-documents', id: s(req.routeParams?.id), depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
   if (doc.status === 'cancelled') return Response.json({ error: 'This sale is cancelled' }, { status: 400 })
-  const fresh = s(doc.shareToken) && Date.now() - Date.parse(s(doc.shareCreatedAt)) < (SHARE_DAYS - 7) * 86_400_000
-  if (!fresh) {
-    doc = (await req.payload.update({
-      collection: 'buyer-documents', id: doc.id, depth: 0, overrideAccess: true, req,
-      data: { shareToken: randomBytes(24).toString('base64url'), shareCreatedAt: new Date().toISOString() } as never,
-    })) as unknown as AnyDoc
-  }
   const seller = await loadSeller(req.payload, req)
+  // The same checks as sending by email.
+  const blocking = buyerDocGaps(toDoc(doc), seller, type).filter((g) => /^(no items|a price or quantity|bank details|the invoice date|some text)/.test(g))
+  if (blocking.length) return Response.json({ error: `Not ready: ${blocking.join('; ')}` }, { status: 400 })
+  // A link has at least 30 days left; only the documents shared so far open with it.
+  const fresh = s(doc.shareToken) && Date.now() - Date.parse(s(doc.shareCreatedAt)) < (SHARE_DAYS - 30) * 86_400_000
+  const types = new Set((fresh ? s(doc.sharedTypes) : '').split(',').filter(Boolean))
+  types.add(type)
+  doc = (await req.payload.update({
+    collection: 'buyer-documents', id: doc.id, depth: 0, overrideAccess: true, req,
+    data: { ...(fresh ? {} : { shareToken: randomBytes(24).toString('base64url'), shareCreatedAt: new Date().toISOString() }), sharedTypes: [...types].join(',') } as never,
+  })) as unknown as AnyDoc
   const url = `${SITE_URL.replace(/\/$/, '')}/d/${s(doc.shareToken)}/${type}`
   const m = clientMessage(toDoc(doc), seller, type)
   // WhatsApp carries a link, not an attachment.
@@ -118,12 +122,15 @@ const shareEndpoint: PayloadHandler = async (req) => {
 }
 
 // The document behind a client's private link, or null when the link is wrong, old or cancelled.
-export async function saleByShareToken(token: string, req?: PayloadRequest) {
+export async function saleByShareToken(token: string, req?: PayloadRequest, type?: BuyerDocType) {
   if (!/^[A-Za-z0-9_-]{30,40}$/.test(token) || !req) return null
   const res = await req.payload.find({ collection: 'buyer-documents', where: { shareToken: { equals: token } }, limit: 2, depth: 0, overrideAccess: true, req })
   if (res.docs.length !== 1) return null
   const doc = res.docs[0] as unknown as AnyDoc
   if (doc.status === 'cancelled' || Date.now() - Date.parse(s(doc.shareCreatedAt)) > SHARE_DAYS * 86_400_000) return null
+  // Only a document that was shared, and never an invoice or packing list before the invoice exists.
+  if (type && !s(doc.sharedTypes).split(',').includes(type)) return null
+  if (type && type !== 'pi' && !s(doc.invoiceNumber)) return null
   return doc
 }
 
@@ -143,7 +150,7 @@ const checkEndpoint: PayloadHandler = async (req) => {
     to: emailsIn(doc.buyerEmail),
     copyTo: emailsIn(seller.copyTo),
     you: s(req.user?.email),
-    margin: saleMargin({ items: (doc.items as never) ?? [] }),
+    margin: isOwner(req) ? saleMargin({ items: (doc.items as never) ?? [] }) : null,
     currency: s(doc.currency) || 'USD',
     sendLog: s(doc.sendLog),
   })
@@ -317,9 +324,9 @@ export const BuyerDocuments: CollectionConfig = {
         {
           type: 'row',
           fields: [
-            { name: 'costPrice', type: 'number', min: 0, label: 'Our cost per unit (never printed)', admin: { description: 'In the currency of this document' } },
-            { name: 'costSupplier', type: 'relationship', relationTo: 'suppliers', label: 'Bought from (never printed)' },
-            { name: 'costNote', type: 'text', label: 'Where the cost comes from', admin: { readOnly: true } },
+            { name: 'costPrice', type: 'number', min: 0, access: { read: ownerField, update: ownerField }, label: 'Our cost per unit (never printed)', admin: { description: 'In the currency of this document' } },
+            { name: 'costSupplier', type: 'relationship', relationTo: 'suppliers', access: { read: ownerField, update: ownerField }, label: 'Bought from (never printed)' },
+            { name: 'costNote', type: 'text', access: { read: ownerField }, label: 'Where the cost comes from', admin: { readOnly: true } },
           ],
         },
       ],
@@ -386,6 +393,7 @@ export const BuyerDocuments: CollectionConfig = {
     // The key in the client's private document links (WhatsApp). Never shown or copied.
     { name: 'shareToken', type: 'text', unique: true, index: true, hooks: { beforeDuplicate: [() => null] }, admin: { hidden: true } },
     { name: 'shareCreatedAt', type: 'date', hooks: { beforeDuplicate: [() => null] }, admin: { hidden: true } },
+    { name: 'sharedTypes', type: 'text', hooks: { beforeDuplicate: [() => null] }, admin: { hidden: true } },
     { name: 'sendLog', type: 'textarea', label: 'Sending history', access: { create: () => false, update: () => false }, admin: { readOnly: true, rows: 2 } },
     {
       type: 'collapsible',

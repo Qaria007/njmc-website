@@ -7,6 +7,7 @@ import { loadOverview } from './Payments.ts'
 import { CERT_TYPES } from './SupplierCertificates.ts'
 import { jsonBody, notJson, quoteLink } from './SupplierOrders.ts'
 import { loadSeller } from './TradeSettings.ts'
+import { isOwner, isStaff } from './access.ts'
 
 // The home dashboard's server side (signed-in admins only): today's tasks, search across everything,
 // price history, supplier scores, the timeline of one order, and reminder emails (confirmed first).
@@ -14,7 +15,7 @@ type Doc = Record<string, unknown> & { id: number | string }
 const s = (v: unknown) => (v == null ? '' : String(v))
 const idOf = (r: unknown) => (r && typeof r === 'object' ? String((r as Doc).id) : r == null ? null : String(r))
 const nameOf = (r: unknown) => (r && typeof r === 'object' ? s((r as Doc).name ?? (r as Doc).title) : '')
-const admin = (req: PayloadRequest) => req.user?.collection === 'users'
+const admin = (req: PayloadRequest) => isStaff(req)
 const denied = () => Response.json({ error: 'Not allowed' }, { status: 403 })
 const q = (req: PayloadRequest, k: string) => s(((req.query ?? {}) as Record<string, unknown>)[k]).slice(0, 200)
 const CERT_LABEL = new Map(CERT_TYPES.map((c) => [c.value, c.label]))
@@ -88,7 +89,10 @@ const todayHandler: PayloadHandler = async (req) => {
     href: idOf(m.supplierOrder) ? `/admin/collections/supplier-orders/${idOf(m.supplierOrder)}` : idOf(m.buyerDocument) ? `/admin/collections/buyer-documents/${idOf(m.buyerDocument)}` : `/admin/collections/inbox-messages/${m.id}`,
     age: Math.round((Date.now() - Date.parse(s(m.receivedAt))) / 86_400_000), done: String(m.id),
   }))
-  return Response.json({ tasks, money: { month: month.totals, all: overview.totals, missingRates: overview.missingRates }, user: s(req.user?.email) })
+  // Staff see the work, not the money.
+  const owner = isOwner(req)
+  if (!owner) for (const k of ['paymentsDue', 'supplierPayments'] as const) tasks[k] = []
+  return Response.json({ tasks, money: owner ? { month: month.totals, all: overview.totals, missingRates: overview.missingRates } : null, user: s(req.user?.email) })
 }
 
 // Search everything by name, number or CAS: clients, suppliers, orders, sales, enquiries, products.

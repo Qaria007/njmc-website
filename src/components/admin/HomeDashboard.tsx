@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 type Task = { kind: string; title: string; detail: string; href: string; age?: number; due?: string; done?: string; action?: { type: 'remind-supplier' | 'remind-client'; id: string } }
 type Tasks = Record<string, Task[]>
 type Totals = { received: number; paidSuppliers: number; expenses: number; cashNet: number; receivable: number; payable: number; profit: number }
-type Today = { tasks: Tasks; money: { month: Totals; all: Totals; missingRates: string[] } }
+type Today = { tasks: Tasks; money: { month: Totals; all: Totals; missingRates: string[] } | null }
 type Hit = { type: string; title: string; detail: string; href: string }
 type Point = { date: string; kind: string; party: string; material: string; price: number; currency: string; usd: number | null; unit: string; ref: string; href: string }
 
@@ -29,13 +29,14 @@ const SECTIONS: [string, string, string][] = [
   ['certificates', 'Supplier certificates expiring (suppliers in use)', 'Ask for renewals'],
 ]
 
-const ACTIONS: [string, string][] = [
+// The last three are for the owner only.
+const ACTIONS: [string, string, boolean?][] = [
   ['New customer order', '/admin/collections/order-matches/create'],
   ['New client', '/admin/collections/clients/create'],
-  ['Record a payment or cost', '/admin/collections/payments/create'],
   ['Upload a document', '/admin/collections/trade-files/create'],
-  ['Accounts overview', '/admin/globals/accounts-overview'],
-  ['Company details and AI', '/admin/globals/trade-settings'],
+  ['Record a payment or cost', '/admin/collections/payments/create', true],
+  ['Accounts overview', '/admin/globals/accounts-overview', true],
+  ['Company details and AI', '/admin/globals/trade-settings', true],
 ]
 
 async function get(url: string) {
@@ -201,7 +202,7 @@ export function HomeDashboard() {
         <Search />
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 18px' }}>
-        {ACTIONS.map(([label, href]) => (
+        {ACTIONS.filter(([, , ownerOnly]) => !ownerOnly || data?.money).map(([label, href]) => (
           <a key={href} href={href} className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }}>{label}</a>
         ))}
       </div>

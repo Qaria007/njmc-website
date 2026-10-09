@@ -10,6 +10,7 @@ import * as migration_20261008_134614_rates_ai_mode from './20261008_134614_rate
 import * as migration_20261008_170534_phase_a from './20261008_170534_phase_a';
 import * as migration_20261009_022940_phase_b from './20261009_022940_phase_b';
 import * as migration_20261009_023151_phase_b_coa from './20261009_023151_phase_b_coa';
+import * as migration_20261009_023800_roles_activity from './20261009_023800_roles_activity';
 
 export const migrations = [
   {
@@ -70,6 +71,11 @@ export const migrations = [
   {
     up: migration_20261009_023151_phase_b_coa.up,
     down: migration_20261009_023151_phase_b_coa.down,
-    name: '20261009_023151_phase_b_coa'
+    name: '20261009_023151_phase_b_coa',
+  },
+  {
+    up: migration_20261009_023800_roles_activity.up,
+    down: migration_20261009_023800_roles_activity.down,
+    name: '20261009_023800_roles_activity'
   },
 ];

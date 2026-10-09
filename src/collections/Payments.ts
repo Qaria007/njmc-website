@@ -3,7 +3,7 @@ import type { CollectionBeforeChangeHook, CollectionConfig, PayloadHandler, Payl
 import { accountsOverview, type PaymentRow, type PurchaseRow, type SaleRow, toUsd } from '../lib/order-desk.ts'
 import { overviewXlsx } from '../lib/order-desk-xlsx.ts'
 import { buyerTotal, goodsTotal } from '../lib/trade-docs.ts'
-import { signedIn } from './access.ts'
+import { isOwner, ownerOnly } from './access.ts'
 import { CURRENCIES } from './SupplierOrders.ts'
 import { loadSeller } from './TradeSettings.ts'
 
@@ -83,13 +83,13 @@ const range = (req: PayloadRequest) => {
 }
 
 const overviewEndpoint: PayloadHandler = async (req) => {
-  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  if (!isOwner(req)) return Response.json({ error: 'Not allowed' }, { status: 403 })
   const { from, to } = range(req)
   return Response.json(await loadOverview(req, from, to))
 }
 
 const exportEndpoint: PayloadHandler = async (req) => {
-  if (req.user?.collection !== 'users') return Response.json({ error: 'Not allowed' }, { status: 403 })
+  if (!isOwner(req)) return Response.json({ error: 'Not allowed' }, { status: 403 })
   const { from, to } = range(req)
   const o = await loadOverview(req, from, to)
   const name = `Accounts ${from || 'start'} to ${to || new Date().toISOString().slice(0, 10)}`
@@ -109,7 +109,7 @@ export const Payments: CollectionConfig = {
     defaultColumns: ['date', 'direction', 'amount', 'currency', 'client', 'supplier', 'reference'],
     description: 'Every payment received from a client, paid to a supplier, and every cost (freight, bank charges). Link it to the sale or the purchase order so the balances add up.',
   },
-  access: { read: signedIn, create: signedIn, update: signedIn, delete: () => false },
+  access: { read: ownerOnly, create: ownerOnly, update: ownerOnly, delete: () => false },
   hooks: { beforeChange: [fill] },
   endpoints: [
     { path: '/overview', method: 'get', handler: overviewEndpoint },

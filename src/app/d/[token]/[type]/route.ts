@@ -14,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   if (!TYPES.includes(type as BuyerDocType)) return new Response('Not found', { status: 404, headers })
   const payload = await getPayload({ config })
   const req = await createLocalReq({}, payload)
-  const doc = await saleByShareToken(token, req)
+  const doc = await saleByShareToken(token, req, type as BuyerDocType)
   if (!doc) return new Response('This link is no longer active. Please ask us for the document again.', { status: 404, headers })
   const { bytes, fileName } = await sharedPdf(doc, type as BuyerDocType, req)
   return new Response(Buffer.from(bytes), { headers: { ...headers, 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${fileName}"` } })

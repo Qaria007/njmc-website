@@ -113,7 +113,7 @@ export function SupplierOrderActions() {
             style={{ margin: 0 }}
             target="_blank"
             rel="noreferrer"
-            href={waLink(waNumber(check.wechat) ?? check.phone, `Hello, this is our enquiry ${check.number}. Please enter your prices here: ${check.quoteLink}`)}
+            href={waLink(waNumber(check.phone) ?? check.wechat, `Hello, this is our enquiry ${check.number}. Please enter your prices here: ${check.quoteLink}`)}
           >
             WhatsApp
           </a>
