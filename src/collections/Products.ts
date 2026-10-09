@@ -1,6 +1,6 @@
 import type { CollectionConfig, Where } from 'payload'
 
-import { signedIn, signedInField } from './access.ts'
+import { isStaff, roleOf, signedIn, signedInField } from './access.ts'
 import { importCatalogue } from './catalogue-import.ts'
 
 // Public catalogue (/catalogue/). Visitors see published products and only the product facts;
@@ -20,15 +20,17 @@ export const Products: CollectionConfig = {
     defaultColumns: ['name', 'category', 'productClass', 'published', 'updatedAt'],
   },
   access: {
-    read: ({ req }) => (req.user ? true : ({ and: [{ published: { equals: true } }, { category: { in: [...PUBLIC_CATEGORIES] } }] } as Where)),
-    create: signedIn,
+    read: ({ req }) => (req.user?.collection === 'users' ? true : ({ and: [{ published: { equals: true } }, { category: { in: [...PUBLIC_CATEGORIES] } }] } as Where)),
+    // The Product Importer login adds products too, always unpublished (hook below).
+    create: ({ req }) => isStaff(req) || roleOf(req.user as never) === 'importer',
     update: signedIn,
     delete: () => false,
   },
   endpoints: [{ path: '/import', method: 'post', handler: importCatalogue }],
   hooks: {
     beforeValidate: [
-      ({ data, originalDoc }) => {
+      ({ data, originalDoc, req }) => {
+        if (data && roleOf(req.user as never) === 'importer') data.published = false
         for (const f of PUBLIC_TEXT) {
           const v = data?.[f]
           if (typeof v === 'string' && BANNED.test(v)) throw new Error(`${f}: no dashes (en or em) or exclamation marks (docs/02)`)

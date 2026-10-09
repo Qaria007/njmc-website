@@ -3,13 +3,14 @@
 import { useDocumentInfo, useFormModified } from '@payloadcms/ui'
 import { useCallback, useEffect, useState } from 'react'
 
+import { waLink, waNumber } from '../../lib/share.ts'
 import { AiQuoteReader } from './AiQuoteReader.tsx'
 
 // Buttons on a supplier enquiry or purchase order: the PDF, a test email to yourself, and the
 // send to the supplier, which always shows who gets it and asks for a confirmation first.
 type Check = {
   number: string; kind: 'rfq' | 'po'; status: string; supplier: string; to: string[]; copyTo: string[]; gaps: string[]; subject: string; message: string
-  sentAt: string | null; phone: string; wechat: string; you: string; quoteLink: string; quoteReceivedAt: string | null; aiMode: boolean
+  sentAt: string | null; phone: string; wechat: string; you: string; quoteLink: string; quoteReceivedAt: string | null; aiMode: boolean; aiWaiting: boolean
 }
 
 const box: React.CSSProperties = { border: '1px solid var(--theme-elevation-150)', borderRadius: 4, padding: 14, margin: '0 0 18px' }
@@ -106,10 +107,19 @@ export function SupplierOrderActions() {
           <a href={check.quoteLink} target="_blank" rel="noreferrer">{check.quoteLink}</a>{' '}
           <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }} onClick={() => void navigator.clipboard?.writeText(check.quoteLink)}>
             Copy link
-          </button>
+          </button>{' '}
+          <a
+            className="btn btn--style-secondary btn--size-small"
+            style={{ margin: 0 }}
+            target="_blank"
+            rel="noreferrer"
+            href={waLink(waNumber(check.phone) ?? check.wechat, `Hello, this is our enquiry ${check.number}. Please enter your prices here: ${check.quoteLink}`)}
+          >
+            WhatsApp
+          </a>
         </p>
       ) : null}
-      {check.kind === 'rfq' && check.aiMode ? <AiQuoteReader id={id} onSaved={load} /> : null}
+      {check.kind === 'rfq' && check.aiMode ? <AiQuoteReader id={id} onSaved={load} waiting={check.aiWaiting} /> : null}
       {check.to.length === 0 ? (
         <p style={{ margin: '10px 0 0' }}>
           No email for this supplier. Open the PDF and send it yourself by WeChat or phone: {[check.phone, check.wechat].filter(Boolean).join(' / ') || 'no phone or WeChat on file'}.

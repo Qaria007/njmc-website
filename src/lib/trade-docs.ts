@@ -115,13 +115,20 @@ export type DocSpec = {
 
 const t = (v: unknown) => (v == null ? '' : String(v).trim())
 
+// The company code at the start of every document number (NJMC-PI-2026-0001). Another company using
+// this software sets DOC_PREFIX in its server settings.
+export function docPrefix(): string {
+  const p = String(process.env.DOC_PREFIX ?? '').toUpperCase()
+  return /^[A-Z0-9]{2,8}$/.test(p) ? p : 'NJMC'
+}
+
 export function docNumber(prefix: 'RFQ' | 'PO' | 'PI' | 'INV', year: number, seq: number): string {
-  return `NJMC-${prefix}-${year}-${String(seq).padStart(4, '0')}`
+  return `${docPrefix()}-${prefix}-${year}-${String(seq).padStart(4, '0')}`
 }
 
 // Next free sequence for a prefix and year, from the numbers already used.
 export function nextSeq(existing: (string | null | undefined)[], prefix: string, year: number): number {
-  const re = new RegExp(`^NJMC-${prefix}-${year}-(\\d+)$`)
+  const re = new RegExp(`^${docPrefix()}-${prefix}-${year}-(\\d+)$`)
   return existing.reduce((max, n) => Math.max(max, Number(re.exec(t(n))?.[1] ?? 0)), 0) + 1
 }
 

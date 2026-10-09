@@ -14,6 +14,7 @@ export const Suppliers: CollectionConfig = {
   access: { read: signedIn, create: signedIn, update: signedIn, delete: () => false },
   timestamps: true,
   fields: [
+    { name: 'scorecard', type: 'ui', admin: { components: { Field: '/components/admin/SupplierScore#SupplierScore' } } },
     { name: 'name', type: 'text', required: true, unique: true },
     { name: 'nameLocal', type: 'text', label: 'Name in local language' },
     {
@@ -69,6 +70,18 @@ export const Suppliers: CollectionConfig = {
     },
     { name: 'source', type: 'text', admin: { description: 'Where we met them, e.g. CPHI Shanghai 2026' } },
     { name: 'documentsFolder', type: 'text', admin: { description: 'Link to the Drive folder or files' } },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'rating', type: 'select', label: 'Our rating',
+          options: [
+            { label: '5 Excellent', value: '5' }, { label: '4 Good', value: '4' }, { label: '3 Acceptable', value: '3' }, { label: '2 Problems', value: '2' }, { label: '1 Do not use', value: '1' },
+          ],
+        },
+      ],
+    },
+    { name: 'problems', type: 'textarea', label: 'Problems with this supplier (quality, delays, documents)', admin: { rows: 3 } },
     { name: 'notes', type: 'textarea' },
     {
       type: 'collapsible',

@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { signedIn } from './access.ts'
+import { portalInvite } from './PortalUsers.ts'
 import { CURRENCIES, INCOTERMS } from './SupplierOrders.ts'
 
 // The companies we sell to. Filled in once; a proforma invoice for a client copies the name, address,
@@ -15,6 +16,7 @@ export const Clients: CollectionConfig = {
     description: 'Companies we sell to. Their documents, sales and payments are listed on each client.',
   },
   access: { read: signedIn, create: signedIn, update: signedIn, delete: () => false },
+  endpoints: [{ path: '/:id/portal-invite', method: 'post', handler: portalInvite }],
   timestamps: true,
   fields: [
     {
@@ -57,6 +59,13 @@ export const Clients: CollectionConfig = {
               ],
             },
             { name: 'notes', type: 'textarea', label: 'Internal notes' },
+          ],
+        },
+        {
+          label: 'Client portal',
+          fields: [
+            { name: 'portalPanel', type: 'ui', admin: { components: { Field: '/components/admin/PortalInvite#PortalInvite' } } },
+            { name: 'portalLogins', type: 'join', collection: 'portal-users', on: 'client', admin: { defaultColumns: ['email', 'name', 'active'] } },
           ],
         },
         {

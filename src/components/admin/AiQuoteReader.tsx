@@ -22,7 +22,7 @@ async function post(url: string, body: unknown) {
   return j
 }
 
-export function AiQuoteReader({ id, onSaved }: { id: number | string; onSaved: () => Promise<void> | void }) {
+export function AiQuoteReader({ id, onSaved, waiting = false }: { id: number | string; onSaved: () => Promise<void> | void; waiting?: boolean }) {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   const [q, setQ] = useState<Q | null>(null)
@@ -37,6 +37,24 @@ export function AiQuoteReader({ id, onSaved }: { id: number | string; onSaved: (
     setNote('')
     try {
       const r = await post(`/api/supplier-orders/${id}/ai-read/`, { text })
+      const byId = new Map((r.quote.items as Q['items']).map((i) => [i.id, i]))
+      setItems(r.items)
+      setReadText(r.text)
+      setQ({ ...r.quote, items: (r.items as Item[]).map((i) => byId.get(i.id) ?? { id: i.id, price: '', moq: '', leadTime: '', note: '' }) })
+    } catch (e) {
+      setNote((e as Error).message)
+    }
+    setBusy('')
+  }
+  const loadStored = async () => {
+    setOpen(true)
+    setBusy('Loading what AI read from the email')
+    try {
+      const r = await fetch(`/api/supplier-orders/${id}/ai-proposal/`, { credentials: 'include' }).then(async (x) => {
+        const j = await x.json()
+        if (!x.ok) throw new Error(j.error || 'not found')
+        return j
+      })
       const byId = new Map((r.quote.items as Q['items']).map((i) => [i.id, i]))
       setItems(r.items)
       setReadText(r.text)
@@ -66,7 +84,12 @@ export function AiQuoteReader({ id, onSaved }: { id: number | string; onSaved: (
 
   if (!open) {
     return (
-      <p style={{ margin: '10px 0 0' }}>
+      <p style={{ margin: '10px 0 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {waiting ? (
+          <button type="button" className="btn btn--style-primary btn--size-small" style={{ margin: 0 }} onClick={loadStored}>
+            Check the prices AI read from the emailed reply
+          </button>
+        ) : null}
         <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }} onClick={() => setOpen(true)}>
           Read the supplier's reply with AI
         </button>

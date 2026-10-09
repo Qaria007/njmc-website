@@ -1,14 +1,34 @@
-// AI mode: reads a supplier's reply (pasted email or WeChat text) into the quotation fields. Off
-// unless the owner switches AI mode on and saves an API key in Company details. Nothing is saved
-// from here: the result is shown for review and only "Apply" writes it.
+// AI mode: reads supplier replies and other free text into fields. Off unless the owner switches AI
+// mode on and saves an API key in Company details. Works with Claude (Anthropic) or OpenAI; the
+// provider follows the chosen model. Results are proposals: the user checks them before saving.
 import Anthropic from '@anthropic-ai/sdk'
 
 export const AI_MODELS = [
-  { label: 'Claude Opus 5.5 (best)', value: 'claude-opus-5-5' },
-  { label: 'Claude Sonnet 5.5 (cheaper)', value: 'claude-sonnet-5-5' },
-  { label: 'Claude Haiku 5.5 (cheapest)', value: 'claude-haiku-5-5' },
+  { label: 'Claude Opus 5.5 (Anthropic, best)', value: 'claude-opus-5-5' },
+  { label: 'Claude Sonnet 5.5 (Anthropic, cheaper)', value: 'claude-sonnet-5-5' },
+  { label: 'Claude Haiku 5.5 (Anthropic, cheapest)', value: 'claude-haiku-5-5' },
+  { label: 'GPT-5 (OpenAI)', value: 'gpt-5' },
+  { label: 'GPT-5 mini (OpenAI, cheaper)', value: 'gpt-5-mini' },
 ]
 export const DEFAULT_AI_MODEL = 'claude-opus-5-5'
+export const providerOf = (model: string): 'anthropic' | 'openai' => (model.startsWith('gpt') ? 'openai' : 'anthropic')
+
+// The key and the model must belong to the same company: an Anthropic key starts with sk-ant-.
+export function keyModelMismatch(apiKey: string, model: string): string | null {
+  const anthropicKey = apiKey.startsWith('sk-ant-')
+  if (providerOf(model) === 'openai' && anthropicKey) return 'The saved key is a Claude (Anthropic) key: choose a Claude model, or paste an OpenAI key.'
+  if (providerOf(model) === 'anthropic' && !anthropicKey) return 'The saved key is not a Claude (Anthropic) key: choose an OpenAI model (GPT-5), or paste an Anthropic key.'
+  return null
+}
+
+// An HTTP failure from OpenAI, with only the status kept (never the request or headers).
+export class AiHttpError extends Error {
+  status: number
+  constructor(status: number) {
+    super(`AI service answered ${status}`)
+    this.status = status
+  }
+}
 
 export type QuoteItemRef = { id: string; material: string; spec?: string | null; quantity?: number | null; unit?: string | null }
 export type AiQuote = {
@@ -55,6 +75,13 @@ Write notes in English even when the reply is in Chinese.`
 export class AiReadError extends Error {}
 
 export function aiErrorMessage(e: unknown): string {
+  if (e instanceof AiHttpError) {
+    if (e.status === 401) return 'The AI key was refused (wrong or expired). Paste a new key in Company details.'
+    if (e.status === 403) return 'The AI service refused access: the key has no access to this model, or this server\'s country is not supported.'
+    if (e.status === 429) return 'The AI service is busy or the account has no credit left. Try again later or check the billing page.'
+    if (e.status === 404) return 'This AI model is not available for the key. Choose another model.'
+    return `The AI service failed (${e.status}). Try again.`
+  }
   if (e instanceof Anthropic.AuthenticationError) return 'The AI key was refused (wrong or expired). Paste a new key in Company details.'
   if (e instanceof Anthropic.PermissionDeniedError) return 'The AI service refused access: the key has no access to this model, or this server\'s country is not supported.'
   if (e instanceof Anthropic.RateLimitError) return 'The AI service is busy or the account has no credit left. Try again later or check the billing page.'
@@ -63,27 +90,53 @@ export function aiErrorMessage(e: unknown): string {
   return 'The AI service could not be reached. Try again.'
 }
 
-export async function readQuoteWithAi(apiKey: string, model: string, reply: string, items: QuoteItemRef[]): Promise<AiQuote> {
-  const client = new Anthropic({ apiKey, timeout: 120_000, maxRetries: 1 })
-  const list = items.map((i) => `- id ${i.id}: ${i.material}${i.spec ? `, ${i.spec}` : ''}${i.quantity != null ? `, ${i.quantity} ${i.unit || 'kg'}` : ''}`).join('\n')
-  const res = await client.beta.messages.create({
-    model,
-    max_tokens: 16000,
-    system: SYSTEM,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-    output_config: { effort: 'low', format: { type: 'json_schema', schema: SCHEMA } },
-    messages: [{ role: 'user', content: `Enquiry items:\n${list}\n\nSupplier's reply:\n<reply>\n${reply.slice(0, 60000)}\n</reply>` }],
-  })
-  if (res.stop_reason === 'refusal') throw new AiReadError('The AI declined to read this text.')
-  if (res.stop_reason === 'max_tokens') throw new AiReadError('The reply is too long for one reading.')
-  const text = res.content.map((b) => (b.type === 'text' ? b.text : '')).join('')
-  let out: AiQuote
+// One request, one JSON answer that follows the schema, from whichever provider the model belongs to.
+export async function aiJson<T>(apiKey: string, model: string, system: string, user: string, schema: object, name = 'answer'): Promise<T> {
+  const mismatch = keyModelMismatch(apiKey, model)
+  if (mismatch) throw new AiReadError(mismatch)
+  let text = ''
+  if (providerOf(model) === 'openai') {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+        response_format: { type: 'json_schema', json_schema: { name, strict: true, schema } },
+      }),
+      signal: AbortSignal.timeout(180_000),
+    })
+    if (!res.ok) throw new AiHttpError(res.status)
+    const j = (await res.json()) as { choices?: { message?: { content?: string; refusal?: string }; finish_reason?: string }[] }
+    const c = j.choices?.[0]
+    if (c?.message?.refusal) throw new AiReadError('The AI declined to read this text.')
+    if (c?.finish_reason === 'length') throw new AiReadError('The text is too long for one reading.')
+    text = c?.message?.content ?? ''
+  } else {
+    const client = new Anthropic({ apiKey, timeout: 180_000, maxRetries: 1 })
+    const res = await client.beta.messages.create({
+      model,
+      max_tokens: 16000,
+      system,
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: schema as Record<string, unknown> } },
+      messages: [{ role: 'user', content: user }],
+    })
+    if (res.stop_reason === 'refusal') throw new AiReadError('The AI declined to read this text.')
+    if (res.stop_reason === 'max_tokens') throw new AiReadError('The text is too long for one reading.')
+    text = res.content.map((b) => (b.type === 'text' ? b.text : '')).join('')
+  }
   try {
-    out = JSON.parse(text) as AiQuote
+    return JSON.parse(text) as T
   } catch {
     throw new AiReadError('The AI answer could not be read. Try again.')
   }
+}
+
+export async function readQuoteWithAi(apiKey: string, model: string, reply: string, items: QuoteItemRef[]): Promise<AiQuote> {
+  const list = items.map((i) => `- id ${i.id}: ${i.material}${i.spec ? `, ${i.spec}` : ''}${i.quantity != null ? `, ${i.quantity} ${i.unit || 'kg'}` : ''}`).join('\n')
+  const out = await aiJson<AiQuote>(apiKey, model, SYSTEM, `Enquiry items:\n${list}\n\nSupplier's reply:\n<reply>\n${reply.slice(0, 60000)}\n</reply>`, SCHEMA, 'quotation')
   const ids = new Set(items.map((i) => i.id))
   out.items = (out.items ?? []).filter((i) => ids.has(i.id))
   return out
@@ -91,6 +144,13 @@ export async function readQuoteWithAi(apiKey: string, model: string, reply: stri
 
 // A small call to check that a newly pasted key works.
 export async function testAiKey(apiKey: string, model: string): Promise<void> {
+  const mismatch = keyModelMismatch(apiKey, model)
+  if (mismatch) throw new AiReadError(mismatch)
+  if (providerOf(model) === 'openai') {
+    const res = await fetch(`https://api.openai.com/v1/models/${encodeURIComponent(model)}`, { headers: { authorization: `Bearer ${apiKey}` }, signal: AbortSignal.timeout(30_000) })
+    if (!res.ok) throw new AiHttpError(res.status)
+    return
+  }
   const client = new Anthropic({ apiKey, timeout: 30_000, maxRetries: 0 })
   await client.models.retrieve(model)
 }

@@ -7,8 +7,13 @@ import { buildConfig } from 'payload'
 import sharp from 'sharp'
 
 import { AccountsOverview } from './collections/AccountsOverview.ts'
+import { ActivityLog, logActivity } from './collections/ActivityLog.ts'
 import { BuyerDocuments } from './collections/BuyerDocuments.ts'
 import { Clients } from './collections/Clients.ts'
+import { deskEndpoints } from './collections/Desk.ts'
+import { portalEndpoints } from './collections/Portal.ts'
+import { PortalUsers } from './collections/PortalUsers.ts'
+import { InboxMessages, startInboxReader } from './collections/Inbox.ts'
 import { Leads } from './collections/Leads.ts'
 import { Media } from './collections/Media.ts'
 import { OrderFiles } from './collections/OrderFiles.ts'
@@ -32,10 +37,16 @@ export default buildConfig({
   csrf: [...new Set(['https://njmcmedicsupp.com', 'https://www.njmcmedicsupp.com', process.env.NEXT_PUBLIC_SERVER_URL || ''].filter(Boolean))],
   admin: {
     user: Users.slug,
-    meta: { titleSuffix: ' | NJMC admin' },
+    meta: { titleSuffix: ` | ${process.env.ADMIN_TITLE || 'NJMC admin'}` },
     importMap: { baseDir: path.resolve(dirname) },
+    components: { beforeDashboard: ['/components/admin/HomeDashboard#HomeDashboard'] },
   },
-  collections: [Users, Media, Leads, Products, Suppliers, SupplierCertificates, OrderMatches, OrderFiles, Clients, SupplierOrders, BuyerDocuments, TradeFiles, Payments],
+  // Order of the menu: the daily work first.
+  collections: [OrderMatches, Clients, SupplierOrders, BuyerDocuments, InboxMessages, TradeFiles, Payments, Products, Suppliers, SupplierCertificates, OrderFiles, Leads, Media, Users, PortalUsers, ActivityLog].map(
+    (c) => (c.slug === 'activity-log' || c.slug === 'media' ? c : { ...c, hooks: { ...c.hooks, afterChange: [...(c.hooks?.afterChange ?? []), logActivity(c.slug as never, String((c.labels?.singular as string) ?? c.slug))] } }),
+  ),
+  endpoints: [...deskEndpoints, ...portalEndpoints],
+  onInit: async (payload) => startInboxReader(payload),
   globals: [TradeSettings, AccountsOverview],
   localization: {
     locales: [
@@ -60,7 +71,7 @@ export default buildConfig({
   email: process.env.SMTP_HOST
     ? nodemailerAdapter({
         defaultFromAddress: process.env.MAIL_FROM || 'sale@njmcmedicsupp.com',
-        defaultFromName: 'NJMC Medical Supplies website',
+        defaultFromName: process.env.MAIL_FROM_NAME || 'NJMC Medical Supplies website',
         transportOptions: {
           host: process.env.SMTP_HOST,
           port: Number(process.env.SMTP_PORT || 587),

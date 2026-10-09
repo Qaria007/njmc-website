@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 // Step 2 on an order: every price the suppliers sent, per line, cheapest first. Pick one price per
 // line, set the margin, and make the proforma invoice from them.
+type Score = { supplierId: string; answerRate: number | null; avgReplyDays: number | null; cheapestRate: number | null; orders: number }
+type Past = { date: string; kind: string; party: string; price: number; currency: string; unit: string; ref: string; href: string }
 type Option = {
-  rfqId: number | string; rfqNumber: string; itemId: string; supplier: string; material: string; spec: string; quantity: number | null; unit: string
+  rfqId: number | string; rfqNumber: string; itemId: string; supplierId: string; supplier: string; material: string; spec: string; quantity: number | null; unit: string
   price: number; currency: string; priceBasis: string; converted: number | null; moq: string; leadTime: string; note: string; validUntil: string; expired: boolean
 }
 type Line = { requested: string; quantity: string; options: Option[] }
@@ -25,6 +27,23 @@ export function QuotesPanel({ id }: { id: number | string }) {
   const [all, setAll] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [scores, setScores] = useState<Record<string, Score>>({})
+  const [past, setPast] = useState<Record<number, Past[] | 'loading'>>({})
+
+  const showPast = async (k: number, requested: string) => {
+    if (past[k]) {
+      setPast((p) => {
+        const n = { ...p }
+        delete n[k]
+        return n
+      })
+      return
+    }
+    setPast((p) => ({ ...p, [k]: 'loading' }))
+    const r = await fetch(`/api/desk/price-history?q=${encodeURIComponent(requested)}`, { credentials: 'include' }).then((x) => x.json()).catch(() => ({ points: [] }))
+    // Ignore the answer when the list was closed meanwhile.
+    setPast((p) => (p[k] === 'loading' ? { ...p, [k]: ((r.points ?? []) as Past[]).slice(0, 8) } : p))
+  }
 
   const load = useCallback(async () => {
     try {
@@ -32,6 +51,13 @@ export function QuotesPanel({ id }: { id: number | string }) {
       const j = await r.json()
       if (!r.ok) throw new Error(j.error || 'could not load the prices')
       setData(j)
+      const ids = [...new Set((j as Data).lines.flatMap((l) => l.options.map((o) => o.supplierId)))]
+      if (ids.length) {
+        fetch(`/api/desk/scores?ids=${ids.join(',')}`, { credentials: 'include' })
+          .then((x) => x.json())
+          .then((r) => setScores(Object.fromEntries((r.scores as Score[]).map((x) => [x.supplierId, x]))))
+          .catch(() => undefined)
+      }
       // Cheapest valid price preselected on each line.
       const p: Record<number, string> = {}
       ;(j as Data).lines.forEach((l, k) => {
@@ -120,6 +146,23 @@ export function QuotesPanel({ id }: { id: number | string }) {
                     <td style={cell}>
                       <strong>{l.requested}</strong>
                       {l.quantity ? <div style={{ opacity: 0.75 }}>{l.quantity}</div> : null}
+                      <button type="button" style={{ background: 'none', border: 0, padding: 0, color: 'inherit', textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }} onClick={() => showPast(k, l.requested)}>
+                        {past[k] ? 'Hide past prices' : 'Past prices'}
+                      </button>
+                      {past[k] === 'loading' ? <div style={{ fontSize: 12 }}>Loading</div> : null}
+                      {Array.isArray(past[k]) ? (
+                        (past[k] as Past[]).length ? (
+                          <ul style={{ margin: '4px 0 0', paddingInlineStart: 14, fontSize: 12 }}>
+                            {(past[k] as Past[]).map((p, n) => (
+                              <li key={n}>
+                                {p.date} {p.kind === 'sold' ? 'sold to' : p.kind === 'bought' ? 'bought from' : 'quoted by'} {p.party}: {p.currency} {fmt(p.price)}/{p.unit} <a href={p.href}>{p.ref}</a>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div style={{ fontSize: 12 }}>No earlier prices</div>
+                        )
+                      ) : null}
                     </td>
                     <td style={cell}>
                       {l.options.map((x, n) => {
@@ -127,7 +170,13 @@ export function QuotesPanel({ id }: { id: number | string }) {
                         return (
                           <label key={v} style={{ display: 'block', margin: '0 0 4px', opacity: x.expired ? 0.6 : 1 }}>
                             <input type="radio" name={`line${k}`} checked={pick[k] === v} onChange={() => setPick({ ...pick, [k]: v })} />{' '}
-                            {n === 0 ? <strong>{x.supplier}</strong> : x.supplier}: {x.currency} {fmt(x.price)}/{x.unit}
+                            {n === 0 ? <strong>{x.supplier}</strong> : x.supplier}
+                            {scores[x.supplierId] ? (
+                              <span style={{ opacity: 0.65, fontSize: 12 }}>
+                                {' '}({[scores[x.supplierId].answerRate != null ? `answers ${scores[x.supplierId].answerRate}%` : '', scores[x.supplierId].cheapestRate != null ? `cheapest ${scores[x.supplierId].cheapestRate}%` : '', scores[x.supplierId].orders ? `${scores[x.supplierId].orders} POs` : ''].filter(Boolean).join(', ') || 'new'})
+                              </span>
+                            ) : null}
+                            : {x.currency} {fmt(x.price)}/{x.unit}
                             {x.currency !== currency ? (x.converted == null ? ' (no rate)' : ` = ${currency} ${fmt(x.converted)}`) : ''}
                             {[x.priceBasis, x.moq && `MOQ ${x.moq}`, x.leadTime && `lead time ${x.leadTime}`, x.validUntil && `valid to ${x.validUntil}${x.expired ? ' (EXPIRED)' : ''}`, x.note]
                               .filter(Boolean)

@@ -1,15 +1,12 @@
 #!/usr/bin/env bash
 # Nightly dump of the NJMC website database (njmc, inside pharmatrust-db-1).
 # PharmaTrust has its own backup (backend/scripts/backup_db.sh, 02:20); this
-# script never touches it. Keeps the newest 14 local dumps in /root/backups and
-# uploads each dump to Google Drive: Claude shared drive > NJMC >
-# "04 Website database backups (automatic)" (owner choice 27 Sep 2026).
-# The upload runs inside pharmatrust-api-1 only because that is where the Google
-# service-account key is mounted (the same way PharmaTrust uploads its own
-# backups); the key never leaves that container and nothing in it is changed.
+# script never touches it. Keeps the newest 14 local dumps (and order-file archives) in
+# /root/backups and copies both off the server to Google Cloud Storage (see below; the
+# Drive copy chosen on 27 Sep failed with 403 every night and was replaced on 9 Oct 2026).
 set -euo pipefail
 DIR=/root/backups
-DRIVE_FOLDER=1tF12YMQUXjVHlNNhIFoutxMne0uOeuI2
+
 OUT="$DIR/njmc-$(date -u +%Y%m%dT%H%M%SZ).dump.gz"
 mkdir -p "$DIR"; chmod 700 "$DIR"
 docker exec pharmatrust-db-1 sh -c "pg_dump -U \$POSTGRES_USER -d njmc --format=custom" | gzip > "$OUT"
@@ -30,28 +27,32 @@ else
   echo "NJMC ORDER FILES BACKUP FAILED" >&2
 fi
 
-UPLOAD_PY="
-import json, sys
-import google.auth
-from google.auth.transport.requests import AuthorizedSession
-name, folder = sys.argv[1], sys.argv[2]
+# Off-site copies: the private Google Cloud Storage bucket PharmaTrust already backs up to
+# (gs://$BUCKET_NAME/njmc-backups/), uploaded from inside pharmatrust-api-1 because that is the only
+# place with the storage credentials; nothing in that container is changed. Replaces the Drive copy,
+# which the Drive API refused (403) every night. Newest 30 of each kind are kept; the bucket keeps
+# versions of deleted objects.
+UPLOAD_PY='
+import os, sys
+from google.cloud import storage
+name, keep, prefix = sys.argv[1], int(sys.argv[2]), sys.argv[3]
 data = sys.stdin.buffer.read()
-creds, _ = google.auth.default(scopes=[\"https://www.googleapis.com/auth/drive\"])
-s = AuthorizedSession(creds)
-meta = json.dumps({\"name\": name, \"parents\": [folder]})
-boundary = \"njmcbackupboundary\"
-body = (b\"--\" + boundary.encode() + b\"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n\" + meta.encode()
-        + b\"\r\n--\" + boundary.encode() + b\"\r\nContent-Type: application/gzip\r\n\r\n\" + data
-        + b\"\r\n--\" + boundary.encode() + b\"--\")
-r = s.post(\"https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,size\",
-           data=body, headers={\"Content-Type\": \"multipart/related; boundary=\" + boundary})
-r.raise_for_status()
-f = r.json()
-print(\"drive ok: %s (%s bytes, id %s)\" % (f[\"name\"], f.get(\"size\"), f[\"id\"]))
-"
-if docker exec -i pharmatrust-api-1 python -c "$UPLOAD_PY" "$(basename "$OUT")" "$DRIVE_FOLDER" < "$OUT"; then
-  echo "drive copy complete"
-else
-  echo "DRIVE COPY FAILED for $OUT (the local backup is fine, the Drive copy is NOT)" >&2
-  exit 1
-fi
+client = storage.Client()
+bucket = client.bucket(os.environ["BUCKET_NAME"])
+blob = bucket.blob("njmc-backups/" + name)
+blob.upload_from_string(data, content_type="application/gzip")
+print("off-site ok: gs://%s/%s (%d bytes)" % (bucket.name, blob.name, len(data)))
+names = sorted(b.name for b in client.list_blobs(bucket, prefix="njmc-backups/" + prefix))
+for old in names[:-keep]:
+    bucket.blob(old).delete()
+'
+FAILED=0
+for F in "$OUT" "${ORD:-}"; do
+  [ -n "$F" ] && [ -s "$F" ] || continue
+  PREFIX=$(basename "$F" | sed -E 's/-[0-9]{8}T.*//')
+  if ! docker exec -i pharmatrust-api-1 python -c "$UPLOAD_PY" "$(basename "$F")" 30 "$PREFIX-2" < "$F"; then
+    echo "OFF-SITE COPY FAILED for $F (the local backup is fine, the cloud copy is NOT)" >&2
+    FAILED=1
+  fi
+done
+exit $FAILED

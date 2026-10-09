@@ -2,19 +2,19 @@ import { randomBytes } from 'node:crypto'
 
 import type { CollectionBeforeChangeHook, CollectionConfig, Payload, PayloadHandler, PayloadRequest } from 'payload'
 
-import { BLOCKS_SENDING, docNumber, emailsIn, nextSeq, safeFileName, supplierMessage, type SupplierOrderDoc, supplierOrderGaps, type SupplierOrderItem, type SupplierOrderKind, supplierOrderSpec } from '../lib/trade-docs.ts'
+import { BLOCKS_SENDING, docNumber, docPrefix, emailsIn, nextSeq, safeFileName, supplierMessage, type SupplierOrderDoc, supplierOrderGaps, type SupplierOrderItem, type SupplierOrderKind, supplierOrderSpec } from '../lib/trade-docs.ts'
 import { aiErrorMessage, AiReadError, readQuoteWithAi } from '../lib/ai.ts'
 import { type CleanQuote, cleanQuote, type QuoteSubmission } from '../lib/order-desk.ts'
 import { SITE_URL } from '../lib/site.ts'
 import { renderPdf } from '../lib/trade-pdf.ts'
-import { signedIn } from './access.ts'
+import { isStaff, signedIn } from './access.ts'
 import { loadAi, loadSeller } from './TradeSettings.ts'
 
 type AnyDoc = Record<string, unknown> & { id: number | string }
 const s = (v: unknown) => (v == null ? '' : String(v))
 const idOf = (r: unknown) => (r && typeof r === 'object' ? (r as AnyDoc).id : (r as number | string))
 const today = () => new Date().toISOString().slice(0, 10)
-const admin = (req: PayloadRequest) => req.user?.collection === 'users'
+const admin = (req: PayloadRequest) => isStaff(req)
 const denied = () => Response.json({ error: 'Not allowed' }, { status: 403 })
 
 // POST bodies must be JSON sent as JSON: a form or text/plain post from another page is refused.
@@ -33,7 +33,7 @@ export const CURRENCIES = ['USD', 'CNY', 'EUR']
 
 export async function nextNumber(payload: Payload, collection: 'supplier-orders' | 'buyer-documents', field: string, prefix: 'RFQ' | 'PO' | 'PI' | 'INV', req?: PayloadRequest): Promise<string> {
   const year = new Date().getUTCFullYear()
-  const res = await payload.find({ collection, where: { [field]: { like: `NJMC-${prefix}-${year}-` } }, limit: 5000, depth: 0, pagination: false, overrideAccess: true, req })
+  const res = await payload.find({ collection, where: { [field]: { like: `${docPrefix()}-${prefix}-${year}-` } }, limit: 5000, depth: 0, pagination: false, overrideAccess: true, req })
   return docNumber(prefix, year, nextSeq((res.docs as unknown as AnyDoc[]).map((d) => s(d[field])), prefix, year))
 }
 
@@ -119,7 +119,7 @@ const checkEndpoint: PayloadHandler = async (req) => {
   return Response.json({
     number: doc.number, kind: doc.kind, status: doc.status, supplier: s(supplier?.name), to, copyTo: emailsIn(seller.copyTo), gaps, subject: doc.subject, message: doc.message,
     sentAt: doc.sentAt ?? null, phone: s(supplier?.phone), wechat: s(supplier?.wechat), you: s(req.user?.email),
-    quoteLink: data.quoteLink || '', quoteReceivedAt: doc.quoteReceivedAt ?? null, aiMode: seller.aiMode,
+    quoteLink: data.quoteLink || '', quoteReceivedAt: doc.quoteReceivedAt ?? null, aiMode: seller.aiMode, aiWaiting: Boolean((doc.aiProposal as { quote?: unknown } | null)?.quote),
   })
 }
 
@@ -284,6 +284,16 @@ const aiReadEndpoint: PayloadHandler = async (req) => {
   }
 }
 
+// GET: the prices AI read from an emailed reply, for the user to check.
+const aiProposalEndpoint: PayloadHandler = async (req) => {
+  if (!admin(req)) return denied()
+  const doc = (await req.payload.findByID({ collection: 'supplier-orders', id: s(req.routeParams?.id), depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
+  const p = doc.aiProposal as { quote?: unknown; text?: string } | null
+  if (!p?.quote) return Response.json({ error: 'No AI reading waiting' }, { status: 404 })
+  const items = ((doc.items as (SupplierOrderItem & { id: string })[]) ?? []).map((i) => ({ id: s(i.id), material: i.material, spec: i.spec, quantity: i.quantity, unit: i.unit }))
+  return Response.json({ quote: p.quote, items, text: s(p.text) })
+}
+
 // POST { quote }: saves a quotation the user has checked (after the AI reading, possibly edited).
 const applyQuoteEndpoint: PayloadHandler = async (req) => {
   if (!admin(req)) return denied()
@@ -294,7 +304,8 @@ const applyQuoteEndpoint: PayloadHandler = async (req) => {
   const items = (doc.items as { id: string }[]) ?? []
   const q = cleanQuote(body.quote, items.map((i) => s(i.id)), CURRENCIES, INCOTERMS)
   if ('error' in q) return Response.json({ error: q.error }, { status: 400 })
-  const priced = await saveQuote(req, doc, q, 'email', `read by AI from the pasted reply and checked by ${s(req.user?.email)}`)
+  const priced = await saveQuote(req, doc, q, 'email', `read by AI from the reply and checked by ${s(req.user?.email)}`)
+  if (doc.aiProposal) await req.payload.update({ collection: 'supplier-orders', id: doc.id, depth: 0, overrideAccess: true, req, data: { aiProposal: null, aiProposalAt: null } as never })
   // Keep the reply that was read, added under any reply pasted before.
   const reply = s(body.text).trim().slice(0, 60000)
   const before = s(doc.supplierReply).trim()
@@ -353,6 +364,7 @@ export const SupplierOrders: CollectionConfig = {
     { path: '/public-quote', method: 'post', handler: publicQuoteEndpoint },
     { path: '/:id/ai-read', method: 'post', handler: aiReadEndpoint },
     { path: '/:id/apply-quote', method: 'post', handler: applyQuoteEndpoint },
+    { path: '/:id/ai-proposal', method: 'get', handler: aiProposalEndpoint },
   ],
   timestamps: true,
   fields: [
@@ -481,6 +493,10 @@ export const SupplierOrders: CollectionConfig = {
           ],
         },
         { hooks: { beforeDuplicate: [() => null] }, name: 'quoteNotes', type: 'textarea', label: "Supplier's remarks", admin: { rows: 3 } },
+        { name: 'replyArrivedAt', type: 'date', label: 'Last email reply', hooks: { beforeDuplicate: [() => null] }, admin: { readOnly: true, date: { pickerAppearance: 'dayAndTime' } } },
+        // What AI read from an emailed reply, waiting for the user to check it (never applied by itself).
+        { name: 'aiProposal', type: 'json', hooks: { beforeDuplicate: [() => null] }, admin: { hidden: true } },
+        { name: 'aiProposalAt', type: 'date', hooks: { beforeDuplicate: [() => null] }, admin: { hidden: true } },
         { hooks: { beforeDuplicate: [() => null] }, name: 'supplierReply', type: 'textarea', label: 'Their email or message, pasted (for the record)' },
         { hooks: { beforeDuplicate: [() => null] }, name: 'quoteLog', type: 'textarea', label: 'Quotation history', access: { create: () => false, update: () => false }, admin: { readOnly: true, rows: 2 } },
         // The key in the supplier's quotation link. Never shown or changed in the admin.

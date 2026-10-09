@@ -3,12 +3,12 @@ import path from 'node:path'
 
 import { APIError, type FieldHook, type GlobalConfig, type Payload, type PayloadHandler, type PayloadRequest } from 'payload'
 
-import { AI_MODELS, aiErrorMessage, DEFAULT_AI_MODEL, testAiKey } from '../lib/ai.ts'
+import { AI_MODELS, aiErrorMessage, AiReadError, DEFAULT_AI_MODEL, testAiKey } from '../lib/ai.ts'
 import type { Rates } from '../lib/order-desk.ts'
 import { fetchRates } from '../lib/rates.ts'
 import { keyHint, open, seal } from '../lib/secret-box.ts'
 import type { Seller } from '../lib/trade-docs.ts'
-import { signedIn } from './access.ts'
+import { isOwner, ownerOnly } from './access.ts'
 
 // Company details printed on enquiries, purchase orders, proforma invoices, invoices and packing
 // lists, and used to sign the emails to suppliers. Private: bank details live here.
@@ -32,7 +32,35 @@ const dropKey: FieldHook = ({ value, siblingData }) => {
   return false
 }
 
-const admin = (req: PayloadRequest) => req.user?.collection === 'users'
+// The mailbox password (an app password): same handling as the API key.
+const storeImapPass: FieldHook = ({ value, siblingData }) => {
+  const k = String(value ?? '').replace(/\s+/g, '')
+  if (k && !/^[\x21-\x7e]{8,200}$/.test(k)) throw new APIError('That does not look like a mailbox app password. Copy it again', 400, undefined, true)
+  if (k) {
+    siblingData.imapPassSealed = seal(k)
+    siblingData.imapPassHint = `saved ${new Date().toISOString().slice(0, 10)}`
+  }
+  return null
+}
+const dropImapPass: FieldHook = ({ value, siblingData }) => {
+  if (value) {
+    siblingData.imapPassSealed = null
+    siblingData.imapPassHint = null
+    siblingData.inboxOn = false
+  }
+  return false
+}
+
+const admin = (req: PayloadRequest) => isOwner(req)
+
+// POST { test? }: read the mailbox now (or only test the login).
+const checkInboxEndpoint: PayloadHandler = async (req) => {
+  if (!admin(req)) return Response.json({ error: 'Not allowed' }, { status: 403 })
+  const body = (await req.json?.().catch(() => ({}))) as { test?: boolean } | undefined
+  const { checkInbox, testInbox } = await import('./Inbox.ts')
+  const r = body?.test ? await testInbox(req.payload) : await checkInbox(req.payload, true)
+  return Response.json(r, { status: r.ok ? 200 : 400 })
+}
 
 // POST: fetch today's rates now (automatic mode, or once on request in manual mode too).
 const refreshRatesEndpoint: PayloadHandler = async (req) => {
@@ -50,7 +78,7 @@ const testAiEndpoint: PayloadHandler = async (req) => {
     await testAiKey(ai.apiKey, ai.model)
     return Response.json({ ok: true, model: ai.model })
   } catch (e) {
-    return Response.json({ error: aiErrorMessage(e) }, { status: 400 })
+    return Response.json({ error: e instanceof AiReadError ? e.message : aiErrorMessage(e) }, { status: 400 })
   }
 }
 
@@ -58,10 +86,11 @@ export const TradeSettings: GlobalConfig = {
   slug: 'trade-settings',
   label: 'Company details for documents',
   admin: { group: 'Orders', description: 'Printed on every enquiry, purchase order, proforma invoice, invoice and packing list. Fill in once.' },
-  access: { read: signedIn, update: signedIn },
+  access: { read: ownerOnly, update: ownerOnly },
   endpoints: [
     { path: '/refresh-rates', method: 'post', handler: refreshRatesEndpoint },
     { path: '/test-ai', method: 'post', handler: testAiEndpoint },
+    { path: '/check-inbox', method: 'post', handler: checkInboxEndpoint },
   ],
   fields: [
     { name: 'logo', type: 'upload', relationTo: 'media', admin: { description: 'Optional. A PNG or JPG logo printed at the top of every document' } },
@@ -135,7 +164,7 @@ export const TradeSettings: GlobalConfig = {
           fields: [
             {
               name: 'newAiKey', type: 'text', label: 'Paste a new API key',
-              admin: { description: 'From console.anthropic.com > API keys. It is stored encrypted and never shown again. Leave empty to keep the current key' },
+              admin: { description: 'A Claude key (console.anthropic.com) or an OpenAI key (platform.openai.com), matching the model above. Stored encrypted and never shown again. Leave empty to keep the current key' },
               hooks: { beforeChange: [storeKey] },
             },
             { name: 'aiKeyHint', type: 'text', label: 'Key in use', access: { create: () => false, update: () => false }, admin: { readOnly: true } },
@@ -144,6 +173,43 @@ export const TradeSettings: GlobalConfig = {
         },
         // The encrypted key. Nobody can read it through the API or the admin, only the server.
         { name: 'aiKeySealed', type: 'text', access: { read: () => false, create: () => false, update: () => false }, admin: { hidden: true } },
+      ],
+    },
+    {
+      type: 'collapsible',
+      label: 'Email inbox (replies attach themselves)',
+      fields: [
+        { name: 'inboxPanel', type: 'ui', admin: { components: { Field: '/components/admin/SettingsTools#InboxTools' } } },
+        { name: 'inboxOn', type: 'checkbox', defaultValue: false, label: 'Read the sales mailbox every 10 minutes' },
+        {
+          type: 'row',
+          fields: [
+            { name: 'imapHost', type: 'text', defaultValue: 'imap.gmail.com', label: 'Mail server (IMAP)' },
+            { name: 'imapUser', type: 'text', label: 'Mailbox login', admin: { description: 'The mailbox that receives replies, e.g. contact@optelux.com' } },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'newImapPassword', type: 'text', label: 'Paste the mailbox app password',
+              admin: { description: 'Google account > Security > App passwords. Stored encrypted, never shown again' },
+              hooks: { beforeChange: [storeImapPass] },
+            },
+            { name: 'imapPassHint', type: 'text', label: 'Password', access: { create: () => false, update: () => false }, admin: { readOnly: true } },
+            { name: 'removeImapPassword', type: 'checkbox', defaultValue: false, label: 'Remove the saved password', hooks: { beforeChange: [dropImapPass] } },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            { name: 'inboxCheckedAt', type: 'date', label: 'Last checked', access: { create: () => false, update: () => false }, admin: { readOnly: true, date: { pickerAppearance: 'dayAndTime' } } },
+            { name: 'inboxStatus', type: 'text', label: 'Result', access: { create: () => false, update: () => false }, admin: { readOnly: true } },
+          ],
+        },
+        { name: 'imapPassSealed', type: 'text', access: { read: () => false, create: () => false, update: () => false }, admin: { hidden: true } },
+        { name: 'inboxLastUid', type: 'number', access: { read: () => false, create: () => false, update: () => false }, admin: { hidden: true } },
+        { name: 'inboxUidValidity', type: 'text', access: { read: () => false, create: () => false, update: () => false }, admin: { hidden: true } },
       ],
     },
     {

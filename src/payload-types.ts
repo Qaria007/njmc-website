@@ -64,37 +64,37 @@ export type SupportedTimezones =
 export interface Config {
   auth: {
     users: UserAuthOperations;
+    'portal-users': PortalUserAuthOperations;
   };
   blocks: {};
   collections: {
-    users: User;
-    media: Media;
-    leads: Lead;
-    products: Product;
-    suppliers: Supplier;
-    'supplier-certificates': SupplierCertificate;
     'order-matches': OrderMatch;
-    'order-files': OrderFile;
     clients: Client;
     'supplier-orders': SupplierOrder;
     'buyer-documents': BuyerDocument;
+    'inbox-messages': InboxMessage;
     'trade-files': TradeFile;
     payments: Payment;
+    products: Product;
+    suppliers: Supplier;
+    'supplier-certificates': SupplierCertificate;
+    'order-files': OrderFile;
+    leads: Lead;
+    media: Media;
+    users: User;
+    'portal-users': PortalUser;
+    'activity-log': ActivityLog;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {
-    suppliers: {
-      orders: 'supplier-orders';
-      payments: 'payments';
-      documents: 'trade-files';
-    };
     'order-matches': {
       documents: 'trade-files';
     };
     clients: {
+      portalLogins: 'portal-users';
       sales: 'buyer-documents';
       payments: 'payments';
       documents: 'trade-files';
@@ -103,21 +103,29 @@ export interface Config {
       payments: 'payments';
       documents: 'trade-files';
     };
+    suppliers: {
+      orders: 'supplier-orders';
+      payments: 'payments';
+      documents: 'trade-files';
+    };
   };
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
-    media: MediaSelect<false> | MediaSelect<true>;
-    leads: LeadsSelect<false> | LeadsSelect<true>;
-    products: ProductsSelect<false> | ProductsSelect<true>;
-    suppliers: SuppliersSelect<false> | SuppliersSelect<true>;
-    'supplier-certificates': SupplierCertificatesSelect<false> | SupplierCertificatesSelect<true>;
     'order-matches': OrderMatchesSelect<false> | OrderMatchesSelect<true>;
-    'order-files': OrderFilesSelect<false> | OrderFilesSelect<true>;
     clients: ClientsSelect<false> | ClientsSelect<true>;
     'supplier-orders': SupplierOrdersSelect<false> | SupplierOrdersSelect<true>;
     'buyer-documents': BuyerDocumentsSelect<false> | BuyerDocumentsSelect<true>;
+    'inbox-messages': InboxMessagesSelect<false> | InboxMessagesSelect<true>;
     'trade-files': TradeFilesSelect<false> | TradeFilesSelect<true>;
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
+    suppliers: SuppliersSelect<false> | SuppliersSelect<true>;
+    'supplier-certificates': SupplierCertificatesSelect<false> | SupplierCertificatesSelect<true>;
+    'order-files': OrderFilesSelect<false> | OrderFilesSelect<true>;
+    leads: LeadsSelect<false> | LeadsSelect<true>;
+    media: MediaSelect<false> | MediaSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
+    'portal-users': PortalUsersSelect<false> | PortalUsersSelect<true>;
+    'activity-log': ActivityLogSelect<false> | ActivityLogSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -139,7 +147,7 @@ export interface Config {
   widgets: {
     collections: CollectionsWidget;
   };
-  user: User;
+  user: User | PortalUser;
   jobs: {
     tasks: unknown;
     workflows: unknown;
@@ -163,13 +171,149 @@ export interface UserAuthOperations {
     password: string;
   };
 }
+export interface PortalUserAuthOperations {
+  forgotPassword: {
+    email: string;
+    password: string;
+  };
+  login: {
+    email: string;
+    password: string;
+  };
+  registerFirstUser: {
+    email: string;
+    password: string;
+  };
+  unlock: {
+    email: string;
+    password: string;
+  };
+}
+/**
+ * Attach a customer order (Excel, CSV, Word, PDF) or type the materials, then Save. The suppliers table appears below, with an Excel download.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "order-matches".
+ */
+export interface OrderMatch {
+  id: number;
+  /**
+   * e.g. customer name + date
+   */
+  title: string;
+  customer?: string | null;
+  /**
+   * The client record, used for the proforma invoice
+   */
+  client?: (number | null) | Client;
+  status?: ('new' | 'suppliers contacted' | 'quoted' | 'won' | 'lost') | null;
+  /**
+   * Excel, CSV, Word, PDF (with text) or .txt
+   */
+  orderFile?: (number | null) | OrderFile;
+  /**
+   * Optional: one material per line, e.g. "Mesalazine EP 500 kg" or a CAS number
+   */
+  typedMaterials?: string | null;
+  rematch?: boolean | null;
+  matchedAt?: string | null;
+  readNote?: string | null;
+  results?: string | null;
+  lines?:
+    | {
+        requested?: string | null;
+        cas?: string | null;
+        grade?: string | null;
+        quantity?: string | null;
+        supplierCount?: number | null;
+        matches?:
+          | {
+              supplier?: (number | null) | Supplier;
+              product?: (number | null) | Product;
+              matchedOn?: string | null;
+              documents?: string | null;
+              certificates?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  notes?: string | null;
+  documents?: {
+    docs?: (number | TradeFile)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Companies we sell to. Their documents, sales and payments are listed on each client.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "clients".
+ */
+export interface Client {
+  id: number;
+  /**
+   * In English, as it must appear on the invoice
+   */
+  name: string;
+  country?: string | null;
+  registrationNo?: string | null;
+  address?: string | null;
+  contactPerson?: string | null;
+  /**
+   * Documents are sent here. Several addresses: separate with commas
+   */
+  email?: string | null;
+  phone?: string | null;
+  currency?: ('USD' | 'CNY' | 'EUR') | null;
+  incoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
+  /**
+   * e.g. Aden
+   */
+  incotermPlace?: string | null;
+  paymentTerms?: string | null;
+  /**
+   * Only if different from the client
+   */
+  consignee?: string | null;
+  notifyParty?: string | null;
+  notes?: string | null;
+  portalLogins?: {
+    docs?: (number | PortalUser)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  sales?: {
+    docs?: (number | BuyerDocument)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  payments?: {
+    docs?: (number | Payment)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  documents?: {
+    docs?: (number | TradeFile)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * via the `definition` "portal-users".
  */
-export interface User {
+export interface PortalUser {
   id: number;
   name?: string | null;
+  client: number | Client;
+  active?: boolean | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -188,105 +332,153 @@ export interface User {
       }[]
     | null;
   password?: string | null;
-  collection: 'users';
+  collection: 'portal-users';
 }
 /**
+ * Fill in the buyer, the items and the prices once. The proforma invoice, the invoice and the packing list are printed from the same record.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
+ * via the `definition` "buyer-documents".
  */
-export interface Media {
+export interface BuyerDocument {
   id: number;
-  alt: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "leads".
- */
-export interface Lead {
-  id: number;
-  type: 'rfq' | 'verification';
-  status?: ('new' | 'replied' | 'quoted' | 'won' | 'closed') | null;
-  name: string;
-  company?: string | null;
-  role?: string | null;
-  country: string;
-  email: string;
   /**
-   * Phone or WhatsApp
+   * Given automatically; you can change it
    */
-  phone?: string | null;
-  service?: string | null;
+  piNumber?: string | null;
+  piDate?: string | null;
+  validity?: string | null;
+  status?:
+    | ('draft' | 'PI sent' | 'confirmed' | 'paid' | 'in production' | 'shipped' | 'delivered' | 'closed' | 'cancelled')
+    | null;
   /**
-   * Verification orders: supplier or product to check
+   * Given automatically when you fill in the invoice date. Also printed on the packing list
    */
-  supplier?: string | null;
-  message: string;
-  heardAbout?: string | null;
-  consent: boolean;
-  page?: string | null;
-  utmFirst?: string | null;
-  utmLast?: string | null;
+  invoiceNumber?: string | null;
   /**
-   * Notification reached the mail relay
+   * Fill in when the goods ship
    */
-  emailed?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "products".
- */
-export interface Product {
-  id: number;
-  name: string;
+  invoiceDate?: string | null;
+  buyerReference?: string | null;
   /**
-   * Web address: /catalogue/<slug>/ (lower case, hyphens)
+   * Choose the client and save: the buyer details below fill in by themselves
    */
-  slug: string;
+  client?: (number | null) | Client;
   /**
-   * Shown on the public catalogue
+   * Several addresses: separate with commas
    */
-  published?: boolean | null;
-  category: 'api' | 'excipient' | 'colour' | 'intermediate' | 'finished-dosage' | 'extract' | 'device' | 'other';
+  buyerEmail?: string | null;
   /**
-   * Therapeutic class, or colour type
+   * With the country code, e.g. +967 777 123 456
    */
-  productClass?: string | null;
-  otherNames?: string | null;
-  cas?: string | null;
-  ciNumber?: string | null;
-  grades?: ('EP' | 'USP' | 'BP' | 'JP' | 'ChP' | 'IP' | 'In-house')[] | null;
+  buyerPhone?: string | null;
+  buyerName: string;
+  buyerCountry?: string | null;
+  buyerContact?: string | null;
+  buyerAddress?: string | null;
   /**
-   * Private: manufacturers and their documents for this product
+   * Only if different from the buyer
    */
-  sources?:
+  consignee?: string | null;
+  notifyParty?: string | null;
+  items?:
     | {
-        supplier: number | Supplier;
+        description: string;
+        spec?: string | null;
+        quantity?: number | null;
+        unit?: string | null;
+        unitPrice?: number | null;
+        hsCode?: string | null;
+        origin?: string | null;
         /**
-         * e.g. CEP, US DMF, WC, EU GMP
+         * Packing list
          */
-        documents?: string | null;
+        packages?: number | null;
         /**
-         * e.g. permitted in: India, EU, USA
+         * e.g. 25 kg fibre drums
          */
-        marketStatus?: string | null;
-        details?: string | null;
+        packageType?: string | null;
+        netWeight?: number | null;
+        grossWeight?: number | null;
+        batchNo?: string | null;
+        mfgDate?: string | null;
+        expDate?: string | null;
+        /**
+         * In the currency of this document
+         */
+        costPrice?: number | null;
+        costSupplier?: (number | null) | Supplier;
+        costNote?: string | null;
         id?: string | null;
       }[]
     | null;
+  currency?: ('USD' | 'CNY' | 'EUR') | null;
+  incoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
+  /**
+   * e.g. Aden
+   */
+  incotermPlace?: string | null;
+  /**
+   * e.g. 100% T/T in advance
+   */
+  paymentTerms?: string | null;
+  /**
+   * Only if shown separately
+   */
+  freight?: number | null;
+  insurance?: number | null;
+  discount?: number | null;
+  portOfLoading?: string | null;
+  portOfDischarge?: string | null;
+  shipmentBy?: ('Sea' | 'Air' | 'Courier' | 'Land') | null;
+  /**
+   * e.g. 30 days after payment
+   */
+  deliveryTime?: string | null;
+  /**
+   * Invoice and packing list
+   */
+  vessel?: string | null;
+  blNumber?: string | null;
+  shippingMarks?: string | null;
+  remarks?: string | null;
+  /**
+   * For our records only
+   */
+  order?: (number | null) | OrderMatch;
   internalNotes?: string | null;
+  readyDate?: string | null;
+  etd?: string | null;
+  eta?: string | null;
+  forwarder?: string | null;
+  documentsSent?:
+    | (
+        | 'Proforma invoice'
+        | 'Commercial invoice'
+        | 'Packing list'
+        | 'Certificate of analysis'
+        | 'Certificate of origin'
+        | 'B/L or AWB copy'
+        | 'Original documents by courier'
+        | 'Insurance certificate'
+      )[]
+    | null;
+  followUp?: string | null;
+  clientReplyAt?: string | null;
+  shareToken?: string | null;
+  shareCreatedAt?: string | null;
+  sharedTypes?: string | null;
+  sendLog?: string | null;
+  payments?: {
+    docs?: (number | Payment)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  documents?: {
+    docs?: (number | TradeFile)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -319,6 +511,8 @@ export interface Supplier {
    * Link to the Drive folder or files
    */
   documentsFolder?: string | null;
+  rating?: ('5' | '4' | '3' | '2' | '1') | null;
+  problems?: string | null;
   notes?: string | null;
   orders?: {
     docs?: (number | SupplierOrder)[];
@@ -426,260 +620,20 @@ export interface SupplierOrder {
   quoteSource?: ('supplier form' | 'email' | 'WeChat or phone') | null;
   quoteReceivedAt?: string | null;
   quoteNotes?: string | null;
+  replyArrivedAt?: string | null;
+  aiProposal?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  aiProposalAt?: string | null;
   supplierReply?: string | null;
   quoteLog?: string | null;
   quoteToken?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Attach a customer order (Excel, CSV, Word, PDF) or type the materials, then Save. The suppliers table appears below, with an Excel download.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "order-matches".
- */
-export interface OrderMatch {
-  id: number;
-  /**
-   * e.g. customer name + date
-   */
-  title: string;
-  customer?: string | null;
-  /**
-   * The client record, used for the proforma invoice
-   */
-  client?: (number | null) | Client;
-  status?: ('new' | 'suppliers contacted' | 'quoted' | 'won' | 'lost') | null;
-  /**
-   * Excel, CSV, Word, PDF (with text) or .txt
-   */
-  orderFile?: (number | null) | OrderFile;
-  /**
-   * Optional: one material per line, e.g. "Mesalazine EP 500 kg" or a CAS number
-   */
-  typedMaterials?: string | null;
-  rematch?: boolean | null;
-  matchedAt?: string | null;
-  readNote?: string | null;
-  results?: string | null;
-  lines?:
-    | {
-        requested?: string | null;
-        cas?: string | null;
-        grade?: string | null;
-        quantity?: string | null;
-        supplierCount?: number | null;
-        matches?:
-          | {
-              supplier?: (number | null) | Supplier;
-              product?: (number | null) | Product;
-              matchedOn?: string | null;
-              documents?: string | null;
-              certificates?: string | null;
-              id?: string | null;
-            }[]
-          | null;
-        id?: string | null;
-      }[]
-    | null;
-  notes?: string | null;
-  documents?: {
-    docs?: (number | TradeFile)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Companies we sell to. Their documents, sales and payments are listed on each client.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "clients".
- */
-export interface Client {
-  id: number;
-  /**
-   * In English, as it must appear on the invoice
-   */
-  name: string;
-  country?: string | null;
-  registrationNo?: string | null;
-  address?: string | null;
-  contactPerson?: string | null;
-  /**
-   * Documents are sent here. Several addresses: separate with commas
-   */
-  email?: string | null;
-  phone?: string | null;
-  currency?: ('USD' | 'CNY' | 'EUR') | null;
-  incoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
-  /**
-   * e.g. Aden
-   */
-  incotermPlace?: string | null;
-  paymentTerms?: string | null;
-  /**
-   * Only if different from the client
-   */
-  consignee?: string | null;
-  notifyParty?: string | null;
-  notes?: string | null;
-  sales?: {
-    docs?: (number | BuyerDocument)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  payments?: {
-    docs?: (number | Payment)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  documents?: {
-    docs?: (number | TradeFile)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Fill in the buyer, the items and the prices once. The proforma invoice, the invoice and the packing list are printed from the same record.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "buyer-documents".
- */
-export interface BuyerDocument {
-  id: number;
-  /**
-   * Given automatically; you can change it
-   */
-  piNumber?: string | null;
-  piDate?: string | null;
-  validity?: string | null;
-  status?:
-    | ('draft' | 'PI sent' | 'confirmed' | 'paid' | 'in production' | 'shipped' | 'delivered' | 'closed' | 'cancelled')
-    | null;
-  /**
-   * Given automatically when you fill in the invoice date. Also printed on the packing list
-   */
-  invoiceNumber?: string | null;
-  /**
-   * Fill in when the goods ship
-   */
-  invoiceDate?: string | null;
-  buyerReference?: string | null;
-  /**
-   * Choose the client and save: the buyer details below fill in by themselves
-   */
-  client?: (number | null) | Client;
-  /**
-   * Several addresses: separate with commas
-   */
-  buyerEmail?: string | null;
-  buyerName: string;
-  buyerCountry?: string | null;
-  buyerContact?: string | null;
-  buyerAddress?: string | null;
-  /**
-   * Only if different from the buyer
-   */
-  consignee?: string | null;
-  notifyParty?: string | null;
-  items?:
-    | {
-        description: string;
-        spec?: string | null;
-        quantity?: number | null;
-        unit?: string | null;
-        unitPrice?: number | null;
-        hsCode?: string | null;
-        origin?: string | null;
-        /**
-         * Packing list
-         */
-        packages?: number | null;
-        /**
-         * e.g. 25 kg fibre drums
-         */
-        packageType?: string | null;
-        netWeight?: number | null;
-        grossWeight?: number | null;
-        batchNo?: string | null;
-        mfgDate?: string | null;
-        expDate?: string | null;
-        /**
-         * In the currency of this document
-         */
-        costPrice?: number | null;
-        costSupplier?: (number | null) | Supplier;
-        costNote?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  currency?: ('USD' | 'CNY' | 'EUR') | null;
-  incoterm?: ('EXW' | 'FCA' | 'FOB' | 'CFR' | 'CIF' | 'CPT' | 'CIP' | 'DAP' | 'DDP') | null;
-  /**
-   * e.g. Aden
-   */
-  incotermPlace?: string | null;
-  /**
-   * e.g. 100% T/T in advance
-   */
-  paymentTerms?: string | null;
-  /**
-   * Only if shown separately
-   */
-  freight?: number | null;
-  insurance?: number | null;
-  discount?: number | null;
-  portOfLoading?: string | null;
-  portOfDischarge?: string | null;
-  shipmentBy?: ('Sea' | 'Air' | 'Courier' | 'Land') | null;
-  /**
-   * e.g. 30 days after payment
-   */
-  deliveryTime?: string | null;
-  /**
-   * Invoice and packing list
-   */
-  vessel?: string | null;
-  blNumber?: string | null;
-  shippingMarks?: string | null;
-  remarks?: string | null;
-  /**
-   * For our records only
-   */
-  order?: (number | null) | OrderMatch;
-  internalNotes?: string | null;
-  readyDate?: string | null;
-  etd?: string | null;
-  eta?: string | null;
-  forwarder?: string | null;
-  documentsSent?:
-    | (
-        | 'Proforma invoice'
-        | 'Commercial invoice'
-        | 'Packing list'
-        | 'Certificate of analysis'
-        | 'Certificate of origin'
-        | 'B/L or AWB copy'
-        | 'Original documents by courier'
-        | 'Insurance certificate'
-      )[]
-    | null;
-  followUp?: string | null;
-  sendLog?: string | null;
-  payments?: {
-    docs?: (number | Payment)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  documents?: {
-    docs?: (number | TradeFile)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
   updatedAt: string;
   createdAt: string;
 }
@@ -778,6 +732,10 @@ export interface TradeFile {
   order?: (number | null) | OrderMatch;
   buyerDocument?: (number | null) | BuyerDocument;
   supplierOrder?: (number | null) | SupplierOrder;
+  ptResult?: ('passed' | 'issues found' | 'could not be read') | null;
+  ptCheckedAt?: string | null;
+  ptReport?: string | null;
+  ptNotes?: string | null;
   notes?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -811,6 +769,74 @@ export interface OrderFile {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  name: string;
+  /**
+   * Web address: /catalogue/<slug>/ (lower case, hyphens)
+   */
+  slug: string;
+  /**
+   * Shown on the public catalogue
+   */
+  published?: boolean | null;
+  category: 'api' | 'excipient' | 'colour' | 'intermediate' | 'finished-dosage' | 'extract' | 'device' | 'other';
+  /**
+   * Therapeutic class, or colour type
+   */
+  productClass?: string | null;
+  otherNames?: string | null;
+  cas?: string | null;
+  ciNumber?: string | null;
+  grades?: ('EP' | 'USP' | 'BP' | 'JP' | 'ChP' | 'IP' | 'In-house')[] | null;
+  /**
+   * Private: manufacturers and their documents for this product
+   */
+  sources?:
+    | {
+        supplier: number | Supplier;
+        /**
+         * e.g. CEP, US DMF, WC, EU GMP
+         */
+        documents?: string | null;
+        /**
+         * e.g. permitted in: India, EU, USA
+         */
+        marketStatus?: string | null;
+        details?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  internalNotes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Replies about our enquiries, purchase orders and invoices, read from the sales mailbox. Tick Done when handled.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inbox-messages".
+ */
+export interface InboxMessage {
+  id: number;
+  receivedAt?: string | null;
+  from?: string | null;
+  docNumber?: string | null;
+  done?: boolean | null;
+  subject?: string | null;
+  supplierOrder?: (number | null) | SupplierOrder;
+  buyerDocument?: (number | null) | BuyerDocument;
+  text?: string | null;
+  attachments?: (number | TradeFile)[] | null;
+  aiNote?: string | null;
+  messageId?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Sort by "Valid until" to see what expires next.
@@ -857,6 +883,108 @@ export interface SupplierCertificate {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "leads".
+ */
+export interface Lead {
+  id: number;
+  type: 'rfq' | 'verification';
+  status?: ('new' | 'replied' | 'quoted' | 'won' | 'closed') | null;
+  name: string;
+  company?: string | null;
+  role?: string | null;
+  country: string;
+  email: string;
+  /**
+   * Phone or WhatsApp
+   */
+  phone?: string | null;
+  service?: string | null;
+  /**
+   * Verification orders: supplier or product to check
+   */
+  supplier?: string | null;
+  message: string;
+  heardAbout?: string | null;
+  consent: boolean;
+  page?: string | null;
+  utmFirst?: string | null;
+  utmLast?: string | null;
+  /**
+   * Notification reached the mail relay
+   */
+  emailed?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  alt: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  name?: string | null;
+  /**
+   * An account without a role is an owner (accounts made before roles existed)
+   */
+  role?: ('owner' | 'staff' | 'importer') | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
+}
+/**
+ * Who created or changed what, newest first.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "activity-log".
+ */
+export interface ActivityLog {
+  id: number;
+  user?: string | null;
+  action?: ('created' | 'changed') | null;
+  collectionName?: string | null;
+  docId?: string | null;
+  summary?: string | null;
+  fields?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -880,36 +1008,8 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
-        relationTo: 'users';
-        value: number | User;
-      } | null)
-    | ({
-        relationTo: 'media';
-        value: number | Media;
-      } | null)
-    | ({
-        relationTo: 'leads';
-        value: number | Lead;
-      } | null)
-    | ({
-        relationTo: 'products';
-        value: number | Product;
-      } | null)
-    | ({
-        relationTo: 'suppliers';
-        value: number | Supplier;
-      } | null)
-    | ({
-        relationTo: 'supplier-certificates';
-        value: number | SupplierCertificate;
-      } | null)
-    | ({
         relationTo: 'order-matches';
         value: number | OrderMatch;
-      } | null)
-    | ({
-        relationTo: 'order-files';
-        value: number | OrderFile;
       } | null)
     | ({
         relationTo: 'clients';
@@ -924,18 +1024,63 @@ export interface PayloadLockedDocument {
         value: number | BuyerDocument;
       } | null)
     | ({
+        relationTo: 'inbox-messages';
+        value: number | InboxMessage;
+      } | null)
+    | ({
         relationTo: 'trade-files';
         value: number | TradeFile;
       } | null)
     | ({
         relationTo: 'payments';
         value: number | Payment;
+      } | null)
+    | ({
+        relationTo: 'products';
+        value: number | Product;
+      } | null)
+    | ({
+        relationTo: 'suppliers';
+        value: number | Supplier;
+      } | null)
+    | ({
+        relationTo: 'supplier-certificates';
+        value: number | SupplierCertificate;
+      } | null)
+    | ({
+        relationTo: 'order-files';
+        value: number | OrderFile;
+      } | null)
+    | ({
+        relationTo: 'leads';
+        value: number | Lead;
+      } | null)
+    | ({
+        relationTo: 'media';
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: number | User;
+      } | null)
+    | ({
+        relationTo: 'portal-users';
+        value: number | PortalUser;
+      } | null)
+    | ({
+        relationTo: 'activity-log';
+        value: number | ActivityLog;
       } | null);
   globalSlug?: string | null;
-  user: {
-    relationTo: 'users';
-    value: number | User;
-  };
+  user:
+    | {
+        relationTo: 'users';
+        value: number | User;
+      }
+    | {
+        relationTo: 'portal-users';
+        value: number | PortalUser;
+      };
   updatedAt: string;
   createdAt: string;
 }
@@ -945,10 +1090,15 @@ export interface PayloadLockedDocument {
  */
 export interface PayloadPreference {
   id: number;
-  user: {
-    relationTo: 'users';
-    value: number | User;
-  };
+  user:
+    | {
+        relationTo: 'users';
+        value: number | User;
+      }
+    | {
+        relationTo: 'portal-users';
+        value: number | PortalUser;
+      };
   key?: string | null;
   value?:
     | {
@@ -972,145 +1122,6 @@ export interface PayloadMigration {
   batch?: number | null;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
- */
-export interface UsersSelect<T extends boolean = true> {
-  name?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  email?: T;
-  resetPasswordToken?: T;
-  resetPasswordExpiration?: T;
-  salt?: T;
-  hash?: T;
-  resetPasswordRequestedAt?: T;
-  loginAttempts?: T;
-  lockUntil?: T;
-  sessions?:
-    | T
-    | {
-        id?: T;
-        createdAt?: T;
-        expiresAt?: T;
-      };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
- */
-export interface MediaSelect<T extends boolean = true> {
-  alt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "leads_select".
- */
-export interface LeadsSelect<T extends boolean = true> {
-  type?: T;
-  status?: T;
-  name?: T;
-  company?: T;
-  role?: T;
-  country?: T;
-  email?: T;
-  phone?: T;
-  service?: T;
-  supplier?: T;
-  message?: T;
-  heardAbout?: T;
-  consent?: T;
-  page?: T;
-  utmFirst?: T;
-  utmLast?: T;
-  emailed?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "products_select".
- */
-export interface ProductsSelect<T extends boolean = true> {
-  name?: T;
-  slug?: T;
-  published?: T;
-  category?: T;
-  productClass?: T;
-  otherNames?: T;
-  cas?: T;
-  ciNumber?: T;
-  grades?: T;
-  sources?:
-    | T
-    | {
-        supplier?: T;
-        documents?: T;
-        marketStatus?: T;
-        details?: T;
-        id?: T;
-      };
-  internalNotes?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "suppliers_select".
- */
-export interface SuppliersSelect<T extends boolean = true> {
-  name?: T;
-  nameLocal?: T;
-  country?: T;
-  city?: T;
-  address?: T;
-  website?: T;
-  email?: T;
-  phone?: T;
-  contactPerson?: T;
-  wechat?: T;
-  supplies?: T;
-  status?: T;
-  source?: T;
-  documentsFolder?: T;
-  notes?: T;
-  orders?: T;
-  payments?: T;
-  documents?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "supplier-certificates_select".
- */
-export interface SupplierCertificatesSelect<T extends boolean = true> {
-  title?: T;
-  supplier?: T;
-  type?: T;
-  number?: T;
-  issuer?: T;
-  scope?: T;
-  issued?: T;
-  validUntil?: T;
-  state?: T;
-  sourceFile?: T;
-  notes?: T;
-  updatedAt?: T;
-  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1154,24 +1165,6 @@ export interface OrderMatchesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "order-files_select".
- */
-export interface OrderFilesSelect<T extends boolean = true> {
-  note?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "clients_select".
  */
 export interface ClientsSelect<T extends boolean = true> {
@@ -1189,6 +1182,7 @@ export interface ClientsSelect<T extends boolean = true> {
   consignee?: T;
   notifyParty?: T;
   notes?: T;
+  portalLogins?: T;
   sales?: T;
   payments?: T;
   documents?: T;
@@ -1250,6 +1244,9 @@ export interface SupplierOrdersSelect<T extends boolean = true> {
   quoteSource?: T;
   quoteReceivedAt?: T;
   quoteNotes?: T;
+  replyArrivedAt?: T;
+  aiProposal?: T;
+  aiProposalAt?: T;
   supplierReply?: T;
   quoteLog?: T;
   quoteToken?: T;
@@ -1270,6 +1267,7 @@ export interface BuyerDocumentsSelect<T extends boolean = true> {
   buyerReference?: T;
   client?: T;
   buyerEmail?: T;
+  buyerPhone?: T;
   buyerName?: T;
   buyerCountry?: T;
   buyerContact?: T;
@@ -1321,9 +1319,32 @@ export interface BuyerDocumentsSelect<T extends boolean = true> {
   forwarder?: T;
   documentsSent?: T;
   followUp?: T;
+  clientReplyAt?: T;
+  shareToken?: T;
+  shareCreatedAt?: T;
+  sharedTypes?: T;
   sendLog?: T;
   payments?: T;
   documents?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inbox-messages_select".
+ */
+export interface InboxMessagesSelect<T extends boolean = true> {
+  receivedAt?: T;
+  from?: T;
+  docNumber?: T;
+  done?: T;
+  subject?: T;
+  supplierOrder?: T;
+  buyerDocument?: T;
+  text?: T;
+  attachments?: T;
+  aiNote?: T;
+  messageId?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1340,6 +1361,10 @@ export interface TradeFilesSelect<T extends boolean = true> {
   order?: T;
   buyerDocument?: T;
   supplierOrder?: T;
+  ptResult?: T;
+  ptCheckedAt?: T;
+  ptReport?: T;
+  ptNotes?: T;
   notes?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1377,6 +1402,206 @@ export interface PaymentsSelect<T extends boolean = true> {
   notes?: T;
   void?: T;
   voidReason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  published?: T;
+  category?: T;
+  productClass?: T;
+  otherNames?: T;
+  cas?: T;
+  ciNumber?: T;
+  grades?: T;
+  sources?:
+    | T
+    | {
+        supplier?: T;
+        documents?: T;
+        marketStatus?: T;
+        details?: T;
+        id?: T;
+      };
+  internalNotes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "suppliers_select".
+ */
+export interface SuppliersSelect<T extends boolean = true> {
+  name?: T;
+  nameLocal?: T;
+  country?: T;
+  city?: T;
+  address?: T;
+  website?: T;
+  email?: T;
+  phone?: T;
+  contactPerson?: T;
+  wechat?: T;
+  supplies?: T;
+  status?: T;
+  source?: T;
+  documentsFolder?: T;
+  rating?: T;
+  problems?: T;
+  notes?: T;
+  orders?: T;
+  payments?: T;
+  documents?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-certificates_select".
+ */
+export interface SupplierCertificatesSelect<T extends boolean = true> {
+  title?: T;
+  supplier?: T;
+  type?: T;
+  number?: T;
+  issuer?: T;
+  scope?: T;
+  issued?: T;
+  validUntil?: T;
+  state?: T;
+  sourceFile?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "order-files_select".
+ */
+export interface OrderFilesSelect<T extends boolean = true> {
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "leads_select".
+ */
+export interface LeadsSelect<T extends boolean = true> {
+  type?: T;
+  status?: T;
+  name?: T;
+  company?: T;
+  role?: T;
+  country?: T;
+  email?: T;
+  phone?: T;
+  service?: T;
+  supplier?: T;
+  message?: T;
+  heardAbout?: T;
+  consent?: T;
+  page?: T;
+  utmFirst?: T;
+  utmLast?: T;
+  emailed?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users_select".
+ */
+export interface UsersSelect<T extends boolean = true> {
+  name?: T;
+  role?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  resetPasswordRequestedAt?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "portal-users_select".
+ */
+export interface PortalUsersSelect<T extends boolean = true> {
+  name?: T;
+  client?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  resetPasswordRequestedAt?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "activity-log_select".
+ */
+export interface ActivityLogSelect<T extends boolean = true> {
+  user?: T;
+  action?: T;
+  collectionName?: T;
+  docId?: T;
+  summary?: T;
+  fields?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1478,14 +1703,31 @@ export interface TradeSetting {
    */
   defaultMargin?: number | null;
   aiMode?: boolean | null;
-  aiModel?: ('claude-opus-5-5' | 'claude-sonnet-5-5' | 'claude-haiku-5-5') | null;
+  aiModel?: ('claude-opus-5-5' | 'claude-sonnet-5-5' | 'claude-haiku-5-5' | 'gpt-5' | 'gpt-5-mini') | null;
   /**
-   * From console.anthropic.com > API keys. It is stored encrypted and never shown again. Leave empty to keep the current key
+   * A Claude key (console.anthropic.com) or an OpenAI key (platform.openai.com), matching the model above. Stored encrypted and never shown again. Leave empty to keep the current key
    */
   newAiKey?: string | null;
   aiKeyHint?: string | null;
   removeAiKey?: boolean | null;
   aiKeySealed?: string | null;
+  inboxOn?: boolean | null;
+  imapHost?: string | null;
+  /**
+   * The mailbox that receives replies, e.g. contact@optelux.com
+   */
+  imapUser?: string | null;
+  /**
+   * Google account > Security > App passwords. Stored encrypted, never shown again
+   */
+  newImapPassword?: string | null;
+  imapPassHint?: string | null;
+  removeImapPassword?: boolean | null;
+  inboxCheckedAt?: string | null;
+  inboxStatus?: string | null;
+  imapPassSealed?: string | null;
+  inboxLastUid?: number | null;
+  inboxUidValidity?: string | null;
   /**
    * Pre-filled on new purchase orders
    */
@@ -1534,6 +1776,17 @@ export interface TradeSettingsSelect<T extends boolean = true> {
   aiKeyHint?: T;
   removeAiKey?: T;
   aiKeySealed?: T;
+  inboxOn?: T;
+  imapHost?: T;
+  imapUser?: T;
+  newImapPassword?: T;
+  imapPassHint?: T;
+  removeImapPassword?: T;
+  inboxCheckedAt?: T;
+  inboxStatus?: T;
+  imapPassSealed?: T;
+  inboxLastUid?: T;
+  inboxUidValidity?: T;
   documentsRequired?: T;
   updatedAt?: T;
   createdAt?: T;

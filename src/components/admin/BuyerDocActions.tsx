@@ -79,6 +79,21 @@ export function BuyerDocActions() {
     setBusy(false)
   }
 
+  const whatsapp = async (type: Type) => {
+    setNote('')
+    setError('')
+    try {
+      const r = await fetch(`/api/buyer-documents/${id}/share/`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type }) })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(j.error || 'not ready')
+      window.open(j.wa, '_blank', 'noopener')
+      setNote(j.phone ? 'WhatsApp opened with the message and the document link. Press send in WhatsApp.' : 'WhatsApp opened: choose the client there (no WhatsApp number on this sale). The link works for 90 days.')
+      await load()
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
+
   const m = check?.margin
   const stop = sending && check ? check.gaps[sending].filter((g) => STOP.test(g)) : []
   return (
@@ -94,6 +109,9 @@ export function BuyerDocActions() {
                 <a className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }} href={`/api/buyer-documents/${id}/xlsx/${type}/`}>Excel</a>
                 <button type="button" className="btn btn--style-primary btn--size-small" style={{ margin: 0 }} disabled={modified || busy || check == null} onClick={() => open(type)}>
                   Send to the client
+                </button>
+                <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }} disabled={modified || busy} onClick={() => whatsapp(type)}>
+                  WhatsApp
                 </button>
               </td>
             </tr>

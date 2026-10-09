@@ -1,10 +1,13 @@
 import type { CollectionConfig } from 'payload'
 
+import { isStaff, roleOf } from './access.ts'
+
 // Uploads live on the njmc_media Docker volume (MEDIA_DIR). docs/02 confidentiality rules
 // apply to the file name and alt text as much as to the image itself.
 export const Media: CollectionConfig = {
   slug: 'media',
-  access: { read: () => true },
+  // Staff and the Product Importer login (product photos) may upload.
+  access: { read: () => true, create: ({ req }) => isStaff(req) || roleOf(req.user as never) === 'importer', update: ({ req }) => isStaff(req), delete: () => false },
   upload: {
     staticDir: process.env.MEDIA_DIR || 'media',
     mimeTypes: ['image/*'],

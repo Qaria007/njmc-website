@@ -87,6 +87,26 @@ export const TradeFiles: CollectionConfig = {
         { name: 'supplierOrder', type: 'relationship', relationTo: 'supplier-orders', label: 'Enquiry or purchase order' },
       ],
     },
+    {
+      type: 'collapsible',
+      label: 'PharmaTrust check (certificates of analysis)',
+      admin: { condition: (d) => d?.kind === 'coa' },
+      fields: [
+        { name: 'pharmatrustPanel', type: 'ui', admin: { components: { Field: '/components/admin/PharmaTrustCheck#PharmaTrustCheck' } } },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'ptResult', type: 'select', label: 'PharmaTrust result',
+              options: ['passed', 'issues found', 'could not be read'].map((v) => ({ label: v, value: v })),
+            },
+            { name: 'ptCheckedAt', type: 'date', label: 'Checked on', admin: { date: { displayFormat: 'yyyy-MM-dd' } } },
+            { name: 'ptReport', type: 'text', label: 'Link to the PharmaTrust report' },
+          ],
+        },
+        { name: 'ptNotes', type: 'textarea', label: 'What PharmaTrust found', admin: { rows: 3 } },
+      ],
+    },
     { name: 'notes', type: 'textarea' },
   ],
 }
