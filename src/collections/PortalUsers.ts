@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 
-import type { CollectionConfig, PayloadHandler } from 'payload'
+import { type CollectionConfig, Forbidden, type PayloadHandler } from 'payload'
 
 import { SITE_URL } from '../lib/site.ts'
 import { emailsIn } from '../lib/trade-docs.ts'
@@ -37,13 +37,23 @@ export const PortalUsers: CollectionConfig = {
     update: ({ req, id }) => isStaff(req) || (req.user?.collection === 'portal-users' && String(id) === String(req.user.id)),
     delete: () => false,
     admin: () => false,
+    unlock: ({ req }) => isStaff(req),
   },
   fields: [
     { name: 'name', type: 'text' },
     { name: 'client', type: 'relationship', relationTo: 'clients', required: true, access: { update: ({ req }) => isStaff(req) } },
     { name: 'active', type: 'checkbox', defaultValue: true, label: 'Can log in', access: { update: ({ req }) => isStaff(req) } },
   ],
+  // Payload gives every login collection a "first register" route; a portal login is only ever made
+  // by staff (the invite), so that route is closed.
+  endpoints: [{ path: '/first-register', method: 'post', handler: () => Response.json({ error: 'Not found' }, { status: 404 }) }],
   hooks: {
+    beforeChange: [
+      ({ data, operation, req }) => {
+        if (operation === 'create' && !isStaff(req)) throw new Forbidden(req.t)
+        return data
+      },
+    ],
     // A switched-off login cannot enter.
     beforeLogin: [
       ({ user }) => {

@@ -17,6 +17,7 @@ function clientOf(req: PayloadRequest): string | null {
   if (u?.collection !== 'portal-users' || u.active === false) return null
   return idOf(u.client) || null
 }
+const MIME: Record<string, string> = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' }
 const nope = () => Response.json({ error: 'Please log in again' }, { status: 401 })
 
 async function ownSale(req: PayloadRequest, id: string): Promise<Doc | null> {
@@ -100,6 +101,7 @@ const slipHandler: PayloadHandler = async (req) => {
   const file = form?.get('file')
   const doc = await ownSale(req, id)
   if (!doc) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (doc.status === 'cancelled' || doc.status === 'closed') return Response.json({ error: 'This sale is closed' }, { status: 400 })
   if (!file || typeof file === 'string') return Response.json({ error: 'Choose the file' }, { status: 400 })
   const f = file as File
   if (f.size > 10_000_000) return Response.json({ error: 'The file is larger than 10 MB' }, { status: 400 })
@@ -108,7 +110,7 @@ const slipHandler: PayloadHandler = async (req) => {
     await req.payload.create({
       collection: 'trade-files', overrideAccess: true, depth: 0, req,
       data: { title: `Payment slip from the client portal (${s(req.user?.email)})`, kind: 'payment', date: new Date().toISOString(), client: Number(client), buyerDocument: doc.id, ...(idOf(doc.order) ? { order: Number(idOf(doc.order)) } : {}) } as never,
-      file: { data: Buffer.from(await f.arrayBuffer()), mimetype: f.type || 'application/octet-stream', name: f.name.replace(/[^\w. -]+/g, '_'), size: f.size },
+      file: { data: Buffer.from(await f.arrayBuffer()), mimetype: MIME[(/\.(\w+)$/.exec(f.name.toLowerCase())?.[1] ?? 'pdf')] ?? 'application/pdf', name: f.name.replace(/[^\w. -]+/g, '_'), size: f.size },
     })
   } catch (e) {
     req.payload.logger.error({ name: (e as Error)?.name, msg: process.env.NODE_ENV === 'production' ? undefined : (e as Error)?.message }, 'portal slip not saved')

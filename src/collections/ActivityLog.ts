@@ -42,7 +42,8 @@ export function logActivity(slug: CollectionSlug, title: string): CollectionAfte
     if (operation === 'update' && !changed.length) return doc
     try {
       await req.payload.create({
-        collection: 'activity-log', overrideAccess: true, depth: 0, req,
+        // Its own transaction: a failed log line must never undo the user's change.
+        collection: 'activity-log', overrideAccess: true, depth: 0,
         data: { user, action: operation === 'create' ? 'created' : 'changed', collectionName: title, docId: String(doc.id), summary: `${title}: ${label(doc)}`, fields: changed.join(', ').slice(0, 500) } as never,
       })
     } catch (err) {

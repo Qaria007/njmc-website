@@ -1,4 +1,4 @@
-import type { Access, CollectionConfig } from 'payload'
+import { type Access, APIError, type CollectionConfig } from 'payload'
 
 import { isOwner, isStaff } from './access.ts'
 
@@ -19,16 +19,22 @@ export const Users: CollectionConfig = {
     create: ({ req }) => isOwner(req),
     update: ownerOrSelf,
     delete: () => false,
+    unlock: ({ req }) => isOwner(req),
     // The admin screens are for owner and staff; the importer login only uses the API.
     admin: ({ req }) => isStaff(req),
   },
   hooks: {
     // The very first account is the owner; later ones are staff unless the owner chooses otherwise.
     beforeChange: [
-      async ({ data, operation, req }) => {
+      async ({ data, operation, originalDoc, req }) => {
         if (operation === 'create' && !data.role) {
           const any = await req.payload.count({ collection: 'users', overrideAccess: true, req })
           data.role = any.totalDocs === 0 ? 'owner' : 'staff'
+        }
+        // There must always be an owner left (an account without a role is an owner).
+        if (operation === 'update' && data.role && data.role !== 'owner' && originalDoc && (!originalDoc.role || originalDoc.role === 'owner')) {
+          const owners = await req.payload.count({ collection: 'users', where: { or: [{ role: { equals: 'owner' } }, { role: { exists: false } }] }, overrideAccess: true, req })
+          if (owners.totalDocs <= 1) throw new APIError('This is the last owner account: make another account owner first', 400, undefined, true)
         }
         return data
       },

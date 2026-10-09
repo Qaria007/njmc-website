@@ -179,3 +179,24 @@ documents in English only ("I use English everywhere for formal documents"). Bui
 - The API key is pasted in Company details and stored encrypted (AES-256-GCM, key derived from
   PAYLOAD_SECRET); it is never readable through the API or the admin, never logged, and only the
   last 4 characters are shown. Rotating PAYLOAD_SECRET makes the saved key unreadable: paste it again.
+
+## 2026-10-09 Dashboard, mailbox, WhatsApp, portal, roles (owner request: "finish all of it")
+- Home dashboard (admin first page): search, quick actions, money (owner only), to-do lists built from
+  the records; reminders always shown and confirmed before sending. Price history and supplier
+  scorecard computed from enquiries, purchase orders and sales.
+- AI: Claude or OpenAI, the provider follows the chosen model; the owner's existing key is OpenAI.
+- Mailbox: IMAP with an app password stored encrypted. Only emails carrying one of our numbers are
+  read; only senders matching the supplier or client (same address, or same company domain but never
+  a free-mail domain) change a record; anything else is listed as "Unknown sender".
+- WhatsApp: no API account. A wa.me link opens the user's own WhatsApp with the text and a private
+  document link (random key, 90 days, only the documents shared, never an invoice before it exists).
+- PharmaTrust check is a manual handoff for now (download, upload at pharmatrust.tech, note the
+  result). A direct API link needs a scoped partner token in PharmaTrust itself: separate change.
+- Roles: owner / staff / importer; an account without a role is an owner (accounts made before
+  roles); the last owner cannot be demoted. Activity log of admin changes.
+- Client portal: separate login collection (portal-users), made only by staff invitation; no
+  self-registration (first-register closed, create refused for non-staff).
+- Selling to other companies: one installation per company (own database and settings), document
+  prefix DOC_PREFIX, ORDER_DESK_ONLY=1 switches the public website off, ADMIN_TITLE, MAIL_FROM_NAME.
+- Backups: database and order files copied nightly to the private GCS bucket (versioning on) via
+  pharmatrust-api-1, replacing the Drive copy that failed with 403.

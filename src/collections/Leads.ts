@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { signedIn } from './access.ts'
 
 // RFQs and verification orders from the website forms (docs/03 "Forms and CRM").
 // Created only by the server action in src/lib/enquiry.ts; never by the public API.
@@ -10,8 +11,8 @@ export const Leads: CollectionConfig = {
   },
   access: {
     create: () => false,
-    read: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
+    read: signedIn,
+    update: signedIn,
     delete: () => false,
   },
   timestamps: true,

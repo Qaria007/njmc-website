@@ -163,7 +163,7 @@ const timelineHandler: PayloadHandler = async (req) => {
     if (b.etd) ev.push({ date: s(b.etd), text: 'Shipment leaves', href })
     if (b.eta) ev.push({ date: s(b.eta), text: 'Shipment arrives', href })
   }
-  for (const p of pays) {
+  for (const p of isOwner(req) ? pays : []) {
     if (p.void) continue
     const what = p.direction === 'in' ? `Payment received from ${nameOf(p.client) || 'client'}` : p.direction === 'out' ? `Paid to ${nameOf(p.supplier) || 'supplier'}` : `Cost: ${s(p.category) || 'other'}`
     ev.push({ date: s(p.date), text: `${what}, ${s(p.currency)} ${money(Number(p.amount))}`, href: `/admin/collections/payments/${p.id}` })
