@@ -238,3 +238,6 @@ documents in English only ("I use English everywhere for formal documents"). Bui
   statement, the PDF author and the bank beneficiary context stay on the legal name; email sender
   names and subjects use the brand. Optional "Brand name on documents" field in Company details and
   in Our companies. Empty brand = unchanged behaviour. A China-only record can omit the brand.
+- 2026-10-11 (2): licence numbers are for our own reference (owner): they only decide which company
+  may release a certificate for a kind of product. Nothing about licences or customs prints on
+  documents unless the owner ticks it per licence (default off). Customs code not collected.

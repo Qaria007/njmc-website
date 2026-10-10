@@ -180,6 +180,8 @@ test('only a company with a valid licence covering the product may release the c
   const ok = pickLicence(lic, 'api', '2026-10-10')
   assert.ok('licence' in ok && ok.licence.number === 'DD-7')
   assert.equal(licenceLine('licence' in ok ? ok.licence : {}), 'Drug distribution / wholesale licence, No. DD-7, Jiangsu MPA, valid until 2027-12-31')
+  // The owner's export licence works without a customs code.
+  assert.ok('licence' in pickLicence([{ kind: 'export-trading', number: '91320100MAC61PPG8U', covers: ['api'] }], 'api', '2026-10-11'))
   assert.match(String((pickLicence(lic, 'finished', '2026-10-10') as { problem?: string }).problem), /licence covering finished medicines/)
   assert.match(String((pickLicence(lic, 'api', '2028-01-01') as { problem?: string }).problem), /expired or not yet valid/)
   assert.match(String((pickLicence(lic, null, '2026-10-10') as { problem?: string }).problem), /kind of product/)

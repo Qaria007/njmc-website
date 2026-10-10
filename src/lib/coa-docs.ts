@@ -86,7 +86,7 @@ export const LICENCE_KINDS = [
   { label: 'Medical device distribution licence', value: 'device-distribution' },
   { label: 'GDP or GMP certificate', value: 'gdp-gmp' },
   { label: 'Hazardous chemicals licence', value: 'chemicals' },
-  { label: 'Business licence with import/export scope and customs registration (export only)', value: 'export-trading' },
+  { label: 'Business licence with import/export scope (export only)', value: 'export-trading' },
   { label: 'Business licence (trading scope)', value: 'business' },
   { label: 'Other', value: 'other' },
 ]

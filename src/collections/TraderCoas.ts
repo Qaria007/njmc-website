@@ -172,7 +172,8 @@ async function gapsOf(req: PayloadRequest, doc: AnyDoc) {
   // The releasing company must hold a valid licence for this kind of product on the date of issue.
   // Checked for today until issued; issuing checks again on the day of issue.
   const pick = issuer.chosen ? pickLicence(issuer.licences, d.productType, doc.issuedAt ? d.issueDate : today()) : { problem: 'the company that releases this certificate (choose one in "Released by")' }
-  if ('licence' in pick && pick.licence.printOnCertificate !== false) d.licence = licenceLine(pick.licence)
+  // Printed only when the owner ticked it on that licence: buyers do not need it.
+  if ('licence' in pick && pick.licence.printOnCertificate === true) d.licence = licenceLine(pick.licence)
   const original = await loadOriginal(req.payload, doc, req)
   const reading = doc.reading as Reading | null
   const state = await checkOriginal(original)

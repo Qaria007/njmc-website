@@ -83,7 +83,7 @@ export const IssuingCompanies: CollectionConfig = {
         },
         {
           label: 'Licences',
-          description: 'A certificate is released only by a company with a valid licence covering that kind of product.',
+          description: 'For our own reference. A certificate can be released only by a company whose licence covers that kind of product. Nothing is printed on documents unless you tick it.',
           fields: [
             {
               name: 'licences',
@@ -107,7 +107,7 @@ export const IssuingCompanies: CollectionConfig = {
                   ],
                 },
                 { name: 'covers', type: 'select', hasMany: true, required: true, label: 'Covers', options: PRODUCT_TYPES, admin: { description: 'The kinds of product this licence allows the company to supply' } },
-                { name: 'printOnCertificate', type: 'checkbox', defaultValue: true, label: 'Print this licence on certificates' },
+                { name: 'printOnCertificate', type: 'checkbox', defaultValue: false, label: 'Print this licence on certificates (normally not needed between supplier, us and buyer)' },
                 { name: 'scan', type: 'relationship', relationTo: 'trade-files', label: 'Copy of the licence (private, in Documents)' },
               ],
             },
