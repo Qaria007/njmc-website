@@ -70,7 +70,7 @@ const pdfEndpoint: PayloadHandler = async (req) => {
   const type = s(req.routeParams?.type) as BuyerDocType
   if (!TYPES.includes(type)) return Response.json({ error: 'Unknown document' }, { status: 404 })
   const doc = (await req.payload.findByID({ collection: 'buyer-documents', id: s(req.routeParams?.id), depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
-  const spec = buyerDocSpec(toDoc(doc), await loadSeller(req.payload, req), type)
+  const spec = buyerDocSpec(toDoc(doc), await loadSeller(req.payload, req, idOf(doc.sellerCompany)), type)
   return new Response(Buffer.from(await renderPdf(spec)), {
     headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${safeFileName(spec.fileName)}"`, 'Cache-Control': 'no-store' },
   })
@@ -82,7 +82,7 @@ const xlsxEndpoint: PayloadHandler = async (req) => {
   const type = s(req.routeParams?.type) as BuyerDocType
   if (!TYPES.includes(type)) return Response.json({ error: 'Unknown document' }, { status: 404 })
   const doc = (await req.payload.findByID({ collection: 'buyer-documents', id: s(req.routeParams?.id), depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
-  const spec = buyerDocSpec(toDoc(doc), await loadSeller(req.payload, req), type)
+  const spec = buyerDocSpec(toDoc(doc), await loadSeller(req.payload, req, idOf(doc.sellerCompany)), type)
   return new Response(new Uint8Array(await docSpecXlsx(spec)), {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -102,7 +102,7 @@ const shareEndpoint: PayloadHandler = async (req) => {
   if (!TYPES.includes(type)) return Response.json({ error: 'Unknown document' }, { status: 400 })
   let doc = (await req.payload.findByID({ collection: 'buyer-documents', id: s(req.routeParams?.id), depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
   if (doc.status === 'cancelled') return Response.json({ error: 'This sale is cancelled' }, { status: 400 })
-  const seller = await loadSeller(req.payload, req)
+  const seller = await loadSeller(req.payload, req, idOf(doc.sellerCompany))
   // The same checks as sending by email.
   const blocking = buyerDocGaps(toDoc(doc), seller, type).filter((g) => /^(no items|a price or quantity|bank details|the invoice date|some text)/.test(g))
   if (blocking.length) return Response.json({ error: `Not ready: ${blocking.join('; ')}` }, { status: 400 })
@@ -137,14 +137,14 @@ export async function saleByShareToken(token: string, req?: PayloadRequest, type
 }
 
 export async function sharedPdf(doc: AnyDoc, type: BuyerDocType, req: PayloadRequest) {
-  const spec = buyerDocSpec(toDoc(doc), await loadSeller(req.payload, req), type)
+  const spec = buyerDocSpec(toDoc(doc), await loadSeller(req.payload, req, idOf(doc.sellerCompany)), type)
   return { bytes: await renderPdf(spec), fileName: safeFileName(spec.fileName) }
 }
 
 const checkEndpoint: PayloadHandler = async (req) => {
   if (!admin(req)) return Response.json({ error: 'Not allowed' }, { status: 403 })
   const doc = (await req.payload.findByID({ collection: 'buyer-documents', id: s(req.routeParams?.id), depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
-  const seller = await loadSeller(req.payload, req)
+  const seller = await loadSeller(req.payload, req, idOf(doc.sellerCompany))
   const d = toDoc(doc)
   return Response.json({
     gaps: Object.fromEntries(TYPES.map((t) => [t, buyerDocGaps(d, seller, t)])),
@@ -170,7 +170,7 @@ const sendEndpoint: PayloadHandler = async (req) => {
   if (!process.env.SMTP_HOST && (body.confirm || process.env.NODE_ENV === 'production')) return Response.json({ error: 'Email is not set up on this server, nothing was sent' }, { status: 503 })
   const doc = (await req.payload.findByID({ collection: 'buyer-documents', id: s(req.routeParams?.id), depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
   if (doc.status === 'cancelled') return Response.json({ error: 'This sale is cancelled' }, { status: 400 })
-  const seller = await loadSeller(req.payload, req)
+  const seller = await loadSeller(req.payload, req, idOf(doc.sellerCompany))
   const d = toDoc(doc)
   const blocking = buyerDocGaps(d, seller, type).filter((g) => /^(no items|a price or quantity|bank details|the invoice date|some text)/.test(g))
   if (body.confirm && blocking.length) return Response.json({ error: `Not sent: ${blocking.join('; ')}` }, { status: 400 })
@@ -261,6 +261,12 @@ export const BuyerDocuments: CollectionConfig = {
         { name: 'invoiceDate', type: 'date', label: 'Invoice date', admin: { date: { displayFormat: 'yyyy-MM-dd' }, description: 'Fill in when the goods ship' } },
         { name: 'buyerReference', type: 'text', label: "Buyer's order reference" },
       ],
+    },
+    {
+      name: 'sellerCompany', type: 'relationship', relationTo: 'issuing-companies', label: 'Issued by (our company)',
+      // Decides whose bank account the buyer pays into: only the owner changes it.
+      access: { update: ownerField },
+      admin: { description: 'Empty = Company details for documents (NJMC). Another of Our companies puts its name, letterhead and bank details on these documents' },
     },
     {
       type: 'row',

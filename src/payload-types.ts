@@ -75,6 +75,8 @@ export interface Config {
     'inbox-messages': InboxMessage;
     'trade-files': TradeFile;
     payments: Payment;
+    'trader-coas': TraderCoa;
+    'issuing-companies': IssuingCompany;
     products: Product;
     suppliers: Supplier;
     'supplier-certificates': SupplierCertificate;
@@ -117,6 +119,8 @@ export interface Config {
     'inbox-messages': InboxMessagesSelect<false> | InboxMessagesSelect<true>;
     'trade-files': TradeFilesSelect<false> | TradeFilesSelect<true>;
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
+    'trader-coas': TraderCoasSelect<false> | TraderCoasSelect<true>;
+    'issuing-companies': IssuingCompaniesSelect<false> | IssuingCompaniesSelect<true>;
     products: ProductsSelect<false> | ProductsSelect<true>;
     suppliers: SuppliersSelect<false> | SuppliersSelect<true>;
     'supplier-certificates': SupplierCertificatesSelect<false> | SupplierCertificatesSelect<true>;
@@ -361,6 +365,10 @@ export interface BuyerDocument {
   invoiceDate?: string | null;
   buyerReference?: string | null;
   /**
+   * Empty = Company details for documents (NJMC). Another of Our companies puts its name, letterhead and bank details on these documents
+   */
+  sellerCompany?: (number | null) | IssuingCompany;
+  /**
    * Choose the client and save: the buyer details below fill in by themselves
    */
   client?: (number | null) | Client;
@@ -481,6 +489,155 @@ export interface BuyerDocument {
   };
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * NJMC and partner companies: logo, address, signatory, bank details and licences, in one place. Only add a partner that has agreed to issue documents under its name.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "issuing-companies".
+ */
+export interface IssuingCompany {
+  id: number;
+  /**
+   * Legal name, in English, as on the business licence
+   */
+  companyName: string;
+  relation?: ('own' | 'partner') | null;
+  /**
+   * 2 to 8 letters, e.g. NJMC gives NJMC-COA-2026-0001
+   */
+  prefix?: string | null;
+  /**
+   * PNG or JPG, printed at the top of its documents
+   */
+  logo?: (number | null) | Media;
+  /**
+   * Business licence / unified social credit code
+   */
+  registrationNo?: string | null;
+  country?: string | null;
+  /**
+   * Full registered address, in English
+   */
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  /**
+   * Quality approval on certificates; signature on invoices
+   */
+  signatoryName?: string | null;
+  /**
+   * e.g. Quality Manager
+   */
+  signatoryTitle?: string | null;
+  /**
+   * Printed on proforma invoices and invoices issued by this company: beneficiary, bank, account number, SWIFT, bank address. Owner only
+   */
+  bankDetails?: string | null;
+  licences?:
+    | {
+        kind:
+          | 'drug-distribution'
+          | 'pharma-import-export'
+          | 'device-distribution'
+          | 'gdp-gmp'
+          | 'chemicals'
+          | 'business'
+          | 'other';
+        number: string;
+        authority?: string | null;
+        validFrom?: string | null;
+        /**
+         * Empty = no expiry date
+         */
+        validUntil?: string | null;
+        /**
+         * The kinds of product this licence allows the company to supply
+         */
+        covers: ('api' | 'excipient' | 'finished' | 'device' | 'chemical' | 'other')[];
+        printOnCertificate?: boolean | null;
+        scan?: (number | null) | TradeFile;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Agreement with the partner, who may use it
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  alt: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * Upload any paper of a deal and link it to the client, the supplier and the order. It then shows on each of them.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "trade-files".
+ */
+export interface TradeFile {
+  id: number;
+  /**
+   * Short description; the file name when empty
+   */
+  title?: string | null;
+  kind?:
+    | (
+        | 'client-order'
+        | 'contract'
+        | 'pi'
+        | 'quotation'
+        | 'invoice'
+        | 'packing-list'
+        | 'coa'
+        | 'co'
+        | 'bl'
+        | 'payment'
+        | 'photo'
+        | 'correspondence'
+        | 'other'
+      )
+    | null;
+  date?: string | null;
+  client?: (number | null) | Client;
+  supplier?: (number | null) | Supplier;
+  order?: (number | null) | OrderMatch;
+  buyerDocument?: (number | null) | BuyerDocument;
+  supplierOrder?: (number | null) | SupplierOrder;
+  ptResult?: ('passed' | 'issues found' | 'could not be read') | null;
+  ptCheckedAt?: string | null;
+  ptReport?: string | null;
+  ptNotes?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -698,58 +855,6 @@ export interface Payment {
   createdAt: string;
 }
 /**
- * Upload any paper of a deal and link it to the client, the supplier and the order. It then shows on each of them.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "trade-files".
- */
-export interface TradeFile {
-  id: number;
-  /**
-   * Short description; the file name when empty
-   */
-  title?: string | null;
-  kind?:
-    | (
-        | 'client-order'
-        | 'contract'
-        | 'pi'
-        | 'quotation'
-        | 'invoice'
-        | 'packing-list'
-        | 'coa'
-        | 'co'
-        | 'bl'
-        | 'payment'
-        | 'photo'
-        | 'correspondence'
-        | 'other'
-      )
-    | null;
-  date?: string | null;
-  client?: (number | null) | Client;
-  supplier?: (number | null) | Supplier;
-  order?: (number | null) | OrderMatch;
-  buyerDocument?: (number | null) | BuyerDocument;
-  supplierOrder?: (number | null) | SupplierOrder;
-  ptResult?: ('passed' | 'issues found' | 'could not be read') | null;
-  ptCheckedAt?: string | null;
-  ptReport?: string | null;
-  ptNotes?: string | null;
-  notes?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
  * Uploaded customer orders (private).
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -839,6 +944,127 @@ export interface InboxMessage {
   createdAt: string;
 }
 /**
+ * Upload the supplier's certificate of analysis. The tool prints it on your letterhead as distributor (the manufacturer stays named and its certificate is attached), and a specification sheet for quoting.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "trader-coas".
+ */
+export interface TraderCoa {
+  id: number;
+  /**
+   * Upload it here or choose one from Documents
+   */
+  sourceFile?: (number | null) | TradeFile;
+  /**
+   * Its letterhead and licence go on the certificate. The panel above lists the companies licensed for this product
+   */
+  issuer?: (number | null) | IssuingCompany;
+  /**
+   * Given on the first save
+   */
+  number?: string | null;
+  /**
+   * Set when the certificate is issued
+   */
+  issueDate?: string | null;
+  client?: (number | null) | Client;
+  /**
+   * Optional
+   */
+  customerName?: string | null;
+  /**
+   * Order, PI or invoice number. Optional
+   */
+  customerRef?: string | null;
+  /**
+   * e.g. 500 kg. Optional
+   */
+  quantitySupplied?: string | null;
+  productName: string;
+  /**
+   * Decides which company may release it
+   */
+  productType?: ('api' | 'excipient' | 'finished' | 'device' | 'chemical' | 'other') | null;
+  /**
+   * e.g. USP, EP, injection grade
+   */
+  grade?: string | null;
+  casNo?: string | null;
+  /**
+   * The standard tested to, e.g. USP 2025
+   */
+  specification?: string | null;
+  batchNo?: string | null;
+  batchSize?: string | null;
+  mfgDate?: string | null;
+  expiryDate?: string | null;
+  expiryKind?: ('expiry' | 'retest') | null;
+  packaging?: string | null;
+  storage?: string | null;
+  /**
+   * Printed on the certificate. Choose one
+   */
+  handling?: ('unchanged' | 'repacked') | null;
+  /**
+   * The company that made the batch, not a trader
+   */
+  manufacturerName?: string | null;
+  /**
+   * Required on a distributor certificate (ICH Q7 11.43)
+   */
+  manufacturerPhone?: string | null;
+  manufacturerAddress?: string | null;
+  originalCoaNo?: string | null;
+  originalCoaDate?: string | null;
+  /**
+   * The certificate was issued by this trader, not the manufacturer
+   */
+  supplierIssuedBy?: string | null;
+  resultsSource?: ('manufacturer' | 'lab') | null;
+  labName?: string | null;
+  labReportNo?: string | null;
+  labReportDate?: string | null;
+  labAddress?: string | null;
+  labPhone?: string | null;
+  /**
+   * Copied from the certificate. Change a result only to correct a misreading: every change shows as a warning above.
+   */
+  tests?:
+    | {
+        test: string;
+        criteria?: string | null;
+        result?: string | null;
+        method?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * As stated by the manufacturer, e.g. The batch complies with USP 2025
+   */
+  conclusion?: string | null;
+  remarks?: string | null;
+  /**
+   * Printed on the specification sheet only
+   */
+  specNotes?: string | null;
+  readingNotes?: string | null;
+  issuedAt?: string | null;
+  issuedBy?: string | null;
+  issuedSha256?: string | null;
+  issuedFile?: string | null;
+  reading?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Sort by "Valid until" to see what expires next.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -915,25 +1141,6 @@ export interface Lead {
   emailed?: boolean | null;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: number;
-  alt: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1034,6 +1241,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'payments';
         value: number | Payment;
+      } | null)
+    | ({
+        relationTo: 'trader-coas';
+        value: number | TraderCoa;
+      } | null)
+    | ({
+        relationTo: 'issuing-companies';
+        value: number | IssuingCompany;
       } | null)
     | ({
         relationTo: 'products';
@@ -1265,6 +1480,7 @@ export interface BuyerDocumentsSelect<T extends boolean = true> {
   invoiceNumber?: T;
   invoiceDate?: T;
   buyerReference?: T;
+  sellerCompany?: T;
   client?: T;
   buyerEmail?: T;
   buyerPhone?: T;
@@ -1402,6 +1618,100 @@ export interface PaymentsSelect<T extends boolean = true> {
   notes?: T;
   void?: T;
   voidReason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "trader-coas_select".
+ */
+export interface TraderCoasSelect<T extends boolean = true> {
+  sourceFile?: T;
+  issuer?: T;
+  number?: T;
+  issueDate?: T;
+  client?: T;
+  customerName?: T;
+  customerRef?: T;
+  quantitySupplied?: T;
+  productName?: T;
+  productType?: T;
+  grade?: T;
+  casNo?: T;
+  specification?: T;
+  batchNo?: T;
+  batchSize?: T;
+  mfgDate?: T;
+  expiryDate?: T;
+  expiryKind?: T;
+  packaging?: T;
+  storage?: T;
+  handling?: T;
+  manufacturerName?: T;
+  manufacturerPhone?: T;
+  manufacturerAddress?: T;
+  originalCoaNo?: T;
+  originalCoaDate?: T;
+  supplierIssuedBy?: T;
+  resultsSource?: T;
+  labName?: T;
+  labReportNo?: T;
+  labReportDate?: T;
+  labAddress?: T;
+  labPhone?: T;
+  tests?:
+    | T
+    | {
+        test?: T;
+        criteria?: T;
+        result?: T;
+        method?: T;
+        id?: T;
+      };
+  conclusion?: T;
+  remarks?: T;
+  specNotes?: T;
+  readingNotes?: T;
+  issuedAt?: T;
+  issuedBy?: T;
+  issuedSha256?: T;
+  issuedFile?: T;
+  reading?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "issuing-companies_select".
+ */
+export interface IssuingCompaniesSelect<T extends boolean = true> {
+  companyName?: T;
+  relation?: T;
+  prefix?: T;
+  logo?: T;
+  registrationNo?: T;
+  country?: T;
+  address?: T;
+  phone?: T;
+  email?: T;
+  website?: T;
+  signatoryName?: T;
+  signatoryTitle?: T;
+  bankDetails?: T;
+  licences?:
+    | T
+    | {
+        kind?: T;
+        number?: T;
+        authority?: T;
+        validFrom?: T;
+        validUntil?: T;
+        covers?: T;
+        printOnCertificate?: T;
+        scan?: T;
+        id?: T;
+      };
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }

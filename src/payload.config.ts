@@ -14,6 +14,7 @@ import { deskEndpoints } from './collections/Desk.ts'
 import { portalEndpoints } from './collections/Portal.ts'
 import { PortalUsers } from './collections/PortalUsers.ts'
 import { InboxMessages, startInboxReader } from './collections/Inbox.ts'
+import { IssuingCompanies } from './collections/IssuingCompanies.ts'
 import { Leads } from './collections/Leads.ts'
 import { Media } from './collections/Media.ts'
 import { OrderFiles } from './collections/OrderFiles.ts'
@@ -25,6 +26,7 @@ import { SupplierOrders } from './collections/SupplierOrders.ts'
 import { Suppliers } from './collections/Suppliers.ts'
 import { TradeFiles } from './collections/TradeFiles.ts'
 import { TradeSettings } from './collections/TradeSettings.ts'
+import { TraderCoas } from './collections/TraderCoas.ts'
 import { Users } from './collections/Users.ts'
 import { migrations } from './migrations/index.ts'
 
@@ -42,7 +44,7 @@ export default buildConfig({
     components: { beforeDashboard: ['/components/admin/HomeDashboard#HomeDashboard'] },
   },
   // Order of the menu: the daily work first.
-  collections: [OrderMatches, Clients, SupplierOrders, BuyerDocuments, InboxMessages, TradeFiles, Payments, Products, Suppliers, SupplierCertificates, OrderFiles, Leads, Media, Users, PortalUsers, ActivityLog].map(
+  collections: [OrderMatches, Clients, SupplierOrders, BuyerDocuments, InboxMessages, TradeFiles, Payments, TraderCoas, IssuingCompanies, Products, Suppliers, SupplierCertificates, OrderFiles, Leads, Media, Users, PortalUsers, ActivityLog].map(
     (c) => (c.slug === 'activity-log' || c.slug === 'media' ? c : { ...c, hooks: { ...c.hooks, afterChange: [...(c.hooks?.afterChange ?? []), logActivity(c.slug as never, String((c.labels?.singular as string) ?? c.slug))] } }),
   ),
   endpoints: [...deskEndpoints, ...portalEndpoints],

@@ -260,7 +260,30 @@ async function logoOf(g: Settings): Promise<Seller['logo']> {
   }
 }
 
-export async function loadSeller(payload: Payload, req?: PayloadRequest): Promise<Seller & { copyTo: string; supplierPaymentTerms: string; buyerPaymentTerms: string; documentsRequired: string; defaultMargin: number | null; rates: Rates; aiMode: boolean }> {
+// The company on a document: Company details for documents, or one of Our companies when the
+// document names one (its name, letterhead, signatory and bank details replace NJMC's; the terms,
+// rates and email copy settings stay).
+export async function loadSeller(payload: Payload, req?: PayloadRequest, companyId?: number | string | null): Promise<Seller & { copyTo: string; supplierPaymentTerms: string; buyerPaymentTerms: string; documentsRequired: string; defaultMargin: number | null; rates: Rates; aiMode: boolean }> {
+  const base = await loadCompanyDetails(payload, req)
+  if (!companyId) return base
+  const c = (await payload.findByID({ collection: 'issuing-companies', id: companyId, depth: 1, overrideAccess: true, req }).catch(() => null)) as unknown as Settings | null
+  if (!c) return base
+  const v = (k: string) => (c[k] == null ? '' : String(c[k]).trim())
+  return {
+    ...base,
+    logo: (await logoOf(c)) ?? null,
+    companyName: v('companyName') || base.companyName,
+    address: v('address'),
+    phone: v('phone'),
+    email: v('email'),
+    website: v('website'),
+    signatoryName: v('signatoryName'),
+    signatoryTitle: v('signatoryTitle'),
+    bankDetails: v('bankDetails'),
+  }
+}
+
+async function loadCompanyDetails(payload: Payload, req?: PayloadRequest): Promise<Seller & { copyTo: string; supplierPaymentTerms: string; buyerPaymentTerms: string; documentsRequired: string; defaultMargin: number | null; rates: Rates; aiMode: boolean }> {
   let g = (await payload.findGlobal({ slug: 'trade-settings', depth: 1, overrideAccess: true, req })) as unknown as Settings
   if (g.rateMode !== 'manual' && Date.now() - Date.parse(g.ratesCheckedAt || '1970-01-01') > 12 * 3600_000) {
     const r = await refreshRates(payload).catch(() => null)

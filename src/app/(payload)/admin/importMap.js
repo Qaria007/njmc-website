@@ -4,6 +4,7 @@ import { PortalInvite as PortalInvite_b83e43da27c03911dd95278a1ae115f4 } from '.
 import { SupplierOrderActions as SupplierOrderActions_05049ef5fcaf08e07969f3cb583c09b7 } from '../../../components/admin/SupplierOrderActions'
 import { BuyerDocActions as BuyerDocActions_921ee1d0d22751b4720613730ce5722d } from '../../../components/admin/BuyerDocActions'
 import { PharmaTrustCheck as PharmaTrustCheck_1c22b98f0e14a7ef04dba14619de66d6 } from '../../../components/admin/PharmaTrustCheck'
+import { TraderCoaActions as TraderCoaActions_e8e29639852332e05b0ec56c0e78bd93 } from '../../../components/admin/TraderCoaActions'
 import { SupplierScore as SupplierScore_e6fe8a742b0a012dc47e8dd637db34ff } from '../../../components/admin/SupplierScore'
 import { RatesTools as RatesTools_0e5501c2f14809d1986549a43691658b } from '../../../components/admin/SettingsTools'
 import { AiTools as AiTools_0e5501c2f14809d1986549a43691658b } from '../../../components/admin/SettingsTools'
@@ -20,6 +21,7 @@ export const importMap = {
   "/components/admin/SupplierOrderActions#SupplierOrderActions": SupplierOrderActions_05049ef5fcaf08e07969f3cb583c09b7,
   "/components/admin/BuyerDocActions#BuyerDocActions": BuyerDocActions_921ee1d0d22751b4720613730ce5722d,
   "/components/admin/PharmaTrustCheck#PharmaTrustCheck": PharmaTrustCheck_1c22b98f0e14a7ef04dba14619de66d6,
+  "/components/admin/TraderCoaActions#TraderCoaActions": TraderCoaActions_e8e29639852332e05b0ec56c0e78bd93,
   "/components/admin/SupplierScore#SupplierScore": SupplierScore_e6fe8a742b0a012dc47e8dd637db34ff,
   "/components/admin/SettingsTools#RatesTools": RatesTools_0e5501c2f14809d1986549a43691658b,
   "/components/admin/SettingsTools#AiTools": AiTools_0e5501c2f14809d1986549a43691658b,

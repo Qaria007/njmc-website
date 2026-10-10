@@ -12,6 +12,7 @@ import * as migration_20261009_022940_phase_b from './20261009_022940_phase_b';
 import * as migration_20261009_023151_phase_b_coa from './20261009_023151_phase_b_coa';
 import * as migration_20261009_023800_roles_activity from './20261009_023800_roles_activity';
 import * as migration_20261009_024034_portal from './20261009_024034_portal';
+import * as migration_20261010_042902_our_companies_certificates from './20261010_042902_our_companies_certificates';
 
 export const migrations = [
   {
@@ -82,6 +83,11 @@ export const migrations = [
   {
     up: migration_20261009_024034_portal.up,
     down: migration_20261009_024034_portal.down,
-    name: '20261009_024034_portal'
+    name: '20261009_024034_portal',
+  },
+  {
+    up: migration_20261010_042902_our_companies_certificates.up,
+    down: migration_20261010_042902_our_companies_certificates.down,
+    name: '20261010_042902_our_companies_certificates'
   },
 ];

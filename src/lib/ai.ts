@@ -90,8 +90,11 @@ export function aiErrorMessage(e: unknown): string {
   return 'The AI service could not be reached. Try again.'
 }
 
+// A document sent with the request (a PDF or a picture), base64 encoded.
+export type AiFile = { name: string; mediaType: 'application/pdf' | 'image/png' | 'image/jpeg' | 'image/webp'; data: string }
+
 // One request, one JSON answer that follows the schema, from whichever provider the model belongs to.
-export async function aiJson<T>(apiKey: string, model: string, system: string, user: string, schema: object, name = 'answer'): Promise<T> {
+export async function aiJson<T>(apiKey: string, model: string, system: string, user: string, schema: object, name = 'answer', files: AiFile[] = []): Promise<T> {
   const mismatch = keyModelMismatch(apiKey, model)
   if (mismatch) throw new AiReadError(mismatch)
   let text = ''
@@ -101,7 +104,22 @@ export async function aiJson<T>(apiKey: string, model: string, system: string, u
       headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model,
-        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+        messages: [
+          { role: 'system', content: system },
+          {
+            role: 'user',
+            content: files.length
+              ? [
+                  ...files.map((f) =>
+                    f.mediaType === 'application/pdf'
+                      ? { type: 'file', file: { filename: f.name, file_data: `data:${f.mediaType};base64,${f.data}` } }
+                      : { type: 'image_url', image_url: { url: `data:${f.mediaType};base64,${f.data}` } },
+                  ),
+                  { type: 'text', text: user },
+                ]
+              : user,
+          },
+        ],
         response_format: { type: 'json_schema', json_schema: { name, strict: true, schema } },
       }),
       signal: AbortSignal.timeout(180_000),
@@ -121,7 +139,19 @@ export async function aiJson<T>(apiKey: string, model: string, system: string, u
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       output_config: { effort: 'low', format: { type: 'json_schema', schema: schema as Record<string, unknown> } },
-      messages: [{ role: 'user', content: user }],
+      messages: [
+        {
+          role: 'user',
+          content: [
+            ...files.map((f) =>
+              f.mediaType === 'application/pdf'
+                ? { type: 'document' as const, source: { type: 'base64' as const, media_type: f.mediaType, data: f.data } }
+                : { type: 'image' as const, source: { type: 'base64' as const, media_type: f.mediaType, data: f.data } },
+            ),
+            { type: 'text' as const, text: user },
+          ],
+        },
+      ],
     })
     if (res.stop_reason === 'refusal') throw new AiReadError('The AI declined to read this text.')
     if (res.stop_reason === 'max_tokens') throw new AiReadError('The text is too long for one reading.')

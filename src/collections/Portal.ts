@@ -53,12 +53,18 @@ const salesHandler: PayloadHandler = async (req) => {
   })
 }
 
+// The company that issues the sale, when it is not Company details.
+const companyOf = (d: unknown): number | string | null => {
+  const v = (d as Record<string, unknown>).sellerCompany
+  return v && typeof v === 'object' ? ((v as { id: number }).id ?? null) : ((v as number | string | null | undefined) ?? null)
+}
+
 const pdfHandler: PayloadHandler = async (req) => {
   const q = (req.query ?? {}) as Record<string, unknown>
   const doc = await ownSale(req, s(q.id))
   const type = s(q.type) as BuyerDocType
   if (!doc || !VISIBLE_DOCS(doc).includes(type)) return Response.json({ error: 'Not found' }, { status: 404 })
-  const spec = buyerDocSpec(toBuyerDoc(doc), await loadSeller(req.payload, req), type)
+  const spec = buyerDocSpec(toBuyerDoc(doc), await loadSeller(req.payload, req, companyOf(doc)), type)
   return new Response(Buffer.from(await renderPdf(spec)), {
     headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${safeFileName(spec.fileName)}"`, 'Cache-Control': 'no-store' },
   })

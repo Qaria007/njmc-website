@@ -14,7 +14,7 @@ const LINE = rgb(0.8, 0.82, 0.86)
 const FILL = rgb(0.94, 0.95, 0.97)
 
 // Typographic quotes, dashes, ellipsis, no-break space and full-width brackets, by code point.
-const MAP: Record<number, string> = { 0x2018: "'", 0x2019: "'", 0x201c: '"', 0x201d: '"', 0x2013: '-', 0x2014: '-', 0x2026: '...', 0xa0: ' ', 0xff08: '(', 0xff09: ')', 0xff0c: ',', 0xff1a: ':' }
+const MAP: Record<number, string> = { 0x2018: "'", 0x2019: "'", 0x201c: '"', 0x201d: '"', 0x2013: '-', 0x2014: '-', 0x2026: '...', 0xa0: ' ', 0xff08: '(', 0xff09: ')', 0xff0c: ',', 0xff1a: ':', 0x2264: '<=', 0x2265: '>=', 0x2030: ' per mille', 0x2212: '-', 0x2103: '\xB0C', 0x03b1: 'alpha', 0x03b2: 'beta', 0x03b3: 'gamma', 0x03bc: '\xB5', 0xff5e: '~' }
 
 // Text the built-in fonts can draw: printable ASCII and Latin-1. Anything else is dropped.
 export function latin(text: string): string {
@@ -26,7 +26,7 @@ export function latin(text: string): string {
     .replace(/[ \t]+/g, ' ')
 }
 
-function wrap(text: string, font: PDFFont, size: number, width: number): string[] {
+export function wrap(text: string, font: PDFFont, size: number, width: number): string[] {
   const out: string[] = []
   for (const para of latin(text).split('\n')) {
     let line = ''

@@ -200,3 +200,30 @@ documents in English only ("I use English everywhere for formal documents"). Bui
   prefix DOC_PREFIX, ORDER_DESK_ONLY=1 switches the public website off, ADMIN_TITLE, MAIL_FROM_NAME.
 - Backups: database and order files copied nightly to the private GCS bucket (versioning on) via
   pharmatrust-api-1, replacing the Drive copy that failed with 403.
+
+## 2026-10-09 Certificates on our letterhead (owner request)
+- Distributor certificates always name the original manufacturer (name, address, telephone), refer to
+  the manufacturer's certificate by number and attach it (ICH Q7 11.43/11.44, WHO good trade and
+  distribution practices). The tool has no way to print one without them.
+- Admin group "Certificates". (1) Certificate on our letterhead: NJMC or a partner (Letterhead
+  companies, owner-managed) issues the CoA as distributor, number PREFIX-COA-YYYY-<record id>, the
+  original attached page by page on A4 under a band, the statement that the issuer did not perform
+  the tests (or the independent laboratory of our own retest, with its address and telephone), and
+  whether the goods were repacked (confirmed by the user). Printing is refused while anything is
+  missing, for a protected or damaged original, a placeholder or the issuer's own name as
+  manufacturer, or a supplier file changed after the AI reading. Previews carry a DRAFT mark;
+  "Issue" locks the record (a correction is a duplicate with a new number). (2) Specification sheet
+  for quoting: tests, limits, methods only, no batch, no results, no manufacturer.
+- AI reads the uploaded PDF or photo (Claude or OpenAI, the file itself is sent) into the fields;
+  fields the AI leaves empty keep what was typed; the reading (tests, identity fields, file) is kept
+  and every later change shows as a warning. No delete.
+- PDF fonts are Latin only: <=, >=, degree C, alpha, beta, gamma, micro and ~ replace their symbols
+  (also on other trade documents); any other non-Latin text blocks the PDF until translated.
+- 2026-10-10: "Our companies" (owner request): one admin place per company (NJMC and partners) with
+  letterhead, signatory, bank details (owner-only field) and licences (type, number, authority,
+  validity, product kinds covered). A certificate must name the releasing company ("Released by"),
+  and that company must hold a licence valid on the day of issue, of a kind allowed for the product
+  (API/excipient/medicine: drug distribution, pharma import/export or GDP/GMP; device: device
+  distribution; chemicals: chemicals or business licence). The licence is printed unless switched off.
+  A sale (PI, invoice, packing list) can be issued by one of Our companies (its letterhead and bank);
+  only the owner can set or change that choice.
