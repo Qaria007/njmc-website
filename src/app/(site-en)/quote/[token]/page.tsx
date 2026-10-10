@@ -39,7 +39,7 @@ export default async function QuotePage({ params }: { params: Promise<{ token: s
     <div className="legacy">
       <section className="page-hero">
         <div className="hero-inner">
-          <div className="hero-badge">{seller.companyName}</div>
+          <div className="hero-badge">{seller.brandName || seller.companyName}</div>
           <h1>Quotation for enquiry {s(doc.number)}</h1>
           <p className="hero-summary">
             {supplier ? `For ${supplier}. ` : ''}Please enter your price per unit for each item you can supply, then press Send. Leave an item empty if you cannot

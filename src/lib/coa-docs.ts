@@ -52,6 +52,7 @@ export type CoaDoc = {
 
 export type Issuer = {
   companyName: string
+  brandName?: string | null
   address?: string | null
   phone?: string | null
   email?: string | null
@@ -175,7 +176,7 @@ function nonLatin(d: CoaDoc, fields: string[], withResults: boolean, issuer?: Is
   d.tests.forEach((x, i) => {
     if ([x.test, x.criteria, withResults ? x.result : '', x.method].some((v) => NOT_LATIN.test(t(v)))) out.push(`test row ${i + 1}`)
   })
-  if (issuer && [issuer.companyName, issuer.address, issuer.signatoryName, issuer.signatoryTitle].some((v) => NOT_LATIN.test(t(v)))) out.push('the letterhead company details')
+  if (issuer && [issuer.companyName, issuer.brandName, issuer.address, issuer.signatoryName, issuer.signatoryTitle].some((v) => NOT_LATIN.test(t(v)))) out.push('the letterhead company details')
   return out
 }
 
@@ -192,7 +193,7 @@ export function sameCompany(a: unknown, b: unknown): boolean {
 function manufacturerProblem(name: string, issuer?: Issuer, issuedBy?: string | null): string | null {
   if (!name) return 'the name of the original manufacturer'
   if (!/[A-Za-z]{3,}/.test(name) || /^(n\/?a|none|nil|unknown|see attach\w*|as attached|tbd|tba|same as above)\.?$/i.test(name)) return 'the real name of the original manufacturer (not a placeholder)'
-  if (issuer && sameCompany(name, issuer.companyName)) return 'the original manufacturer, not the letterhead company'
+  if (issuer && (sameCompany(name, issuer.companyName) || sameCompany(name, issuer.brandName))) return 'the original manufacturer, not the letterhead company'
   if (issuedBy && sameCompany(name, issuedBy)) return 'the original manufacturer, not the trader that sent the certificate'
   return null
 }
@@ -239,14 +240,17 @@ export function specGaps(d: CoaDoc, issuer?: Issuer): string[] {
   return g
 }
 
+// The legal company, with the brand it trades under: "Medicayal Pharma Co., Ltd. (NJMC Medical Supplies)".
+export const legalWithBrand = (i: Pick<Issuer, 'companyName' | 'brandName'>) => (String(i.brandName ?? '').trim() ? `${i.companyName} (${String(i.brandName).trim()})` : i.companyName)
+
 // The statement printed under the results: who tested, what we did, where the original is.
 export function coaStatement(d: CoaDoc, issuer: Issuer, attachedPages: number, photo = false): string {
   const pages = photo ? 'is attached, photographed, as the last page' : `is attached unchanged as the last ${attachedPages === 1 ? 'page' : `${attachedPages} pages`}, after a cover page,`
   const orig = `certificate of analysis No. ${t(d.originalCoaNo)}${t(d.originalCoaDate) ? ` dated ${t(d.originalCoaDate)}` : ''}`
   const maker = `${t(d.manufacturerName)}, ${t(d.manufacturerAddress)}${t(d.manufacturerPhone) ? `, telephone ${t(d.manufacturerPhone)}` : ''}`
   const handled = d.handling === 'repacked'
-    ? `${issuer.companyName} supplies this batch as distributor and has repacked or relabelled it into the packaging stated above, without any other change to the material.`
-    : `${issuer.companyName} supplies this batch as distributor in the manufacturer's original packaging and has not changed the material.`
+    ? `${legalWithBrand(issuer)} supplies this batch as distributor and has repacked or relabelled it into the packaging stated above, without any other change to the material.`
+    : `${legalWithBrand(issuer)} supplies this batch as distributor in the manufacturer's original packaging and has not changed the material.`
   if (d.resultsSource === 'lab') {
     return `The results above are from report No. ${t(d.labReportNo)}${t(d.labReportDate) ? ` dated ${t(d.labReportDate)}` : ''} of ${t(d.labName)}, ${t(d.labAddress)}${t(d.labPhone) ? `, telephone ${t(d.labPhone)}` : ''}, on a sample of this batch. ` +
       `The batch was manufactured by ${maker}, and released with its ${orig}, which ${pages} of this document. ${handled}`

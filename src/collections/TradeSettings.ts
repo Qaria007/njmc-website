@@ -94,7 +94,8 @@ export const TradeSettings: GlobalConfig = {
   ],
   fields: [
     { name: 'logo', type: 'upload', relationTo: 'media', admin: { description: 'Optional. A PNG or JPG logo printed at the top of every document' } },
-    { name: 'companyName', type: 'text', required: true, defaultValue: 'NJMC Medical Supplies Co., Ltd', admin: { description: 'The legal name of the company that buys and sells' } },
+    { name: 'companyName', type: 'text', required: true, defaultValue: 'NJMC Medical Supplies Co., Ltd', admin: { description: 'The legal name of the company that buys and sells, as on the business licence and the bank account' } },
+    { name: 'brandName', type: 'text', label: 'Brand name on documents', admin: { description: 'Optional, e.g. NJMC Medical Supplies: printed large, with the legal name under it; used as the sender name of emails' } },
     { name: 'address', type: 'textarea', defaultValue: 'Jianye District, Nanjing, Jiangsu, China', admin: { description: 'Full registered address, as on the business licence' } },
     {
       type: 'row',
@@ -273,6 +274,7 @@ export async function loadSeller(payload: Payload, req?: PayloadRequest, company
     ...base,
     logo: (await logoOf(c)) ?? null,
     companyName: v('companyName') || base.companyName,
+    brandName: v('brandName'),
     address: v('address'),
     phone: v('phone'),
     email: v('email'),
@@ -295,6 +297,7 @@ async function loadCompanyDetails(payload: Payload, req?: PayloadRequest): Promi
     aiMode: Boolean(g.aiMode),
     rates: { cnyPerUsd: g.cnyPerUsd ?? null, usdPerEur: g.usdPerEur ?? null },
     companyName: g.companyName || 'NJMC Medical Supplies Co., Ltd',
+    brandName: (g.brandName || '').trim(),
     address: g.address,
     phone: g.phone,
     email: g.email || 'sale@njmcmedicsupp.com',

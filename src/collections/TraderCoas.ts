@@ -127,7 +127,7 @@ async function loadIssuer(payload: Payload, doc: AnyDoc, req: PayloadRequest): P
   if (id) {
     const c = (await payload.findByID({ collection: 'issuing-companies', id, depth: 1, overrideAccess: true, req })) as unknown as AnyDoc
     return {
-      companyName: s(c.companyName), address: s(c.address), phone: s(c.phone), email: s(c.email), website: s(c.website),
+      companyName: s(c.companyName), brandName: s(c.brandName), address: s(c.address), phone: s(c.phone), email: s(c.email), website: s(c.website),
       signatoryName: s(c.signatoryName), signatoryTitle: s(c.signatoryTitle), logo: await mediaLogo(c.logo),
       licences: c.licences as Licence[] | null, chosen: true,
     }
@@ -142,7 +142,7 @@ async function eligibleCompanies(req: PayloadRequest, productType: string | null
   if (!productType) return []
   const all = await req.payload.find({ collection: 'issuing-companies', limit: 200, depth: 0, pagination: false, overrideAccess: true, req })
   return (all.docs as unknown as AnyDoc[])
-    .map((c) => ({ id: c.id, name: s(c.companyName), pick: pickLicence(c.licences as Licence[] | null, productType, onDate) }))
+    .map((c) => ({ id: c.id, name: s(c.brandName) ? `${s(c.brandName)} (${s(c.companyName)})` : s(c.companyName), pick: pickLicence(c.licences as Licence[] | null, productType, onDate) }))
     .filter((c) => 'licence' in c.pick)
     .map((c) => ({ id: c.id, name: c.name, licence: 'licence' in c.pick ? licenceLine(c.pick.licence) : '' }))
 }

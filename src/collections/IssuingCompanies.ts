@@ -37,7 +37,8 @@ export const IssuingCompanies: CollectionConfig = {
             {
               type: 'row',
               fields: [
-                { name: 'companyName', type: 'text', required: true, admin: { description: 'Legal name, in English, as on the business licence' } },
+                { name: 'companyName', type: 'text', required: true, admin: { description: 'Legal name, in English, as on the business licence and the bank account' } },
+                { name: 'brandName', type: 'text', label: 'Brand name on documents', admin: { description: 'Optional, e.g. NJMC Medical Supplies: printed large, with the legal name under it' } },
                 {
                   name: 'relation', type: 'select', defaultValue: 'own',
                   options: [{ label: 'Our company', value: 'own' }, { label: 'Partner company', value: 'partner' }],

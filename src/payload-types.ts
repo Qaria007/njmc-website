@@ -499,9 +499,13 @@ export interface BuyerDocument {
 export interface IssuingCompany {
   id: number;
   /**
-   * Legal name, in English, as on the business licence
+   * Legal name, in English, as on the business licence and the bank account
    */
   companyName: string;
+  /**
+   * Optional, e.g. NJMC Medical Supplies: printed large, with the legal name under it
+   */
+  brandName?: string | null;
   relation?: ('own' | 'partner') | null;
   /**
    * 2 to 8 letters, e.g. NJMC gives NJMC-COA-2026-0001
@@ -1687,6 +1691,7 @@ export interface TraderCoasSelect<T extends boolean = true> {
  */
 export interface IssuingCompaniesSelect<T extends boolean = true> {
   companyName?: T;
+  brandName?: T;
   relation?: T;
   prefix?: T;
   logo?: T;
@@ -1969,9 +1974,13 @@ export interface TradeSetting {
    */
   logo?: (number | null) | Media;
   /**
-   * The legal name of the company that buys and sells
+   * The legal name of the company that buys and sells, as on the business licence and the bank account
    */
   companyName: string;
+  /**
+   * Optional, e.g. NJMC Medical Supplies: printed large, with the legal name under it; used as the sender name of emails
+   */
+  brandName?: string | null;
   /**
    * Full registered address, as on the business licence
    */
@@ -2064,6 +2073,7 @@ export interface AccountsOverview {
 export interface TradeSettingsSelect<T extends boolean = true> {
   logo?: T;
   companyName?: T;
+  brandName?: T;
   address?: T;
   phone?: T;
   email?: T;

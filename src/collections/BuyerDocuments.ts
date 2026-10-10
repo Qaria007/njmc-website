@@ -117,7 +117,7 @@ const shareEndpoint: PayloadHandler = async (req) => {
   const url = `${SITE_URL.replace(/\/$/, '')}/d/${s(doc.shareToken)}/${type}`
   const m = clientMessage(toDoc(doc), seller, type)
   // WhatsApp carries a link, not an attachment.
-  const text = `${m.body.split('\n\nBest regards')[0].replace('Please find attached', 'Here is')}\n\n${url}\n\n${seller.companyName}`
+  const text = `${m.body.split('\n\nBest regards')[0].replace('Please find attached', 'Here is')}\n\n${url}\n\n${seller.brandName || seller.companyName}`
   const log = `${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC: WhatsApp link for the ${type === 'pi' ? 'proforma invoice' : type} prepared by ${s(req.user?.email)}`
   await req.payload.update({ collection: 'buyer-documents', id: doc.id, depth: 0, overrideAccess: true, req, data: { sendLog: [s(doc.sendLog), log].filter(Boolean).join('\n') } as never })
   return Response.json({ url, wa: waLink(doc.buyerPhone, text), phone: waNumber(doc.buyerPhone) })
@@ -180,7 +180,7 @@ const sendEndpoint: PayloadHandler = async (req) => {
   const text = s(body.message).trim().slice(0, 20000) || auto.body
   const attachments: { filename: string; content: Buffer; contentType: string }[] = [{ filename: safeFileName(spec.fileName), content: Buffer.from(await renderPdf(spec)), contentType: 'application/pdf' }]
   if (body.excel) attachments.push({ filename: safeFileName(spec.fileName.replace(/\.pdf$/, '.xlsx')), content: await docSpecXlsx(spec), contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-  const mail = { from: `"${seller.companyName.replace(/["\\\r\n]/g, '')}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`, replyTo: emailsIn(seller.email)[0], subject, text, attachments }
+  const mail = { from: `"${(seller.brandName || seller.companyName).replace(/["\\\r\n]/g, '')}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`, replyTo: emailsIn(seller.email)[0], subject, text, attachments }
   const failed = (err: unknown) => {
     req.payload.logger.error({ err }, 'client message failed')
     return Response.json({ error: `The email could not be sent: ${(err as Error).message}`.slice(0, 300) }, { status: 502 })

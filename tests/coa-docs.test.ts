@@ -205,3 +205,18 @@ test('a date picked in the admin keeps its day', async () => {
   assert.equal(pickedDay('2027-12-31T05:00:00.000Z'), '2027-12-31')
   assert.equal(pickedDay('2027-12-31'), '2027-12-31')
 })
+
+test('a brand prints with the legal company that holds the licence and the bank account', async () => {
+  const { legalWithBrand } = await import('../src/lib/coa-docs.ts')
+  const { tradingName, fullName } = await import('../src/lib/trade-docs.ts')
+  const med = { companyName: 'Medicayal Pharma Co., Ltd.', brandName: 'NJMC Medical Supplies' }
+  assert.equal(legalWithBrand(med), 'Medicayal Pharma Co., Ltd. (NJMC Medical Supplies)')
+  assert.equal(legalWithBrand({ companyName: 'X Co' }), 'X Co')
+  assert.equal(tradingName(med), 'NJMC Medical Supplies')
+  assert.equal(fullName(med), 'NJMC Medical Supplies (Medicayal Pharma Co., Ltd.)')
+  assert.match(coaStatement(doc, med, 1), /^The results above.*Medicayal Pharma Co\., Ltd\. did not perform these tests\. Medicayal Pharma Co\., Ltd\. \(NJMC Medical Supplies\) supplies this batch/)
+  // The brand is never accepted as the manufacturer.
+  assert.ok(coaGaps({ ...doc, manufacturerName: 'NJMC Medical Supplies' }, OK, { issuer: med }).some((x) => x.includes('not the letterhead company')))
+  const pdf = await PDFDocument.load(await renderSpecPdf(doc, med, '2026-10-11'))
+  assert.equal(pdf.getAuthor(), 'Medicayal Pharma Co., Ltd.')
+})

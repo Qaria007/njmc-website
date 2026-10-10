@@ -232,3 +232,9 @@ documents in English only ("I use English everywhere for formal documents"). Bui
   chemicals under 货物进出口 in its business scope plus its customs registration; owner confirmed
   this is how NJMC has exported. It releases certificates for API, excipient and chemical only;
   finished medicines still need a drug licence, devices a device licence or filing.
+- 2026-10-11: brand and legal name. The licence and the bank account belong to the legal company
+  (Medicayal Pharma Co., Ltd.); NJMC Medical Supplies is the brand it trades under (owner, 11 Oct).
+  Documents print the brand large with the legal name under it; signatures, the certificate
+  statement, the PDF author and the bank beneficiary context stay on the legal name; email sender
+  names and subjects use the brand. Optional "Brand name on documents" field in Company details and
+  in Our companies. Empty brand = unchanged behaviour. A China-only record can omit the brand.

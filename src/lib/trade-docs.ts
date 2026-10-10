@@ -5,6 +5,9 @@
 
 export type Seller = {
   companyName: string
+  // A brand the legal company trades under (e.g. NJMC Medical Supplies, operated by Medicayal Pharma
+  // Co., Ltd.): printed large on documents, with the legal name under it.
+  brandName?: string | null
   address?: string | null
   phone?: string | null
   email?: string | null
@@ -114,6 +117,10 @@ export type DocSpec = {
 }
 
 const t = (v: unknown) => (v == null ? '' : String(v).trim())
+
+// The name people see (the brand when there is one) and the full name with the legal company.
+export const tradingName = (s: Pick<Seller, 'companyName' | 'brandName'>) => t(s.brandName) || s.companyName
+export const fullName = (s: Pick<Seller, 'companyName' | 'brandName'>) => (t(s.brandName) ? `${t(s.brandName)} (${s.companyName})` : s.companyName)
 
 // The company code at the start of every document number (NJMC-PI-2026-0001). Another company using
 // this software sets DOC_PREFIX in its server settings.
@@ -227,15 +234,15 @@ export function supplierMessage(d: SupplierOrderDoc, seller: Seller): { subject:
   const n = d.items.length
   const what = `${n} ${n === 1 ? 'item' : 'items'}`
   const greeting = `Dear ${t(d.contactPerson).split(/[,(]/)[0].trim() || 'Sir or Madam'},`
-  const sign = [t(seller.signatoryName), t(seller.signatoryTitle), seller.companyName, t(seller.email), t(seller.phone), t(seller.website)].filter(Boolean).join('\n')
+  const sign = [t(seller.signatoryName), t(seller.signatoryTitle), t(seller.brandName), seller.companyName, t(seller.email), t(seller.phone), t(seller.website)].filter(Boolean).join('\n')
   const list = d.items.map((i, k) => itemLine(i, k + 1)).join('\n')
   if (d.kind === 'rfq') {
     const cphi = /cphi/i.test(t(d.supplierSource)) ? ' We have your product list from CPHI.' : ''
     return {
-      subject: `Enquiry ${d.number}: ${what} (${seller.companyName})`,
+      subject: `Enquiry ${d.number}: ${what} (${tradingName(seller)})`,
       body: [
         greeting,
-        `${seller.companyName} is a pharmaceutical sourcing and trading company in Nanjing, China.${cphi} We have a customer enquiry for the following and would like your quotation:`,
+        `${fullName(seller)} is a pharmaceutical sourcing and trading company in Nanjing, China.${cphi} We have a customer enquiry for the following and would like your quotation:`,
         list,
         `Please send us:\n${DEFAULT_ASK.map((a) => `- ${a}`).join('\n')}`,
         [d.destination ? `Destination: ${t(d.destination)}.` : '', d.delivery ? `Delivery needed: ${t(d.delivery)}.` : '', t(d.notes)].filter(Boolean).join('\n'),
@@ -248,7 +255,7 @@ export function supplierMessage(d: SupplierOrderDoc, seller: Seller): { subject:
   }
   const total = goodsTotal(d.items)
   return {
-    subject: `Purchase order ${d.number} (${seller.companyName})`,
+    subject: `Purchase order ${d.number} (${tradingName(seller)})`,
     body: [
       greeting,
       `Please find attached our purchase order ${d.number} for ${what}:`,

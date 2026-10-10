@@ -135,7 +135,7 @@ const sendEndpoint: PayloadHandler = async (req) => {
   if (!process.env.SMTP_HOST && (body.confirm || process.env.NODE_ENV === 'production')) return Response.json({ error: 'Email is not set up on this server, nothing was sent' }, { status: 503 })
   const { doc, data, seller, to, gaps } = await load(req)
   if (doc.status === 'cancelled') return Response.json({ error: 'This order is cancelled' }, { status: 400 })
-  const from = `"${seller.companyName.replace(/["\\\r\n]/g, '')}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`
+  const from = `"${(seller.brandName || seller.companyName).replace(/["\\\r\n]/g, '')}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`
   const spec = supplierOrderSpec(data, seller)
   const mail = {
     from,

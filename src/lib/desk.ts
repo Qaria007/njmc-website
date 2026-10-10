@@ -228,11 +228,11 @@ export function supplierScores(enquiries: EnquiryRow[], certs: CertRow[], rates:
 
 // ---------- Reminders ----------
 
-export function supplierReminder(d: { number: string; contactPerson?: string | null; sentAt: string; quoteLink?: string | null }, seller: { companyName: string; signatoryName?: string | null; email?: string | null; phone?: string | null }) {
+export function supplierReminder(d: { number: string; contactPerson?: string | null; sentAt: string; quoteLink?: string | null }, seller: { companyName: string; brandName?: string | null; signatoryName?: string | null; email?: string | null; phone?: string | null }) {
   const greeting = `Dear ${t(d.contactPerson).split(/[,(]/)[0].trim() || 'Sir or Madam'},`
-  const sign = [t(seller.signatoryName), seller.companyName, t(seller.email), t(seller.phone)].filter(Boolean).join('\n')
+  const sign = [t(seller.signatoryName), t(seller.brandName), seller.companyName, t(seller.email), t(seller.phone)].filter(Boolean).join('\n')
   return {
-    subject: `Reminder: enquiry ${d.number} (${seller.companyName})`,
+    subject: `Reminder: enquiry ${d.number} (${t(seller.brandName) || seller.companyName})`,
     body: [
       greeting,
       `We sent you our enquiry ${d.number} on ${day(d.sentAt)} and would be glad to have your quotation.`,
@@ -243,11 +243,11 @@ export function supplierReminder(d: { number: string; contactPerson?: string | n
   }
 }
 
-export function clientReminder(d: { number: string; contact?: string | null; outstanding?: string | null; currency?: string | null; paid: boolean }, seller: { companyName: string; signatoryName?: string | null; email?: string | null; phone?: string | null }) {
+export function clientReminder(d: { number: string; contact?: string | null; outstanding?: string | null; currency?: string | null; paid: boolean }, seller: { companyName: string; brandName?: string | null; signatoryName?: string | null; email?: string | null; phone?: string | null }) {
   const greeting = `Dear ${t(d.contact).split(/[,(]/)[0].trim() || 'Sir or Madam'},`
-  const sign = [t(seller.signatoryName), seller.companyName, t(seller.email), t(seller.phone)].filter(Boolean).join('\n')
+  const sign = [t(seller.signatoryName), t(seller.brandName), seller.companyName, t(seller.email), t(seller.phone)].filter(Boolean).join('\n')
   return {
-    subject: `${d.paid ? 'Payment reminder' : 'Follow-up'}: ${d.number} (${seller.companyName})`,
+    subject: `${d.paid ? 'Payment reminder' : 'Follow-up'}: ${d.number} (${t(seller.brandName) || seller.companyName})`,
     body: [
       greeting,
       d.paid

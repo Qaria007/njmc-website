@@ -217,7 +217,7 @@ const remindSend: PayloadHandler = async (req) => {
   if ('error' in d) return Response.json({ error: d.error }, { status: 400 })
   const seller = await loadSeller(req.payload, req)
   const mail = {
-    from: `"${seller.companyName.replace(/["\\\r\n]/g, '')}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`, replyTo: emailsIn(seller.email)[0],
+    from: `"${(seller.brandName || seller.companyName).replace(/["\\\r\n]/g, '')}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`, replyTo: emailsIn(seller.email)[0],
     subject: s(body.subject).trim().slice(0, 300) || d.subject, text: s(body.body).trim().slice(0, 20000) || d.body,
   }
   try {

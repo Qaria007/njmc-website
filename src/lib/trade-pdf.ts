@@ -99,8 +99,14 @@ export async function renderPdf(spec: DocSpec): Promise<Uint8Array> {
       // no logo
     }
   }
-  text(spec.seller.companyName, M, y - 12, 15, bold)
+  // A brand prints large, with the legal company under it.
+  const brand = (spec.seller.brandName ?? '').trim()
+  text(brand || spec.seller.companyName, M, y - 12, 15, bold)
   y -= 26
+  if (brand) {
+    text(spec.seller.companyName, M, y, 9.5, bold)
+    y -= 12
+  }
   const contact = [spec.seller.phone ? `Tel ${spec.seller.phone}` : '', spec.seller.email ?? '', spec.seller.website ?? ''].filter(Boolean).join('  |  ')
   for (const l of [...wrap(spec.seller.address ?? '', font, 8.5, W - 2 * M - (spec.seller.logo ? 160 : 0)), contact].filter(Boolean)) {
     text(l, M, y, 8.5, font, GREY)

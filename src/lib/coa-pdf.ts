@@ -3,7 +3,7 @@
 import { degrees, PDFDocument, type PDFFont, type PDFPage, rgb, StandardFonts } from 'pdf-lib'
 import sharp from 'sharp'
 
-import { type CoaDoc, coaStatement, type Issuer, type OriginalState, productTypeLabel } from './coa-docs.ts'
+import { type CoaDoc, coaStatement, type Issuer, legalWithBrand, type OriginalState, productTypeLabel } from './coa-docs.ts'
 import { latin, wrap } from './trade-pdf.ts'
 
 const W = 595.28
@@ -51,8 +51,14 @@ async function drawDocument(
       // no logo
     }
   }
-  text(issuer.companyName, M, y - 12, 15, bold)
+  // A brand prints large, with the legal company under it.
+  const brand = (issuer.brandName ?? '').trim()
+  text(brand || issuer.companyName, M, y - 12, 15, bold)
   y -= 26
+  if (brand) {
+    text(issuer.companyName, M, y, 9.5, bold)
+    y -= 12
+  }
   const contact = [issuer.phone ? `Tel ${issuer.phone}` : '', issuer.email ?? '', issuer.website ?? ''].filter(Boolean).join('  |  ')
   for (const l of [...wrap(issuer.address ?? '', font, 8.5, W - 2 * M - (issuer.logo ? 160 : 0)), contact].filter(Boolean)) {
     text(l, M, y, 8.5, font, GREY)
@@ -246,8 +252,8 @@ export async function renderCoaPdf(d: CoaDoc, issuer: Issuer, original: Original
     issuer,
     'CERTIFICATE OF ANALYSIS',
     lab
-      ? `Issued by ${issuer.companyName} as distributor, with the results of an independent laboratory. The manufacturer's certificate is attached.`
-      : `Issued by ${issuer.companyName} as distributor, on the basis of the manufacturer's certificate, which is attached.`,
+      ? `Issued by ${legalWithBrand(issuer)} as distributor, with the results of an independent laboratory. The manufacturer's certificate is attached.`
+      : `Issued by ${legalWithBrand(issuer)} as distributor, on the basis of the manufacturer's certificate, which is attached.`,
     [
       ['Product', v(d.productName)], ['Certificate No.', v(d.number)],
       ['Kind of product', d.productType ? productTypeLabel(d.productType) : ''], ['Date of issue', v(d.issueDate)],

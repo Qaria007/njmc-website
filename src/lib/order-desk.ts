@@ -199,7 +199,7 @@ export function clientMessage(d: BuyerDoc, seller: Seller, type: BuyerDocType): 
   const total = buyerTotal(d)
   const cur = t(d.currency) || 'USD'
   const greeting = `Dear ${t(d.buyerContact).split(/[,(]/)[0].trim() || 'Sir or Madam'},`
-  const sign = [t(seller.signatoryName), t(seller.signatoryTitle), seller.companyName, t(seller.email), t(seller.phone), t(seller.website)].filter(Boolean).join('\n')
+  const sign = [t(seller.signatoryName), t(seller.signatoryTitle), t(seller.brandName), seller.companyName, t(seller.email), t(seller.phone), t(seller.website)].filter(Boolean).join('\n')
   const ref = t(d.buyerReference) ? ` for your order ${t(d.buyerReference)}` : ''
   const lines =
     type === 'pi'
@@ -214,7 +214,7 @@ export function clientMessage(d: BuyerDoc, seller: Seller, type: BuyerDocType): 
         ? [`Please find attached the commercial invoice ${number}${ref}.`, total ? `Total: ${cur} ${money(total)}.` : '', t(d.blNumber) ? `B/L or AWB no.: ${t(d.blNumber)}.` : '']
         : [`Please find attached the packing list for invoice ${number}${ref}.`, t(d.blNumber) ? `B/L or AWB no.: ${t(d.blNumber)}.` : '']
   return {
-    subject: `${name} ${number} (${seller.companyName})`,
+    subject: `${name} ${number} (${t(seller.brandName) || seller.companyName})`,
     body: [greeting, lines.filter(Boolean).join('\n'), `Best regards,\n${sign}`].join('\n\n'),
   }
 }
