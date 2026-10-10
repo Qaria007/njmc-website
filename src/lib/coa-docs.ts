@@ -85,6 +85,7 @@ export const LICENCE_KINDS = [
   { label: 'Medical device distribution licence', value: 'device-distribution' },
   { label: 'GDP or GMP certificate', value: 'gdp-gmp' },
   { label: 'Hazardous chemicals licence', value: 'chemicals' },
+  { label: 'Business licence with import/export scope and customs registration (export only)', value: 'export-trading' },
   { label: 'Business licence (trading scope)', value: 'business' },
   { label: 'Other', value: 'other' },
 ]
@@ -107,12 +108,14 @@ export const productTypeLabel = (v: unknown) => labelOf(PRODUCT_TYPES, v)
 // Which licences may release which kinds of product. A business or chemicals licence never
 // releases a medicine, an API or a device.
 const KIND_ALLOWS: Record<string, string[]> = {
-  api: ['drug-distribution', 'pharma-import-export', 'gdp-gmp'],
-  excipient: ['drug-distribution', 'pharma-import-export', 'gdp-gmp'],
+  // A Chinese trading company exports APIs and excipients under 货物进出口 in its business scope and
+  // its customs registration (owner decision 10 Oct 2026); finished medicines still need a drug licence.
+  api: ['drug-distribution', 'pharma-import-export', 'gdp-gmp', 'export-trading'],
+  excipient: ['drug-distribution', 'pharma-import-export', 'gdp-gmp', 'export-trading'],
   finished: ['drug-distribution', 'pharma-import-export', 'gdp-gmp'],
   device: ['device-distribution'],
-  chemical: ['chemicals', 'business'],
-  other: ['drug-distribution', 'pharma-import-export', 'gdp-gmp', 'device-distribution', 'chemicals', 'business', 'other'],
+  chemical: ['chemicals', 'business', 'export-trading'],
+  other: ['drug-distribution', 'pharma-import-export', 'gdp-gmp', 'device-distribution', 'export-trading', 'chemicals', 'business', 'other'],
 }
 
 // The licence that lets a company release a certificate for this kind of product on this date:

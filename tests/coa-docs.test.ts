@@ -187,6 +187,12 @@ test('only a company with a valid licence covering the product may release the c
   // A business licence ticked as covering APIs does not release an API.
   assert.match(String((pickLicence([{ kind: 'business', number: 'B-2', covers: ['api'] }], 'api', '2026-10-10') as { problem?: string }).problem), /licence covering active/)
   assert.ok('licence' in pickLicence(lic, 'chemical', '2026-10-10'))
+  // An export trading licence releases APIs and excipients, never finished medicines or devices.
+  const exp = [{ kind: 'export-trading', number: '91320100MAC61PPG8U', covers: ['api', 'excipient', 'finished', 'device'] }]
+  assert.ok('licence' in pickLicence(exp, 'api', '2026-10-10'))
+  assert.ok('licence' in pickLicence(exp, 'excipient', '2026-10-10'))
+  assert.ok('problem' in pickLicence(exp, 'finished', '2026-10-10'))
+  assert.ok('problem' in pickLicence(exp, 'device', '2026-10-10'))
   // The licence problem blocks the certificate.
   assert.ok(coaGaps(doc, OK, { licenceProblem: 'a valid licence' }).includes('a valid licence'))
 })

@@ -543,6 +543,7 @@ export interface IssuingCompany {
           | 'device-distribution'
           | 'gdp-gmp'
           | 'chemicals'
+          | 'export-trading'
           | 'business'
           | 'other';
         number: string;

@@ -227,3 +227,8 @@ documents in English only ("I use English everywhere for formal documents"). Bui
   distribution; chemicals: chemicals or business licence). The licence is printed unless switched off.
   A sale (PI, invoice, packing list) can be issued by one of Our companies (its letterhead and bank);
   only the owner can set or change that choice.
+- 2026-10-10 (2): new licence type "Business licence with import/export scope and customs
+  registration (export only)". A Chinese trading company exports non-controlled APIs, excipients and
+  chemicals under 货物进出口 in its business scope plus its customs registration; owner confirmed
+  this is how NJMC has exported. It releases certificates for API, excipient and chemical only;
+  finished medicines still need a drug licence, devices a device licence or filing.
