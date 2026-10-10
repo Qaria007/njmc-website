@@ -241,3 +241,9 @@ documents in English only ("I use English everywhere for formal documents"). Bui
 - 2026-10-11 (2): licence numbers are for our own reference (owner): they only decide which company
   may release a certificate for a kind of product. Nothing about licences or customs prints on
   documents unless the owner ticks it per licence (default off). Customs code not collected.
+- 2026-10-11 (3): owner, after the first three real certificates: documents from Medicayal only
+  (brand cleared), the statement under the results shortened to two lines, and the manufacturer's
+  certificate attached only when required. Rule: attached always for APIs, excipients and finished
+  medicines (ICH Q7 17.6); for other materials (food grade, botanicals, chemicals, devices) the owner
+  may untick "Attach", the original stays on file and the certificate says "available on request".
+  The manufacturer is still always named. Issue dates use the Chinese day (server clock is UTC).

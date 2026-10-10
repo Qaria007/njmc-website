@@ -20,6 +20,7 @@ Updated 27 Sep 2026 (session 2, Claude Code on the Mac).
 | 10 Oct (2) | Licence type for export trading (business licence with 货物进出口 + customs registration) releases API, excipient and chemical certificates |
 | 11 Oct | Brand name on documents (NJMC Medical Supplies over Medicayal Pharma Co., Ltd.) on PDFs, emails and the quote page; Medicayal logo made (Drive NJMC > 08) |
 | 11 Oct (2) | Licences are for reference only: nothing printed unless ticked, no customs code |
+| 11 Oct (3) | First three real certificates issued for the owner's client; statement shortened, attachment optional for non-pharma materials, Chinese issue date, Medicayal only |
 | Next | Owner: app password for the mailbox, AI key, invite first client to the portal, Importer account for the Product Importer. Owner sets the usual markup, pastes an API key and switches AI mode on if wanted; first real AI reading to be checked. Owner fills in exchange rates and usual margin in Company details. Phase 2: AI reading of supplier emails, online supplier search. Owner fills in Company details for documents (legal address, signatory, bank details). Order files are not in the nightly backup yet (DB only). Catalogue: Arabic after review; owner decision on in-house/R&D molecules. Two-buyer home, Arabic for new pages and forms, Drive copy of backups (parked) |
 
 ## Done this session

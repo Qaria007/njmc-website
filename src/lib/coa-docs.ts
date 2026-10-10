@@ -41,6 +41,9 @@ export type CoaDoc = {
   labReportDate?: string | null
   // What the distributor did with the goods: confirmed by the user, printed in the statement.
   handling?: 'unchanged' | 'repacked' | null
+  // Whether the manufacturer's certificate is appended to the PDF. Always for APIs and excipients
+  // (ICH Q7 17.6); optional for other materials, where it stays on file and is available on request.
+  attachOriginal?: boolean | null
   conclusion?: string | null
   remarks?: string | null
   specNotes?: string | null
@@ -95,6 +98,9 @@ export type Licence = { kind?: string | null; number?: string | null; authority?
 // A day picked in the admin. Payload stores it at 12:00 UTC on that day; a value written by code
 // can also be local midnight in UTC (China: 16:00 the day before) or a plain YYYY-MM-DD. Rounding to
 // the nearest UTC midnight, with exactly noon going back to its own day, gives the picked day.
+// Today's date in China, where the certificates are issued (the server clock is UTC).
+export const todayInChina = (now = new Date()): string => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
+
 export const pickedDay = (v: unknown): string => {
   const raw = String(v ?? '').trim()
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
@@ -203,6 +209,7 @@ export function coaGaps(d: CoaDoc, original: OriginalState, ctx: { issuer?: Issu
   const g: string[] = []
   if (ctx.licenceProblem) g.push(ctx.licenceProblem)
   if (!original.ok) g.push(original.problem)
+  if (mustAttach(d.productType) && d.attachOriginal === false) g.push(`the manufacturer's certificate must be attached for ${productTypeLabel(d.productType).toLowerCase()} (ICH Q7 17.6)`)
   if (ctx.reading?.sourceFile != null && ctx.sourceFile != null && String(ctx.reading.sourceFile) !== String(ctx.sourceFile)) {
     g.push('the supplier file was changed after the AI reading: read the new file again')
   } else if (ctx.reading?.sha256 && ctx.fileSha256 && ctx.reading.sha256 !== ctx.fileSha256) {
@@ -243,20 +250,22 @@ export function specGaps(d: CoaDoc, issuer?: Issuer): string[] {
 // The legal company, with the brand it trades under: "Medicayal Pharma Co., Ltd. (NJMC Medical Supplies)".
 export const legalWithBrand = (i: Pick<Issuer, 'companyName' | 'brandName'>) => (String(i.brandName ?? '').trim() ? `${i.companyName} (${String(i.brandName).trim()})` : i.companyName)
 
-// The statement printed under the results: who tested, what we did, where the original is.
+// Whether the manufacturer's certificate must be appended: yes for pharmaceutical materials.
+export const mustAttach = (productType: string | null | undefined) => productType === 'api' || productType === 'excipient' || productType === 'finished'
+export const attaches = (d: Pick<CoaDoc, 'productType' | 'attachOriginal'>) => mustAttach(d.productType) || d.attachOriginal !== false
+
+// The short statement printed under the results: whose results, our role, where the original is.
+// The manufacturer's name, address and telephone are already in the box above, so they are not repeated.
 export function coaStatement(d: CoaDoc, issuer: Issuer, attachedPages: number, photo = false): string {
-  const pages = photo ? 'is attached, photographed, as the last page' : `is attached unchanged as the last ${attachedPages === 1 ? 'page' : `${attachedPages} pages`}, after a cover page,`
   const orig = `certificate of analysis No. ${t(d.originalCoaNo)}${t(d.originalCoaDate) ? ` dated ${t(d.originalCoaDate)}` : ''}`
-  const maker = `${t(d.manufacturerName)}, ${t(d.manufacturerAddress)}${t(d.manufacturerPhone) ? `, telephone ${t(d.manufacturerPhone)}` : ''}`
-  const handled = d.handling === 'repacked'
-    ? `${legalWithBrand(issuer)} supplies this batch as distributor and has repacked or relabelled it into the packaging stated above, without any other change to the material.`
-    : `${legalWithBrand(issuer)} supplies this batch as distributor in the manufacturer's original packaging and has not changed the material.`
+  const where = attaches(d)
+    ? (photo ? 'It is attached, photographed, as the last page.' : `It is attached unchanged as the last ${attachedPages === 1 ? 'page' : `${attachedPages} pages`}.`)
+    : `It is held on file by ${issuer.companyName} and is available on request.`
+  const role = `${legalWithBrand(issuer)} supplies this batch as distributor${d.handling === 'repacked' ? ', repacked or relabelled as stated above' : ' in the manufacturer\'s original packaging'}.`
   if (d.resultsSource === 'lab') {
-    return `The results above are from report No. ${t(d.labReportNo)}${t(d.labReportDate) ? ` dated ${t(d.labReportDate)}` : ''} of ${t(d.labName)}, ${t(d.labAddress)}${t(d.labPhone) ? `, telephone ${t(d.labPhone)}` : ''}, on a sample of this batch. ` +
-      `The batch was manufactured by ${maker}, and released with its ${orig}, which ${pages} of this document. ${handled}`
+    return `Results from report No. ${t(d.labReportNo)}${t(d.labReportDate) ? ` dated ${t(d.labReportDate)}` : ''} of ${t(d.labName)} on a sample of this batch; the manufacturer released the batch with its ${orig}. ${where} ${role}`
   }
-  return `The results above are copied without change from the manufacturer's ${orig}, issued by ${maker}. ` +
-    `${issuer.companyName} did not perform these tests. ${handled} The original certificate ${pages} of this document and is part of it.`
+  return `Results copied without change from the manufacturer's ${orig}. ${where} ${role}`
 }
 
 // What the user changed after the AI reading. Corrections are allowed (AI can misread), but each one

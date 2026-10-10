@@ -3,7 +3,7 @@
 import { degrees, PDFDocument, type PDFFont, type PDFPage, rgb, StandardFonts } from 'pdf-lib'
 import sharp from 'sharp'
 
-import { type CoaDoc, coaStatement, type Issuer, legalWithBrand, type OriginalState, productTypeLabel } from './coa-docs.ts'
+import { attaches, type CoaDoc, coaStatement, type Issuer, legalWithBrand, type OriginalState, productTypeLabel } from './coa-docs.ts'
 import { latin, wrap } from './trade-pdf.ts'
 
 const W = 595.28
@@ -245,15 +245,14 @@ async function attach(doc: PDFDocument, original: Original, note: string): Promi
 export async function renderCoaPdf(d: CoaDoc, issuer: Issuer, original: Original, draft = false): Promise<Uint8Array> {
   const state = await checkOriginal(original)
   if (!state.ok) throw new Error(state.problem)
-  const attached = original.kind === 'pdf' ? (await PDFDocument.load(original.data)).getPageCount() : 1
+  const withOriginal = attaches(d)
+  const attached = withOriginal ? (original.kind === 'pdf' ? (await PDFDocument.load(original.data)).getPageCount() : 1) : 0
 
   const lab = d.resultsSource === 'lab'
   const doc = await drawDocument(
     issuer,
     'CERTIFICATE OF ANALYSIS',
-    lab
-      ? `Issued by ${legalWithBrand(issuer)} as distributor, with the results of an independent laboratory. The manufacturer's certificate is attached.`
-      : `Issued by ${legalWithBrand(issuer)} as distributor, on the basis of the manufacturer's certificate, which is attached.`,
+    `Issued by ${legalWithBrand(issuer)} as distributor${lab ? ', with the results of an independent laboratory' : ''}.`,
     [
       ['Product', v(d.productName)], ['Certificate No.', v(d.number)],
       ['Kind of product', d.productType ? productTypeLabel(d.productType) : ''], ['Date of issue', v(d.issueDate)],
@@ -278,15 +277,15 @@ export async function renderCoaPdf(d: CoaDoc, issuer: Issuer, original: Original
     d.tests.filter((x) => v(x.test)).map((x, i) => [String(i + 1), v(x.test), v(x.criteria), v(x.result), v(x.method)]),
     [
       { heading: 'Conclusion', text: v(d.conclusion) },
-      { heading: 'Basis of this certificate', text: coaStatement(d, issuer, attached, original.kind === 'image') },
+      { heading: 'Basis', text: coaStatement(d, issuer, attached, original.kind === 'image') },
       { heading: 'Remarks', text: v(d.remarks) },
     ],
-    { label: 'Quality approval', date: v(d.issueDate) },
+    { label: 'Authorised signature', date: v(d.issueDate) },
     v(d.number),
   )
 
   const ownPages = doc.getPageCount()
-  await attach(doc, original, `Attachment to certificate ${v(d.number)}: the original certificate of analysis No. ${v(d.originalCoaNo)} from ${v(d.manufacturerName)}${original.kind === 'pdf' ? `, ${attached} page${attached === 1 ? '' : 's'}, follows unchanged.` : ', photographed below.'}`)
+  if (withOriginal) await attach(doc, original, `Attachment to certificate ${v(d.number)}: the original certificate of analysis No. ${v(d.originalCoaNo)} from ${v(d.manufacturerName)}${original.kind === 'pdf' ? `, ${attached} page${attached === 1 ? '' : 's'}, follows unchanged.` : ', photographed below.'}`)
   await footers(doc, ownPages, v(d.number))
   // A preview before the certificate is issued: marked on every page of ours so it is never used.
   if (draft) {
@@ -295,7 +294,7 @@ export async function renderCoaPdf(d: CoaDoc, issuer: Issuer, original: Original
       p.drawText('DRAFT, NOT ISSUED', { x: 120, y: 260, size: 54, font: bold, color: rgb(0.85, 0.2, 0.2), opacity: 0.18, rotate: degrees(35) })
     }
   }
-  doc.setSubject(latin(`${ownPages} pages and the original certificate (${attached} pages)`))
+  doc.setSubject(latin(withOriginal ? `${ownPages} pages and the original certificate (${attached} pages)` : `${ownPages} pages; the manufacturer's certificate is on file`))
   return doc.save()
 }
 

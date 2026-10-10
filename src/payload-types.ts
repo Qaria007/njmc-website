@@ -1007,6 +1007,10 @@ export interface TraderCoa {
   packaging?: string | null;
   storage?: string | null;
   /**
+   * Always attached for APIs, excipients and medicines (ICH Q7 17.6). For other materials you may untick it: the original stays on file here, available on request
+   */
+  attachOriginal?: boolean | null;
+  /**
    * Printed on the certificate. Choose one
    */
   handling?: ('unchanged' | 'repacked') | null;
@@ -1651,6 +1655,7 @@ export interface TraderCoasSelect<T extends boolean = true> {
   expiryKind?: T;
   packaging?: T;
   storage?: T;
+  attachOriginal?: T;
   handling?: T;
   manufacturerName?: T;
   manufacturerPhone?: T;

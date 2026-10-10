@@ -8,7 +8,7 @@ import type { CollectionAfterChangeHook, CollectionBeforeChangeHook, CollectionC
 import { type AiFile, aiErrorMessage, aiJson, AiReadError } from '../lib/ai.ts'
 import {
   changedFromReading, cleanPrefix, cleanReading, COA_SCHEMA, COA_SYSTEM, coaGaps, coaNumber, type CoaDoc, type CoaReading, type CoaTest,
-  type Issuer, type Licence, licenceLine, pickLicence, PRODUCT_TYPES, type Reading, specGaps, WATCHED,
+  type Issuer, type Licence, licenceLine, pickLicence, PRODUCT_TYPES, type Reading, specGaps, todayInChina, WATCHED,
 } from '../lib/coa-docs.ts'
 import { checkOriginal, type Original, renderCoaPdf, renderSpecPdf } from '../lib/coa-pdf.ts'
 import { docPrefix, safeFileName } from '../lib/trade-docs.ts'
@@ -30,8 +30,7 @@ const s = (v: unknown) => (v == null ? '' : String(v).trim())
 const idOf = (r: unknown) => (r && typeof r === 'object' ? (r as AnyDoc).id : (r as number | string | null | undefined))
 const admin = (req: PayloadRequest) => isStaff(req)
 const denied = () => Response.json({ error: 'Not allowed' }, { status: 403 })
-const today = () => new Date().toISOString().slice(0, 10)
-const date = (v: unknown) => (s(v) ? s(v).slice(0, 10) : '')
+const today = () => todayInChina()
 
 // What the certificate says cannot change once it is issued.
 const untilIssued: FieldAccess = ({ req, doc }) => isStaff(req) && !(doc as AnyDoc | undefined)?.issuedAt
@@ -95,7 +94,7 @@ const fromClient: CollectionBeforeChangeHook = async ({ data, originalDoc, req }
 
 function toDoc(d: AnyDoc): CoaDoc {
   return {
-    number: s(d.number), issueDate: date(d.issueDate) || today(),
+    number: s(d.number), issueDate: s(d.issueDate) ? todayInChina(new Date(s(d.issueDate))) : today(),
     productName: s(d.productName), grade: s(d.grade), specification: s(d.specification), casNo: s(d.casNo),
     batchNo: s(d.batchNo), batchSize: s(d.batchSize), quantitySupplied: s(d.quantitySupplied),
     mfgDate: s(d.mfgDate), expiryDate: s(d.expiryDate), expiryKind: d.expiryKind === 'retest' ? 'retest' : 'expiry',
@@ -105,6 +104,7 @@ function toDoc(d: AnyDoc): CoaDoc {
     resultsSource: d.resultsSource === 'lab' ? 'lab' : 'manufacturer',
     labName: s(d.labName), labAddress: s(d.labAddress), labPhone: s(d.labPhone), labReportNo: s(d.labReportNo), labReportDate: s(d.labReportDate),
     handling: d.handling === 'unchanged' || d.handling === 'repacked' ? d.handling : null,
+    attachOriginal: d.attachOriginal !== false,
     conclusion: s(d.conclusion), remarks: s(d.remarks), specNotes: s(d.specNotes), productType: s(d.productType) || null,
     tests: ((d.tests as CoaTest[] | null) ?? []).map((x) => ({ test: s(x.test), criteria: s(x.criteria), result: s(x.result), method: s(x.method) })),
   }
@@ -403,6 +403,10 @@ export const TraderCoas: CollectionConfig = {
             { name: 'packaging', type: 'text', ...locked },
             { name: 'storage', type: 'text', ...locked },
           ],
+        },
+        {
+          name: 'attachOriginal', type: 'checkbox', defaultValue: true, label: "Attach the manufacturer's certificate to the PDF", ...locked,
+          admin: { description: 'Always attached for APIs, excipients and medicines (ICH Q7 17.6). For other materials you may untick it: the original stays on file here, available on request' },
         },
         {
           name: 'handling', type: 'radio', label: 'Did we repack or relabel the goods?', ...locked,

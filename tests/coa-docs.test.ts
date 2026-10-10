@@ -94,17 +94,19 @@ test('the specification sheet needs only the product and the limits', () => {
 
 test('the statement names the manufacturer, the handling and the attached original', () => {
   const st = coaStatement(doc, issuer, 2)
-  assert.match(st, /Example Pharmaceutical Co\., Ltd, 1 Example Road.*telephone \+86/)
-  assert.match(st, /No\. QC-2026-0912 dated 2026-09-12/)
-  assert.match(st, /did not perform these tests/)
-  assert.match(st, /original packaging and has not changed the material/)
-  assert.match(st, /unchanged as the last 2 pages, after a cover page/)
-  assert.match(coaStatement(doc, issuer, 1, true), /photographed, as the last page/)
-  assert.match(coaStatement({ ...doc, handling: 'repacked' }, issuer, 1), /has repacked or relabelled it/)
-  const lab = coaStatement({ ...doc, resultsSource: 'lab', labName: 'Test Lab', labAddress: 'Lab Road 1', labPhone: '+86 25 0000 0000', labReportNo: 'R-1' }, issuer, 1)
-  assert.match(lab, /report No\. R-1 of Test Lab, Lab Road 1, telephone/)
-  assert.match(lab, /manufactured by Example Pharmaceutical/)
-  assert.match(lab, /as the last page, after a cover page/)
+  assert.match(st, /^Results copied without change from the manufacturer's certificate of analysis No\. QC-2026-0912 dated 2026-09-12\./)
+  assert.match(st, /attached unchanged as the last 2 pages\./)
+  assert.match(st, /supplies this batch as distributor in the manufacturer's original packaging\.$/)
+  assert.ok(st.length < 330)
+  assert.match(coaStatement(doc, issuer, 1, true), /attached, photographed, as the last page/)
+  assert.match(coaStatement({ ...doc, handling: 'repacked' }, issuer, 1), /repacked or relabelled as stated above/)
+  // Not attached (allowed for materials that are not pharmaceutical): held on file instead.
+  const food = coaStatement({ ...doc, productType: 'other', attachOriginal: false }, issuer, 0)
+  assert.match(food, /held on file by NJMC Medical Supplies Co\., Ltd and is available on request/)
+  assert.doesNotMatch(food, /attached/)
+  const lab = coaStatement({ ...doc, resultsSource: 'lab', labName: 'Test Lab', labReportNo: 'R-1' }, issuer, 1)
+  assert.match(lab, /^Results from report No\. R-1 of Test Lab on a sample of this batch; the manufacturer released the batch with its certificate of analysis No\. QC-2026-0912/)
+  assert.match(lab, /attached unchanged as the last page\./)
 })
 
 test('changes since the AI reading are listed, by row and for the identity fields', () => {
@@ -166,6 +168,21 @@ test('the certificate PDF has our pages followed by the original, each on its ow
   assert.ok(big.length < 2_000_000)
 })
 
+test('the attachment is required for pharmaceutical materials and optional for others', async () => {
+  const { mustAttach, todayInChina } = await import('../src/lib/coa-docs.ts')
+  assert.ok(mustAttach('api') && mustAttach('excipient') && mustAttach('finished'))
+  assert.ok(!mustAttach('other') && !mustAttach('chemical') && !mustAttach('device'))
+  assert.ok(coaGaps({ ...doc, productType: 'excipient', attachOriginal: false }, OK).some((x) => x.includes('must be attached')))
+  assert.deepEqual(coaGaps({ ...doc, productType: 'other', attachOriginal: false }, OK), [])
+  // Without the attachment the PDF has only our pages; the original must still be uploaded.
+  const pdf = await PDFDocument.load(await renderCoaPdf({ ...doc, productType: 'other', attachOriginal: false }, issuer, { data: await onePagePdf(), kind: 'pdf' }))
+  assert.equal(pdf.getPageCount(), 1)
+  assert.match(pdf.getSubject() ?? '', /on file/)
+  // Issue dates follow the Chinese day: 17:46 UTC on 10 Oct is 11 Oct in Nanjing.
+  assert.equal(todayInChina(new Date('2026-10-10T17:46:00Z')), '2026-10-11')
+  assert.equal(todayInChina(new Date('2026-10-10T15:00:00Z')), '2026-10-10')
+})
+
 test('the specification sheet PDF', async () => {
   const bytes = await renderSpecPdf({ ...doc, specNotes: 'Packed in 25 kg drums' }, issuer, '2026-10-09')
   assert.equal((await PDFDocument.load(bytes)).getPageCount(), 1)
@@ -216,7 +233,7 @@ test('a brand prints with the legal company that holds the licence and the bank 
   assert.equal(legalWithBrand({ companyName: 'X Co' }), 'X Co')
   assert.equal(tradingName(med), 'NJMC Medical Supplies')
   assert.equal(fullName(med), 'NJMC Medical Supplies (Medicayal Pharma Co., Ltd.)')
-  assert.match(coaStatement(doc, med, 1), /^The results above.*Medicayal Pharma Co\., Ltd\. did not perform these tests\. Medicayal Pharma Co\., Ltd\. \(NJMC Medical Supplies\) supplies this batch/)
+  assert.match(coaStatement(doc, med, 1), /Medicayal Pharma Co\., Ltd\. \(NJMC Medical Supplies\) supplies this batch as distributor/)
   // The brand is never accepted as the manufacturer.
   assert.ok(coaGaps({ ...doc, manufacturerName: 'NJMC Medical Supplies' }, OK, { issuer: med }).some((x) => x.includes('not the letterhead company')))
   const pdf = await PDFDocument.load(await renderSpecPdf(doc, med, '2026-10-11'))
