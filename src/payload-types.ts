@@ -512,9 +512,13 @@ export interface IssuingCompany {
    */
   prefix?: string | null;
   /**
-   * PNG or JPG, printed at the top of its documents
+   * PNG or JPG, printed at the top of its documents (in greyscale on certificates)
    */
   logo?: (number | null) | Media;
+  /**
+   * PNG with transparent background. Printed at the signature of certificates issued by this company
+   */
+  stamp?: (number | null) | Media;
   /**
    * Business licence / unified social credit code
    */
@@ -1700,6 +1704,7 @@ export interface IssuingCompaniesSelect<T extends boolean = true> {
   relation?: T;
   prefix?: T;
   logo?: T;
+  stamp?: T;
   registrationNo?: T;
   country?: T;
   address?: T;

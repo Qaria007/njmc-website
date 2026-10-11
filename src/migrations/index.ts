@@ -16,6 +16,7 @@ import * as migration_20261010_042902_our_companies_certificates from './2026101
 import * as migration_20261010_155629_export_trading_licence from './20261010_155629_export_trading_licence';
 import * as migration_20261010_160529_brand_name from './20261010_160529_brand_name';
 import * as migration_20261010_180011_attach_original from './20261010_180011_attach_original';
+import * as migration_20261011_062307_company_stamp from './20261011_062307_company_stamp';
 
 export const migrations = [
   {
@@ -106,6 +107,11 @@ export const migrations = [
   {
     up: migration_20261010_180011_attach_original.up,
     down: migration_20261010_180011_attach_original.down,
-    name: '20261010_180011_attach_original'
+    name: '20261010_180011_attach_original',
+  },
+  {
+    up: migration_20261011_062307_company_stamp.up,
+    down: migration_20261011_062307_company_stamp.down,
+    name: '20261011_062307_company_stamp'
   },
 ];

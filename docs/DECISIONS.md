@@ -247,3 +247,6 @@ documents in English only ("I use English everywhere for formal documents"). Bui
   medicines (ICH Q7 17.6); for other materials (food grade, botanicals, chemicals, devices) the owner
   may untick "Attach", the original stays on file and the certificate says "available on request".
   The manufacturer is still always named. Issue dates use the Chinese day (server clock is UTC).
+- 2026-10-11 (4): certificates print in black and white (owner: the coloured one looked like an
+  invoice); the logo in greyscale; a company stamp image (Our companies > Company stamp) prints at the
+  signature; the signatory is the quality control manager, not the owner.

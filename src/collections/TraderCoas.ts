@@ -128,7 +128,7 @@ async function loadIssuer(payload: Payload, doc: AnyDoc, req: PayloadRequest): P
     const c = (await payload.findByID({ collection: 'issuing-companies', id, depth: 1, overrideAccess: true, req })) as unknown as AnyDoc
     return {
       companyName: s(c.companyName), brandName: s(c.brandName), address: s(c.address), phone: s(c.phone), email: s(c.email), website: s(c.website),
-      signatoryName: s(c.signatoryName), signatoryTitle: s(c.signatoryTitle), logo: await mediaLogo(c.logo),
+      signatoryName: s(c.signatoryName), signatoryTitle: s(c.signatoryTitle), logo: await mediaLogo(c.logo), stamp: await mediaLogo(c.stamp),
       licences: c.licences as Licence[] | null, chosen: true,
     }
   }

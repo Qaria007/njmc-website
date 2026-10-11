@@ -46,7 +46,8 @@ export const IssuingCompanies: CollectionConfig = {
                 { name: 'prefix', type: 'text', label: 'Number prefix', admin: { description: '2 to 8 letters, e.g. NJMC gives NJMC-COA-2026-0001' } },
               ],
             },
-            { name: 'logo', type: 'upload', relationTo: 'media', admin: { description: 'PNG or JPG, printed at the top of its documents' } },
+            { name: 'logo', type: 'upload', relationTo: 'media', admin: { description: 'PNG or JPG, printed at the top of its documents (in greyscale on certificates)' } },
+            { name: 'stamp', type: 'upload', relationTo: 'media', label: 'Company stamp', admin: { description: 'PNG with transparent background. Printed at the signature of certificates issued by this company' } },
             {
               type: 'row',
               fields: [

@@ -63,6 +63,8 @@ export type Issuer = {
   signatoryName?: string | null
   signatoryTitle?: string | null
   logo?: { data: Uint8Array; type: 'png' | 'jpg' } | null
+  // The company stamp (PNG with transparent background), printed at the signature of certificates.
+  stamp?: { data: Uint8Array; type: 'png' | 'jpg' } | null
 }
 
 // What AI read, kept to show later changes: the tests, the identity fields and the file read.

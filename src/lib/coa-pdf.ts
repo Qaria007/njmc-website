@@ -9,10 +9,11 @@ import { latin, wrap } from './trade-pdf.ts'
 const W = 595.28
 const H = 841.89
 const M = 40
-const INK = rgb(0.1, 0.15, 0.27)
-const GREY = rgb(0.42, 0.45, 0.5)
-const LINE = rgb(0.8, 0.82, 0.86)
-const FILL = rgb(0.94, 0.95, 0.97)
+// Certificates print in black and white: they are quality documents, not sales papers.
+const INK = rgb(0, 0, 0)
+const GREY = rgb(0.35, 0.35, 0.35)
+const LINE = rgb(0.75, 0.75, 0.75)
+const FILL = rgb(0.94, 0.94, 0.94)
 
 export type Original = { data: Uint8Array; kind: 'pdf' | 'image' }
 
@@ -29,6 +30,7 @@ async function drawDocument(
   after: { heading: string; text: string }[],
   signature: { label: string; date: string } | null,
   docName: string,
+  stamp?: Issuer['stamp'],
 ): Promise<PDFDocument> {
   const pdf = await PDFDocument.create()
   pdf.setTitle(latin(`${title} ${docName}`))
@@ -41,10 +43,10 @@ async function drawDocument(
   const text = (s: string, x: number, yy: number, size = 9, f: PDFFont = font, color = INK) => page.drawText(latin(s), { x, y: yy, size, font: f, color })
   const rule = (yy: number, x1 = M, x2 = W - M) => page.drawLine({ start: { x: x1, y: yy }, end: { x: x2, y: yy }, thickness: 0.6, color: LINE })
 
-  // Letterhead.
+  // Letterhead. The logo is printed in greyscale like the rest of the certificate.
   if (issuer.logo) {
     try {
-      const img = issuer.logo.type === 'png' ? await pdf.embedPng(issuer.logo.data) : await pdf.embedJpg(issuer.logo.data)
+      const img = await pdf.embedPng(await sharp(Buffer.from(issuer.logo.data)).grayscale().png().toBuffer())
       const s = Math.min(150 / img.width, 44 / img.height)
       page.drawImage(img, { x: W - M - img.width * s, y: y - img.height * s + 4, width: img.width * s, height: img.height * s })
     } catch {
@@ -172,7 +174,18 @@ async function drawDocument(
     rule(y, W - M - 220, W - M)
     const who = [issuer.signatoryName, issuer.signatoryTitle].filter(Boolean).join(', ')
     text(who || 'Name and title', W - M - 220, y - 11, 8.5, font, GREY)
-    text('Signature and company stamp', W - M - 220, y - 22, 8.5, font, GREY)
+    text(stamp ? 'Signature' : 'Signature and company stamp', W - M - 220, y - 22, 8.5, font, GREY)
+    // The company stamp, over the left part of the signature line, as a hand stamp would sit.
+    if (stamp) {
+      try {
+        const img = stamp.type === 'png' ? await pdf.embedPng(stamp.data) : await pdf.embedJpg(stamp.data)
+        const size = 100
+        const k = Math.min(size / img.width, size / img.height)
+        page.drawImage(img, { x: W - M - 320 - (img.width * k) / 2, y: y - 40, width: img.width * k, height: img.height * k, opacity: 0.9 })
+      } catch {
+        // no stamp
+      }
+    }
   }
 
   return pdf
@@ -282,6 +295,7 @@ export async function renderCoaPdf(d: CoaDoc, issuer: Issuer, original: Original
     ],
     { label: 'Authorised signature', date: v(d.issueDate) },
     v(d.number),
+    issuer.stamp,
   )
 
   const ownPages = doc.getPageCount()
@@ -291,7 +305,7 @@ export async function renderCoaPdf(d: CoaDoc, issuer: Issuer, original: Original
   if (draft) {
     const bold = await doc.embedFont(StandardFonts.HelveticaBold)
     for (const p of doc.getPages().slice(0, ownPages)) {
-      p.drawText('DRAFT, NOT ISSUED', { x: 120, y: 260, size: 54, font: bold, color: rgb(0.85, 0.2, 0.2), opacity: 0.18, rotate: degrees(35) })
+      p.drawText('DRAFT, NOT ISSUED', { x: 120, y: 260, size: 54, font: bold, color: rgb(0.3, 0.3, 0.3), opacity: 0.2, rotate: degrees(35) })
     }
   }
   doc.setSubject(latin(withOriginal ? `${ownPages} pages and the original certificate (${attached} pages)` : `${ownPages} pages; the manufacturer's certificate is on file`))
