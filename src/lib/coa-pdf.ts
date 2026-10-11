@@ -9,11 +9,12 @@ import { latin, wrap } from './trade-pdf.ts'
 const W = 595.28
 const H = 841.89
 const M = 40
-// Certificates print in black and white: they are quality documents, not sales papers.
+// Certificates look like a manufacturer's: a coloured letterhead, then a plain black-on-white body
+// with thin rules and no filled bands (owner, 11 Oct 2026).
 const INK = rgb(0, 0, 0)
 const GREY = rgb(0.35, 0.35, 0.35)
-const LINE = rgb(0.75, 0.75, 0.75)
-const FILL = rgb(0.94, 0.94, 0.94)
+const LINE = rgb(0.72, 0.72, 0.72)
+const BRAND = rgb(0.1, 0.15, 0.27)
 
 export type Original = { data: Uint8Array; kind: 'pdf' | 'image' }
 
@@ -46,7 +47,7 @@ async function drawDocument(
   // Letterhead. The logo is printed in greyscale like the rest of the certificate.
   if (issuer.logo) {
     try {
-      const img = await pdf.embedPng(await sharp(Buffer.from(issuer.logo.data)).grayscale().png().toBuffer())
+      const img = issuer.logo.type === 'png' ? await pdf.embedPng(issuer.logo.data) : await pdf.embedJpg(issuer.logo.data)
       const s = Math.min(150 / img.width, 44 / img.height)
       page.drawImage(img, { x: W - M - img.width * s, y: y - img.height * s + 4, width: img.width * s, height: img.height * s })
     } catch {
@@ -55,7 +56,7 @@ async function drawDocument(
   }
   // A brand prints large, with the legal company under it.
   const brand = (issuer.brandName ?? '').trim()
-  text(brand || issuer.companyName, M, y - 12, 15, bold)
+  text(brand || issuer.companyName, M, y - 12, 15, bold, BRAND)
   y -= 26
   if (brand) {
     text(issuer.companyName, M, y, 9.5, bold)
@@ -109,7 +110,7 @@ async function drawDocument(
     const lines = b.lines.filter(([, v]) => v).flatMap(([k, v]) => wrap(v, font, 9, W - 2 * M - 130).map((l, i) => [i ? '' : k, l] as const))
     const h = 22 + lines.length * 11.5
     need(h + 8)
-    page.drawRectangle({ x: M, y: y - h, width: W - 2 * M, height: h, borderColor: LINE, borderWidth: 0.8, color: FILL })
+    page.drawRectangle({ x: M, y: y - h, width: W - 2 * M, height: h, borderColor: LINE, borderWidth: 0.6 })
     text(b.heading.toUpperCase(), M + 8, y - 13, 7.5, bold, GREY)
     let yy = y - 26
     for (const [k, l] of lines) {
@@ -124,24 +125,25 @@ async function drawDocument(
   const scale = (W - 2 * M) / cols.reduce((s, c) => s + c.width, 0)
   const cw = cols.map((c) => c.width * scale)
   const head = () => {
-    page.drawRectangle({ x: M, y: y - 20, width: W - 2 * M, height: 20, color: INK })
+    // Header row: bold text between two rules, no fill.
+    page.drawLine({ start: { x: M, y: y }, end: { x: W - M, y: y }, thickness: 0.9, color: INK })
+    page.drawLine({ start: { x: M, y: y - 20 }, end: { x: W - M, y: y - 20 }, thickness: 0.9, color: INK })
     let x = M
     cols.forEach((c, i) => {
-      text(c.header, x + 4, y - 13, 7.5, bold, rgb(1, 1, 1))
+      text(c.header, x + 4, y - 13, 7.5, bold, INK)
       x += cw[i]
     })
     y -= 20
   }
   need(60)
   head()
-  rows.forEach((row, n) => {
+  rows.forEach((row) => {
     const cells = row.map((c, i) => wrap(c, font, 8.5, cw[i] - 8))
     const h = Math.max(...cells.map((c) => c.length)) * 10.5 + 8
     if (y - h < M + 24) {
       newPage()
       head()
     }
-    if (n % 2) page.drawRectangle({ x: M, y: y - h, width: W - 2 * M, height: h, color: FILL })
     let x = M
     cells.forEach((lines, i) => {
       lines.forEach((l, k) => text(l, x + 4, y - 12 - k * 10.5, 8.5))
