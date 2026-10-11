@@ -48,6 +48,7 @@ export const IssuingCompanies: CollectionConfig = {
             },
             { name: 'logo', type: 'upload', relationTo: 'media', admin: { description: 'PNG or JPG, printed at the top of its documents (in greyscale on certificates)' } },
             { name: 'stamp', type: 'upload', relationTo: 'media', label: 'Company stamp', admin: { description: 'PNG with transparent background. Printed at the signature of certificates issued by this company' } },
+            { name: 'signature', type: 'upload', relationTo: 'media', label: "Signatory's signature", admin: { description: 'PNG with transparent background. Printed on the signature line of certificates' } },
             {
               type: 'row',
               fields: [

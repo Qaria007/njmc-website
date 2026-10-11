@@ -520,6 +520,10 @@ export interface IssuingCompany {
    */
   stamp?: (number | null) | Media;
   /**
+   * PNG with transparent background. Printed on the signature line of certificates
+   */
+  signature?: (number | null) | Media;
+  /**
    * Business licence / unified social credit code
    */
   registrationNo?: string | null;
@@ -1705,6 +1709,7 @@ export interface IssuingCompaniesSelect<T extends boolean = true> {
   prefix?: T;
   logo?: T;
   stamp?: T;
+  signature?: T;
   registrationNo?: T;
   country?: T;
   address?: T;

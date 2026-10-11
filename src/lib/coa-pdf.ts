@@ -32,6 +32,7 @@ async function drawDocument(
   signature: { label: string; date: string } | null,
   docName: string,
   stamp?: Issuer['stamp'],
+  signatureImage?: Issuer['signature'],
 ): Promise<PDFDocument> {
   const pdf = await PDFDocument.create()
   pdf.setTitle(latin(`${title} ${docName}`))
@@ -178,6 +179,16 @@ async function drawDocument(
     text(who || 'Name and title', W - M - 220, y - 11, 8.5, font, GREY)
     text(stamp ? 'Signature' : 'Signature and company stamp', W - M - 220, y - 22, 8.5, font, GREY)
     // The company stamp, over the left part of the signature line, as a hand stamp would sit.
+    // The signature sits on the line, the stamp to its left.
+    if (signatureImage) {
+      try {
+        const img = signatureImage.type === 'png' ? await pdf.embedPng(signatureImage.data) : await pdf.embedJpg(signatureImage.data)
+        const k = Math.min(150 / img.width, 40 / img.height)
+        page.drawImage(img, { x: W - M - 215, y: y + 3, width: img.width * k, height: img.height * k })
+      } catch {
+        // no signature
+      }
+    }
     if (stamp) {
       try {
         const img = stamp.type === 'png' ? await pdf.embedPng(stamp.data) : await pdf.embedJpg(stamp.data)
@@ -298,6 +309,7 @@ export async function renderCoaPdf(d: CoaDoc, issuer: Issuer, original: Original
     { label: 'Authorised signature', date: v(d.issueDate) },
     v(d.number),
     issuer.stamp,
+    issuer.signature,
   )
 
   const ownPages = doc.getPageCount()

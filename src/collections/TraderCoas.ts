@@ -8,7 +8,7 @@ import type { CollectionAfterChangeHook, CollectionBeforeChangeHook, CollectionC
 import { type AiFile, aiErrorMessage, aiJson, AiReadError } from '../lib/ai.ts'
 import {
   changedFromReading, cleanPrefix, cleanReading, COA_SCHEMA, COA_SYSTEM, coaGaps, coaNumber, type CoaDoc, type CoaReading, type CoaTest,
-  type Issuer, type Licence, licenceLine, pickLicence, PRODUCT_TYPES, type Reading, specGaps, todayInChina, WATCHED,
+  type Issuer, type Licence, licenceLine, nextCoaSeq, pickLicence, PRODUCT_TYPES, type Reading, specGaps, todayInChina, WATCHED,
 } from '../lib/coa-docs.ts'
 import { checkOriginal, type Original, renderCoaPdf, renderSpecPdf } from '../lib/coa-pdf.ts'
 import { docPrefix, safeFileName } from '../lib/trade-docs.ts'
@@ -69,17 +69,33 @@ const fresh: CollectionBeforeChangeHook = async ({ data, operation, originalDoc,
   // The number is never typed or cleared; it follows the letterhead until the certificate is issued.
   data.number = originalDoc?.number
   if (!originalDoc?.issuedAt && data.issuer !== undefined && String(idOf(data.issuer) ?? '') !== String(idOf(originalDoc?.issuer) ?? '')) {
-    data.number = coaNumber(await prefixOf(req, data.issuer), new Date(String(originalDoc?.createdAt ?? Date.now())).getUTCFullYear(), Number(originalDoc?.id))
+    const prefix = await prefixOf(req, data.issuer)
+    const year = new Date(String(originalDoc?.createdAt ?? Date.now())).getUTCFullYear()
+    const res = await req.payload.find({ collection: 'trader-coas', where: { number: { like: `${prefix}-COA-${year}-` } }, limit: 5000, depth: 0, pagination: false, overrideAccess: true, req })
+    data.number = coaNumber(prefix, year, nextCoaSeq((res.docs as unknown as AnyDoc[]).map((d) => s(d.number)), prefix, year))
   }
   return data
 }
 
 // The number comes from the record id, so two certificates saved at the same moment never share one.
+// Numbers run per company and year from 0001. The unique index on the number catches two saves at
+// the same moment: the loser takes the next free number.
 const numberOnCreate: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
   if (operation !== 'create' || s(doc.number)) return doc
-  const number = coaNumber(await prefixOf(req, doc.issuer), new Date().getUTCFullYear(), Number(doc.id))
-  await req.payload.db.updateOne({ collection: 'trader-coas', id: doc.id, data: { number }, req })
-  return { ...doc, number }
+  const prefix = await prefixOf(req, doc.issuer)
+  const year = new Date().getUTCFullYear()
+  const res = await req.payload.find({ collection: 'trader-coas', where: { number: { like: `${prefix}-COA-${year}-` } }, limit: 5000, depth: 0, pagination: false, overrideAccess: true, req })
+  const seq = nextCoaSeq((res.docs as unknown as AnyDoc[]).map((d) => s(d.number)), prefix, year)
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const number = coaNumber(prefix, year, seq + attempt)
+    try {
+      await req.payload.db.updateOne({ collection: 'trader-coas', id: doc.id, data: { number }, req })
+      return { ...doc, number }
+    } catch {
+      // taken in the meantime: try the next one
+    }
+  }
+  return doc
 }
 
 // Choosing a client fills the customer name when it is empty.
@@ -128,7 +144,7 @@ async function loadIssuer(payload: Payload, doc: AnyDoc, req: PayloadRequest): P
     const c = (await payload.findByID({ collection: 'issuing-companies', id, depth: 1, overrideAccess: true, req })) as unknown as AnyDoc
     return {
       companyName: s(c.companyName), brandName: s(c.brandName), address: s(c.address), phone: s(c.phone), email: s(c.email), website: s(c.website),
-      signatoryName: s(c.signatoryName), signatoryTitle: s(c.signatoryTitle), logo: await mediaLogo(c.logo), stamp: await mediaLogo(c.stamp),
+      signatoryName: s(c.signatoryName), signatoryTitle: s(c.signatoryTitle), logo: await mediaLogo(c.logo), stamp: await mediaLogo(c.stamp), signature: await mediaLogo(c.signature),
       licences: c.licences as Licence[] | null, chosen: true,
     }
   }
