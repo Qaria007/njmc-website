@@ -44,6 +44,9 @@ export type CoaDoc = {
   // Whether the manufacturer's certificate is appended to the PDF. Always for APIs and excipients
   // (ICH Q7 17.6); optional for other materials, where it stays on file and is available on request.
   attachOriginal?: boolean | null
+  // Whether the manufacturer is named on the certificate. Always for pharmaceutical materials and
+  // devices; for other materials (food grade, botanicals, chemicals) the owner may keep it on file only.
+  showManufacturer?: boolean | null
   conclusion?: string | null
   remarks?: string | null
   specNotes?: string | null
@@ -256,7 +259,11 @@ export const legalWithBrand = (i: Pick<Issuer, 'companyName' | 'brandName'>) => 
 
 // Whether the manufacturer's certificate must be appended: yes for pharmaceutical materials.
 export const mustAttach = (productType: string | null | undefined) => productType === 'api' || productType === 'excipient' || productType === 'finished'
-export const attaches = (d: Pick<CoaDoc, 'productType' | 'attachOriginal'>) => mustAttach(d.productType) || d.attachOriginal !== false
+// Whether the manufacturer must be named: pharmaceutical materials (ICH Q7 17.6, IPEC) and devices.
+export const mustName = (productType: string | null | undefined) => mustAttach(productType) || productType === 'device'
+export const namesManufacturer = (d: Pick<CoaDoc, 'productType' | 'showManufacturer'>) => mustName(d.productType) || d.showManufacturer !== false
+// The original is never attached when the manufacturer is not named (it would show it).
+export const attaches = (d: Pick<CoaDoc, 'productType' | 'attachOriginal' | 'showManufacturer'>) => mustAttach(d.productType) || (d.attachOriginal !== false && namesManufacturer(d))
 
 // The short statement printed under the results: whose results, our role, where the original is.
 // The manufacturer's name, address and telephone are already in the box above, so they are not repeated.
@@ -264,7 +271,9 @@ export function coaStatement(d: CoaDoc, issuer: Issuer, attachedPages: number, p
   const orig = `certificate of analysis No. ${t(d.originalCoaNo)}${t(d.originalCoaDate) ? ` dated ${t(d.originalCoaDate)}` : ''}`
   const where = attaches(d)
     ? (photo ? 'It is attached, photographed, as the last page.' : `It is attached unchanged as the last ${attachedPages === 1 ? 'page' : `${attachedPages} pages`}.`)
-    : `It is held on file by ${issuer.companyName} and is available on request.`
+    : namesManufacturer(d)
+      ? `It is held on file by ${issuer.companyName} and is available on request.`
+      : `It is held on file by ${issuer.companyName}, with the manufacturer's name and address, and is available to the competent authorities on request.`
   const role = `${legalWithBrand(issuer)} supplies this batch as distributor${d.handling === 'repacked' ? ', repacked or relabelled as stated above' : ' in the manufacturer\'s original packaging'}.`
   if (d.resultsSource === 'lab') {
     return `Results from report No. ${t(d.labReportNo)}${t(d.labReportDate) ? ` dated ${t(d.labReportDate)}` : ''} of ${t(d.labName)} on a sample of this batch; the manufacturer released the batch with its ${orig}. ${where} ${role}`

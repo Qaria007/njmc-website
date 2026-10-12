@@ -183,6 +183,23 @@ test('the attachment is required for pharmaceutical materials and optional for o
   assert.equal(todayInChina(new Date('2026-10-10T15:00:00Z')), '2026-10-10')
 })
 
+test('the manufacturer may be left off the certificate for materials that are not pharmaceutical', async () => {
+  const { mustName, namesManufacturer, attaches } = await import('../src/lib/coa-docs.ts')
+  assert.ok(mustName('api') && mustName('excipient') && mustName('finished') && mustName('device'))
+  assert.ok(!mustName('other') && !mustName('chemical'))
+  // Unticking changes nothing for an excipient.
+  assert.ok(namesManufacturer({ productType: 'excipient', showManufacturer: false }))
+  assert.ok(!namesManufacturer({ productType: 'other', showManufacturer: false }))
+  // Hidden manufacturer means no attachment either, whatever the attach box says.
+  assert.ok(!attaches({ productType: 'other', showManufacturer: false, attachOriginal: true }))
+  const food = { ...doc, productType: 'other', showManufacturer: false }
+  const st = coaStatement(food, issuer, 0)
+  assert.match(st, /with the manufacturer's name and address, and is available to the competent authorities on request/)
+  assert.doesNotMatch(st, /Example Pharmaceutical/)
+  const pdf = await PDFDocument.load(await renderCoaPdf(food, issuer, { data: await onePagePdf(), kind: 'pdf' }))
+  assert.equal(pdf.getPageCount(), 1)
+})
+
 test('the specification sheet PDF', async () => {
   const bytes = await renderSpecPdf({ ...doc, specNotes: 'Packed in 25 kg drums' }, issuer, '2026-10-09')
   assert.equal((await PDFDocument.load(bytes)).getPageCount(), 1)

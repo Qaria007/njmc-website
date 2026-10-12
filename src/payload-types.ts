@@ -1015,6 +1015,10 @@ export interface TraderCoa {
   packaging?: string | null;
   storage?: string | null;
   /**
+   * Always named for APIs, excipients, medicines and devices. For other materials you may untick it: the manufacturer stays on file here for the authorities, and the certificate says so
+   */
+  showManufacturer?: boolean | null;
+  /**
    * Always attached for APIs, excipients and medicines (ICH Q7 17.6). For other materials you may untick it: the original stays on file here, available on request
    */
   attachOriginal?: boolean | null;
@@ -1663,6 +1667,7 @@ export interface TraderCoasSelect<T extends boolean = true> {
   expiryKind?: T;
   packaging?: T;
   storage?: T;
+  showManufacturer?: T;
   attachOriginal?: T;
   handling?: T;
   manufacturerName?: T;

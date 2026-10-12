@@ -3,7 +3,7 @@
 import { degrees, PDFDocument, type PDFFont, type PDFPage, rgb, StandardFonts } from 'pdf-lib'
 import sharp from 'sharp'
 
-import { attaches, type CoaDoc, coaStatement, type Issuer, legalWithBrand, type OriginalState, productTypeLabel } from './coa-docs.ts'
+import { attaches, type CoaDoc, coaStatement, type Issuer, legalWithBrand, namesManufacturer, type OriginalState, productTypeLabel } from './coa-docs.ts'
 import { latin, wrap } from './trade-pdf.ts'
 
 const W = 595.28
@@ -291,10 +291,12 @@ export async function renderCoaPdf(d: CoaDoc, issuer: Issuer, original: Original
       ['Storage', v(d.storage)], ['Released under', v(d.licence)],
     ],
     [
-      {
-        heading: 'Original manufacturer',
-        lines: [['Name', v(d.manufacturerName)], ['Site address', v(d.manufacturerAddress)], ['Telephone', v(d.manufacturerPhone)], ["Manufacturer's CoA No.", v(d.originalCoaNo)], ['Dated', v(d.originalCoaDate)]],
-      },
+      ...(namesManufacturer(d)
+        ? [{
+            heading: 'Original manufacturer',
+            lines: [['Name', v(d.manufacturerName)], ['Site address', v(d.manufacturerAddress)], ['Telephone', v(d.manufacturerPhone)], ["Manufacturer's CoA No.", v(d.originalCoaNo)], ['Dated', v(d.originalCoaDate)]] as [string, string][],
+          }]
+        : []),
       ...(lab
         ? [{ heading: 'Testing laboratory', lines: [['Name', v(d.labName)], ['Address', v(d.labAddress)], ['Telephone', v(d.labPhone)], ['Report No.', v(d.labReportNo)], ['Dated', v(d.labReportDate)]] as [string, string][] }]
         : []),

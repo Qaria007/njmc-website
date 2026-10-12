@@ -250,3 +250,8 @@ documents in English only ("I use English everywhere for formal documents"). Bui
 - 2026-10-11 (4): certificates print in black and white (owner: the coloured one looked like an
   invoice); the logo in greyscale; a company stamp image (Our companies > Company stamp) prints at the
   signature; the signatory is the quality control manager, not the owner.
+- 2026-10-12: the manufacturer is named on certificates for APIs, excipients, finished medicines and
+  devices (ICH Q7 17.6, IPEC, device labelling rules). For other materials (food grade, botanicals,
+  chemicals) the owner may leave the manufacturer off: its details stay on file in the admin and
+  the certificate states that they are available to the competent authorities on request; the
+  original is then never attached. The results are still the manufacturer's, unchanged.

@@ -18,6 +18,7 @@ import * as migration_20261010_160529_brand_name from './20261010_160529_brand_n
 import * as migration_20261010_180011_attach_original from './20261010_180011_attach_original';
 import * as migration_20261011_062307_company_stamp from './20261011_062307_company_stamp';
 import * as migration_20261011_164032_signature_image from './20261011_164032_signature_image';
+import * as migration_20261012_130817_show_manufacturer from './20261012_130817_show_manufacturer';
 
 export const migrations = [
   {
@@ -118,6 +119,11 @@ export const migrations = [
   {
     up: migration_20261011_164032_signature_image.up,
     down: migration_20261011_164032_signature_image.down,
-    name: '20261011_164032_signature_image'
+    name: '20261011_164032_signature_image',
+  },
+  {
+    up: migration_20261012_130817_show_manufacturer.up,
+    down: migration_20261012_130817_show_manufacturer.down,
+    name: '20261012_130817_show_manufacturer'
   },
 ];

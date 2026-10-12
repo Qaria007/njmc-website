@@ -121,6 +121,7 @@ function toDoc(d: AnyDoc): CoaDoc {
     labName: s(d.labName), labAddress: s(d.labAddress), labPhone: s(d.labPhone), labReportNo: s(d.labReportNo), labReportDate: s(d.labReportDate),
     handling: d.handling === 'unchanged' || d.handling === 'repacked' ? d.handling : null,
     attachOriginal: d.attachOriginal !== false,
+    showManufacturer: d.showManufacturer !== false,
     conclusion: s(d.conclusion), remarks: s(d.remarks), specNotes: s(d.specNotes), productType: s(d.productType) || null,
     tests: ((d.tests as CoaTest[] | null) ?? []).map((x) => ({ test: s(x.test), criteria: s(x.criteria), result: s(x.result), method: s(x.method) })),
   }
@@ -419,6 +420,10 @@ export const TraderCoas: CollectionConfig = {
             { name: 'packaging', type: 'text', ...locked },
             { name: 'storage', type: 'text', ...locked },
           ],
+        },
+        {
+          name: 'showManufacturer', type: 'checkbox', defaultValue: true, label: 'Name the manufacturer on the certificate', ...locked,
+          admin: { description: 'Always named for APIs, excipients, medicines and devices. For other materials you may untick it: the manufacturer stays on file here for the authorities, and the certificate says so' },
         },
         {
           name: 'attachOriginal', type: 'checkbox', defaultValue: true, label: "Attach the manufacturer's certificate to the PDF", ...locked,
