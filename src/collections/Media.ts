@@ -6,6 +6,8 @@ import { isStaff, roleOf } from './access.ts'
 // apply to the file name and alt text as much as to the image itself.
 export const Media: CollectionConfig = {
   slug: 'media',
+  labels: { singular: 'Image', plural: 'Images' },
+  admin: { group: 'Website' },
   // Staff and the Product Importer login (product photos) may upload.
   access: { read: () => true, create: ({ req }) => isStaff(req) || roleOf(req.user as never) === 'importer', update: ({ req }) => isStaff(req), delete: () => false },
   upload: {

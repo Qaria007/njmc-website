@@ -182,8 +182,8 @@ const sendEndpoint: PayloadHandler = async (req) => {
     })
     const orderId = idOf(doc.order)
     if (orderId) {
-      const order = (await req.payload.findByID({ collection: 'order-matches', id: orderId, depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
-      if (order.status === 'new') await req.payload.update({ collection: 'order-matches', id: orderId, depth: 0, overrideAccess: true, req, data: { status: 'suppliers contacted' } as never })
+      const order = (await req.payload.findByID({ collection: 'order-matches', id: orderId, depth: 0, overrideAccess: true, trash: true, req })) as unknown as AnyDoc
+      if (order.status === 'new' && !order.deletedAt) await req.payload.update({ collection: 'order-matches', id: orderId, depth: 0, overrideAccess: true, req, data: { status: 'suppliers contacted' } as never })
     }
   } catch (err) {
     req.payload.logger.error({ err }, `supplier message ${s(doc.number)} was sent but the record could not be updated`)
@@ -349,7 +349,7 @@ export const SupplierOrders: CollectionConfig = {
   slug: 'supplier-orders',
   labels: { singular: 'Supplier enquiry or purchase order', plural: 'Supplier enquiries and purchase orders' },
   admin: {
-    group: 'Orders',
+    group: 'Suppliers',
     useAsTitle: 'number',
     defaultColumns: ['number', 'kind', 'supplier', 'status', 'sentAt'],
     description: 'An enquiry asks a supplier for prices. A purchase order orders the goods. Each one has a PDF and a message that is sent to the supplier only after you confirm.',

@@ -4,6 +4,7 @@ import type { Locale } from '@/lib/site.ts'
 
 import { SiteFooter } from './SiteFooter.tsx'
 import { SiteHeader } from './SiteHeader.tsx'
+import { Track } from './Track.tsx'
 import { WhatsAppButton } from './WhatsAppButton.tsx'
 
 // Root <html> for one locale. English and Arabic each have their own root layout
@@ -17,6 +18,7 @@ export function SiteShell({ locale, children }: { locale: Locale; children: Reac
         <main id="main">{children}</main>
         <SiteFooter locale={locale} />
         <WhatsAppButton locale={locale} />
+        <Track />
       </body>
     </html>
   )

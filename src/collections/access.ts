@@ -17,3 +17,7 @@ export const signedIn: Access = ({ req }) => isStaff(req)
 export const signedInField: FieldAccess = ({ req }) => isStaff(req)
 export const ownerOnly: Access = ({ req }) => isOwner(req)
 export const ownerField: FieldAccess = ({ req }) => isOwner(req)
+
+// Delete on a collection with a Trash: moving a record to the Trash (the request carries deletedAt)
+// is daily work for staff and owner; deleting it from the Trash for good is the owner's alone.
+export const trashAccess: Access = ({ req, data }) => ((data as { deletedAt?: unknown } | undefined)?.deletedAt ? isStaff(req) : isOwner(req))

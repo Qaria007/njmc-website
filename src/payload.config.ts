@@ -19,6 +19,7 @@ import { Leads } from './collections/Leads.ts'
 import { Media } from './collections/Media.ts'
 import { OrderFiles } from './collections/OrderFiles.ts'
 import { OrderMatches } from './collections/OrderMatches.ts'
+import { PageViews } from './collections/PageViews.ts'
 import { Payments } from './collections/Payments.ts'
 import { Products } from './collections/Products.ts'
 import { SupplierCertificates } from './collections/SupplierCertificates.ts'
@@ -43,9 +44,16 @@ export default buildConfig({
     importMap: { baseDir: path.resolve(dirname) },
     components: { beforeDashboard: ['/components/admin/HomeDashboard#HomeDashboard'] },
   },
-  // Order of the menu: the daily work first.
-  collections: [OrderMatches, Clients, SupplierOrders, BuyerDocuments, InboxMessages, TradeFiles, Payments, TraderCoas, IssuingCompanies, Products, Suppliers, SupplierCertificates, OrderFiles, Leads, Media, Users, PortalUsers, ActivityLog].map(
-    (c) => (c.slug === 'activity-log' || c.slug === 'media' ? c : { ...c, hooks: { ...c.hooks, afterChange: [...(c.hooks?.afterChange ?? []), logActivity(c.slug as never, String((c.labels?.singular as string) ?? c.slug))] } }),
+  // Order of the menu, in groups: Orders (customers), Suppliers, Documents, Money, Website, Settings.
+  collections: [
+    OrderMatches, Clients, BuyerDocuments, InboxMessages, OrderFiles,
+    SupplierOrders, Suppliers, SupplierCertificates, Products,
+    TradeFiles, TraderCoas,
+    Payments,
+    Leads, PageViews, Media,
+    IssuingCompanies, Users, PortalUsers, ActivityLog,
+  ].map(
+    (c) => (['activity-log', 'media', 'page-views'].includes(c.slug) ? c : { ...c, hooks: { ...c.hooks, afterChange: [...(c.hooks?.afterChange ?? []), logActivity(c.slug as never, String((c.labels?.singular as string) ?? c.slug))] } }),
   ),
   endpoints: [...deskEndpoints, ...portalEndpoints],
   onInit: async (payload) => startInboxReader(payload),

@@ -142,7 +142,7 @@ const timelineHandler: PayloadHandler = async (req) => {
   if (!admin(req)) return denied()
   const id = q(req, 'id')
   if (!/^\d+$/.test(id)) return Response.json({ error: 'Unknown order' }, { status: 400 })
-  const order = (await req.payload.findByID({ collection: 'order-matches', id, depth: 1, overrideAccess: true, req })) as unknown as Doc
+  const order = (await req.payload.findByID({ collection: 'order-matches', id, depth: 1, overrideAccess: true, trash: true, req })) as unknown as Doc
   const [rfqs, sales, files, pays] = await Promise.all([
     find(req, 'supplier-orders', { order: { equals: id } }, 1), find(req, 'buyer-documents', { order: { equals: id } }, 0), find(req, 'trade-files', { order: { equals: id } }, 0), find(req, 'payments', { order: { equals: id } }, 1),
   ])
@@ -252,7 +252,42 @@ const emailDone: PayloadHandler = async (req) => {
   return Response.json({ ok: true })
 }
 
+// GET: the website's own visitor counter (collection page-views) for the last 7 days, the 7 days
+// before for comparison, and the website enquiries not yet answered.
+const visitorsHandler: PayloadHandler = async (req) => {
+  if (!admin(req)) return denied()
+  const dayAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10)
+  const since = dayAgo(6)
+  const rows = (await find(req, 'page-views', { day: { greater_than_equal: dayAgo(13) } }, 0)).map((r) => ({
+    day: s(r.day), kind: s(r.kind), path: s(r.path), lang: s(r.lang), source: s(r.source), device: s(r.device), count: Number(r.count) || 0,
+  }))
+  const week = rows.filter((r) => r.day >= since)
+  const sum = (list: typeof rows, f: (r: (typeof rows)[number]) => boolean) => list.filter(f).reduce((n, r) => n + r.count, 0)
+  const top = (key: 'path' | 'source', f: (r: (typeof rows)[number]) => boolean) => {
+    const m = new Map<string, number>()
+    for (const r of week) if (f(r)) m.set(r[key], (m.get(r[key]) ?? 0) + r.count)
+    return [...m].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, count]) => ({ name, count }))
+  }
+  const view = (r: { kind: string }) => r.kind === 'view'
+  const days = Array.from({ length: 7 }, (_, i) => dayAgo(6 - i)).map((d) => ({ day: d, views: sum(week, (r) => r.day === d && view(r)) }))
+  const enquiries = await req.payload.count({ collection: 'leads', where: { status: { equals: 'new' } }, overrideAccess: true, req })
+  return Response.json({
+    views: sum(week, view),
+    previousViews: sum(rows, (r) => r.day < since && view(r)),
+    mobile: sum(week, (r) => view(r) && r.device === 'mobile'),
+    arabic: sum(week, (r) => view(r) && r.lang === 'ar'),
+    whatsapp: sum(week, (r) => r.kind === 'whatsapp'),
+    email: sum(week, (r) => r.kind === 'email'),
+    phone: sum(week, (r) => r.kind === 'phone'),
+    newEnquiries: enquiries.totalDocs,
+    days,
+    topPages: top('path', view),
+    topSources: top('source', (r) => view(r) && r.source !== 'internal'),
+  })
+}
+
 export const deskEndpoints: Endpoint[] = [
+  { path: '/desk/visitors', method: 'get', handler: visitorsHandler },
   { path: '/desk/today', method: 'get', handler: todayHandler },
   { path: '/desk/search', method: 'get', handler: searchHandler },
   { path: '/desk/price-history', method: 'get', handler: historyHandler },

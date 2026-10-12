@@ -1,18 +1,19 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import type { CollectionBeforeChangeHook, CollectionConfig, PayloadHandler, PayloadRequest } from 'payload'
+import { APIError, type CollectionBeforeChangeHook, type CollectionBeforeDeleteHook, type CollectionConfig, type PayloadHandler, type PayloadRequest } from 'payload'
 
 import { type CatalogueProduct, matchOrder, type OrderRow } from '../lib/order-match.ts'
+import { readOrderWithAi } from '../lib/order-ai.ts'
 import { parseOrder, typedToOrder } from '../lib/order-parse.ts'
 import { buildOrderTable, orderTableXlsx } from '../lib/order-table.ts'
 import { compareQuotes, convert, type QuotedEnquiry, sellPrice } from '../lib/order-desk.ts'
 import { emailsIn, parseQuantity } from '../lib/trade-docs.ts'
-import { isStaff, signedIn } from './access.ts'
+import { isStaff, signedIn, trashAccess } from './access.ts'
 import { ORDERS_DIR } from './OrderFiles.ts'
 import { CERT_TYPES, certificateState } from './SupplierCertificates.ts'
 import { jsonBody, notJson } from './SupplierOrders.ts'
-import { loadSeller } from './TradeSettings.ts'
+import { loadAi, loadSeller } from './TradeSettings.ts'
 
 type Rel = number | string | { id: number | string; name?: string } | null | undefined
 const idOf = (r: Rel) => (r && typeof r === 'object' ? r.id : r)
@@ -70,6 +71,10 @@ async function loadProducts(req: PayloadRequest): Promise<CatalogueProduct[]> {
 }
 
 const findSuppliers: CollectionBeforeChangeHook = async ({ data, req, originalDoc }) => {
+  // The AI's reading is written only here, never taken from the request.
+  delete data.fileReading
+  // Moving the order to the Trash or back is not an edit: nothing is read or matched again.
+  if (data.deletedAt || originalDoc?.deletedAt) return data
   const fileChanged = idOf(data.orderFile as Rel) !== idOf(originalDoc?.orderFile as Rel)
   const typedChanged = (data.typedMaterials ?? '') !== (originalDoc?.typedMaterials ?? '')
   if (!data.rematch && !fileChanged && !typedChanged) return data
@@ -79,13 +84,27 @@ const findSuppliers: CollectionBeforeChangeHook = async ({ data, req, originalDo
   let text = ''
   const fileId = idOf(data.orderFile as Rel)
   if (fileId) {
-    const f = await req.payload.findByID({ collection: 'order-files', id: fileId, depth: 0, req, overrideAccess: true })
+    const f = await req.payload.findByID({ collection: 'order-files', id: fileId, depth: 0, req, overrideAccess: true, trash: true })
     const name = path.basename(String(f.filename))
     const full = path.resolve(ORDERS_DIR, name)
     try {
       if (!full.startsWith(ORDERS_DIR + path.sep)) throw new Error('invalid file name')
       if ((f.filesize ?? 0) > 10_000_000) throw new Error('file is larger than 10 MB')
-      const parsed = await parseOrder(await readFile(full), name, String(f.mimeType ?? ''))
+      const buf = await readFile(full)
+      let parsed = await parseOrder(buf, name, String(f.mimeType ?? ''))
+      if (parsed.needsAi) {
+        // A photo or a scan: the AI's reading is kept with the order, so saving again does not pay for a second reading.
+        const kept = originalDoc?.fileReading
+        const key = `${fileId}:${f.filename}:${f.filesize}`
+        if (kept?.key === key && Array.isArray(kept.parsed?.rows)) parsed = kept.parsed
+        else {
+          const ai = await loadAi(req.payload, req)
+          if (ai) {
+            parsed = await readOrderWithAi(ai, buf, name)
+            if (parsed.rows.length) data.fileReading = { key, parsed }
+          }
+        }
+      }
       rows = rows.concat(parsed.rows)
       text += `\n${parsed.text}`
       notes.push(`${f.filename}: ${parsed.note}`)
@@ -127,6 +146,48 @@ const findSuppliers: CollectionBeforeChangeHook = async ({ data, req, originalDo
   return data
 }
 
+// Moving an order to the Trash: refused once real work hangs on it (an enquiry or purchase order
+// that was sent, a proforma invoice past draft, a payment), because those records point to it.
+// Its uploaded file goes to the Trash with it, and comes back with it, unless another order uses it.
+type Doc = Record<string, unknown> & { id: number | string }
+const str = (v: unknown) => (v == null ? '' : String(v))
+
+const trashGuard: CollectionBeforeChangeHook = async ({ data, originalDoc, req, operation }) => {
+  if (operation !== 'update' || !originalDoc) return data
+  const trashing = data.deletedAt != null && !originalDoc.deletedAt
+  const restoring = data.deletedAt === null && Boolean(originalDoc.deletedAt)
+  if (!trashing && !restoring) return data
+  const id = originalDoc.id
+  if (trashing) {
+    const linked = async (collection: string) =>
+      (await req.payload.find({ collection: collection as never, where: { order: { equals: id } }, limit: 500, depth: 0, pagination: false, overrideAccess: true, req })).docs as unknown as Doc[]
+    const [enquiries, sales, payments] = await Promise.all([linked('supplier-orders'), linked('buyer-documents'), linked('payments')])
+    const sent = enquiries.filter((e) => !['draft', 'cancelled'].includes(str(e.status)) || e.sentAt)
+    const pis = sales.filter((d) => !['draft', 'cancelled'].includes(str(d.status)))
+    const why = [
+      sent.length ? `${sent.length} enquiry or purchase order sent (${sent.map((e) => str(e.number)).join(', ')})` : '',
+      pis.length ? `${pis.length} proforma invoice past draft (${pis.map((d) => str(d.piNumber)).join(', ')})` : '',
+      payments.length ? `${payments.length} payment` : '',
+    ].filter(Boolean)
+    if (why.length) throw new APIError(`This order cannot be deleted: it already has ${why.join(', ')}. Set its status to "lost" instead.`, 400, undefined, true)
+  }
+  const fileId = idOf(originalDoc.orderFile as Rel)
+  if (fileId) {
+    const others = await req.payload.count({ collection: 'order-matches', where: { and: [{ orderFile: { equals: fileId } }, { id: { not_equals: id } }] }, overrideAccess: true, req })
+    if (!others.totalDocs) {
+      await req.payload
+        .update({ collection: 'order-files', id: fileId, trash: true, depth: 0, overrideAccess: true, req, context: { withOrder: true }, data: { deletedAt: trashing ? new Date().toISOString() : null } as never })
+    }
+  }
+  return data
+}
+
+// Deleting for good only from the Trash, where the check above has already been made.
+const onlyFromTrash: CollectionBeforeDeleteHook = async ({ id, req }) => {
+  const doc = (await req.payload.findByID({ collection: 'order-matches', id, depth: 0, overrideAccess: true, trash: true, req })) as unknown as Doc
+  if (!doc.deletedAt) throw new APIError('Move the order to the Trash first (Delete without "delete permanently"); it can be deleted for good from the Trash.', 400, undefined, true)
+}
+
 // Table data and Excel download for one order (signed-in admins only).
 const tableEndpoint: PayloadHandler = async (req) => {
   if (!isStaff(req)) return Response.json({ error: 'Not allowed' }, { status: 403 })
@@ -146,8 +207,6 @@ const xlsxEndpoint: PayloadHandler = async (req) => {
 }
 
 // Enquiries, purchase orders and buyer documents for one order (signed-in admins only).
-type Doc = Record<string, unknown> & { id: number | string }
-const str = (v: unknown) => (v == null ? '' : String(v))
 
 async function supplierOrdersOf(req: PayloadRequest, orderId: string) {
   const res = await req.payload.find({ collection: 'supplier-orders', where: { order: { equals: orderId } }, limit: 500, depth: 0, pagination: false, sort: 'createdAt', overrideAccess: true, req })
@@ -317,10 +376,12 @@ export const OrderMatches: CollectionConfig = {
     group: 'Orders',
     useAsTitle: 'title',
     defaultColumns: ['title', 'customer', 'status', 'matchedAt'],
-    description: 'Attach a customer order (Excel, CSV, Word, PDF) or type the materials, then Save. The suppliers table appears below, with an Excel download.',
+    description: 'Attach a customer order (Excel, CSV, Word, PDF or a photo) or type the materials, then Save. The suppliers table appears below, with an Excel download. Uploaded by mistake? Delete it: it goes to the Trash and can be restored from there.',
   },
-  access: { read: signedIn, create: signedIn, update: signedIn, delete: () => false },
-  hooks: { beforeChange: [findSuppliers] },
+  // Delete moves the order to the Trash (staff and owner); only the owner deletes it from the Trash for good.
+  trash: true,
+  access: { read: signedIn, create: signedIn, update: signedIn, delete: trashAccess },
+  hooks: { beforeChange: [trashGuard, findSuppliers], beforeDelete: [onlyFromTrash] },
   endpoints: [
     { path: '/:id/table', method: 'get', handler: tableEndpoint },
     { path: '/:id/xlsx', method: 'get', handler: xlsxEndpoint },
@@ -347,7 +408,9 @@ export const OrderMatches: CollectionConfig = {
         },
       ],
     },
-    { name: 'orderFile', type: 'upload', relationTo: 'order-files', admin: { description: 'Excel, CSV, Word, PDF (with text) or .txt' } },
+    { name: 'orderFile', type: 'upload', relationTo: 'order-files', admin: { description: 'Excel, CSV, Word, PDF, .txt, or a photo or scan (JPG, PNG): photos and scans are read by the AI when AI mode is on in Company details' } },
+    // The AI's reading of a photo or scan, kept so the same file is not read (and paid for) twice.
+    { name: 'fileReading', type: 'json', admin: { hidden: true }, hooks: { beforeDuplicate: [() => null] } },
     { name: 'typedMaterials', label: 'Materials (typed)', type: 'textarea', admin: { description: 'Optional: one material per line, e.g. "Mesalazine EP 500 kg" or a CAS number' } },
     { name: 'rematch', label: 'Find suppliers again when I save', type: 'checkbox', defaultValue: true, admin: { position: 'sidebar' } },
     { name: 'matchedAt', type: 'date', admin: { position: 'sidebar', readOnly: true, date: { pickerAppearance: 'dayAndTime' } } },

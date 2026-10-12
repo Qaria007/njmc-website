@@ -35,7 +35,7 @@ const idOf = (r: unknown) => (r && typeof r === 'object' ? (r as AnyDoc).id : (r
 const ASK_ALL = 'Availability, price, MOQ, lead time; grade/pharmacopoeia; CoA; DMF / CEP / GMP status'
 
 export async function buildOrderTable(payload: Payload, id: string | number, req?: PayloadRequest): Promise<OrderTable> {
-  const doc = (await payload.findByID({ collection: 'order-matches', id, depth: 0, overrideAccess: true, req })) as unknown as AnyDoc
+  const doc = (await payload.findByID({ collection: 'order-matches', id, depth: 0, overrideAccess: true, trash: true, req })) as unknown as AnyDoc
   const lines = (doc.lines as AnyDoc[] | undefined) ?? []
   const supIds = [...new Set(lines.flatMap((l) => ((l.matches as AnyDoc[]) ?? []).map((m) => idOf(m.supplier))))].filter(Boolean)
   const prodIds = [...new Set(lines.flatMap((l) => ((l.matches as AnyDoc[]) ?? []).map((m) => idOf(m.product))))].filter(Boolean)

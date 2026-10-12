@@ -85,7 +85,7 @@ const testAiEndpoint: PayloadHandler = async (req) => {
 export const TradeSettings: GlobalConfig = {
   slug: 'trade-settings',
   label: 'Company details for documents',
-  admin: { group: 'Orders', description: 'Printed on every enquiry, purchase order, proforma invoice, invoice and packing list. Fill in once.' },
+  admin: { group: 'Settings', description: 'Printed on every enquiry, purchase order, proforma invoice, invoice and packing list. Fill in once.' },
   access: { read: ownerOnly, update: ownerOnly },
   endpoints: [
     { path: '/refresh-rates', method: 'post', handler: refreshRatesEndpoint },

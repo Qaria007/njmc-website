@@ -8,7 +8,7 @@ import { ownerOnly } from './access.ts'
 export const AccountsOverview: GlobalConfig = {
   slug: 'accounts-overview',
   label: 'Accounts overview',
-  admin: { group: 'Accounts', description: 'Totals for a period, balances, profit per sale. Download the Excel for the accountant.' },
+  admin: { group: 'Money', description: 'Totals for a period, balances, profit per sale. Download the Excel for the accountant.' },
   access: { read: ownerOnly, update: () => false },
   fields: [{ name: 'view', type: 'ui', admin: { components: { Field: '/components/admin/AccountsPanel#AccountsPanel' } } }],
 }

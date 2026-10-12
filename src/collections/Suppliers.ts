@@ -8,7 +8,7 @@ export const Suppliers: CollectionConfig = {
   slug: 'suppliers',
   admin: {
     useAsTitle: 'name',
-    group: 'Catalogue',
+    group: 'Suppliers',
     defaultColumns: ['name', 'country', 'city', 'supplies', 'status'],
   },
   access: { read: signedIn, create: signedIn, update: signedIn, delete: () => false },

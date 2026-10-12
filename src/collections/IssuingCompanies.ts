@@ -11,7 +11,7 @@ export const IssuingCompanies: CollectionConfig = {
   slug: 'issuing-companies',
   labels: { singular: 'Company', plural: 'Our companies' },
   admin: {
-    group: 'Our companies',
+    group: 'Settings',
     useAsTitle: 'companyName',
     defaultColumns: ['companyName', 'relation', 'prefix', 'updatedAt'],
     description: 'NJMC and partner companies: logo, address, signatory, bank details and licences, in one place. Only add a partner that has agreed to issue documents under its name.',

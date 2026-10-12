@@ -1,13 +1,16 @@
 // Reads an uploaded customer order into rows + full text for order-match.ts.
 // Excel (.xlsx), CSV, Word (.docx), PDF with a text layer, and plain text. Scanned PDFs and photos
-// have no text to read: the result says so instead of guessing.
+// have no text to read: they come back with needsAi, and the AI reads them when AI mode is on
+// (src/lib/order-ai.ts); otherwise the result says so instead of guessing.
 import ExcelJS from 'exceljs'
 import mammoth from 'mammoth'
 import { extractText, getDocumentProxy } from 'unpdf'
 
 import type { OrderRow } from './order-match.ts'
 
-export type ParsedOrder = { rows: OrderRow[]; text: string; note: string }
+export type ParsedOrder = { rows: OrderRow[]; text: string; note: string; needsAi?: boolean }
+
+export const NO_AI_NOTE = 'To read photos and scans automatically, turn on AI mode and add an AI key in Company details. Until then, type the materials into "Materials (typed)".'
 
 const HEAD = {
   name: /^(product|product name|material|material name|item|item name|description|name|api|substance|molecule|commodity|goods)\b/i,
@@ -132,7 +135,7 @@ export async function parseOrder(buf: Buffer, filename: string, mimetype = ''): 
     const { text } = await extractText(pdf, { mergePages: true })
     const t = String(text)
     if (t.replace(/\s/g, '').length < 20) {
-      return { rows: [], text: '', note: 'This PDF has no text layer (a scan or photo). Type the materials into "Materials (typed)" instead.' }
+      return { rows: [], text: '', note: `This PDF has no text layer (a scan or photo). ${NO_AI_NOTE}`, needsAi: true }
     }
     return { rows: textToRows(t), text: t, note: `PDF: ${pdf.numPages} page(s) read` }
   }
@@ -140,7 +143,10 @@ export async function parseOrder(buf: Buffer, filename: string, mimetype = ''): 
     const t = buf.toString('utf8')
     return { rows: textToRows(t), text: t, note: 'Text file read line by line' }
   }
-  return { rows: [], text: '', note: `Files of type .${ext} cannot be read. Use Excel, CSV, Word, PDF or type the materials.` }
+  if (['jpg', 'jpeg', 'png', 'webp'].includes(ext) || mimetype.startsWith('image/')) {
+    return { rows: [], text: '', note: `A photo. ${NO_AI_NOTE}`, needsAi: true }
+  }
+  return { rows: [], text: '', note: `Files of type .${ext} cannot be read. Use Excel, CSV, Word, PDF, a photo, or type the materials.` }
 }
 
 export function typedToOrder(text: string): ParsedOrder {

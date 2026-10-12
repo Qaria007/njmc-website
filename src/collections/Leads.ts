@@ -5,7 +5,9 @@ import { signedIn } from './access.ts'
 // Created only by the server action in src/lib/enquiry.ts; never by the public API.
 export const Leads: CollectionConfig = {
   slug: 'leads',
+  labels: { singular: 'Website enquiry', plural: 'Website enquiries' },
   admin: {
+    group: 'Website',
     useAsTitle: 'name',
     defaultColumns: ['createdAt', 'type', 'name', 'company', 'country', 'service', 'status'],
   },

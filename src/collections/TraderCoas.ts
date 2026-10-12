@@ -346,7 +346,7 @@ export const TraderCoas: CollectionConfig = {
   slug: 'trader-coas',
   labels: { singular: 'Certificate on our letterhead', plural: 'Certificates on our letterhead' },
   admin: {
-    group: 'Certificates',
+    group: 'Documents',
     useAsTitle: 'number',
     defaultColumns: ['number', 'productName', 'batchNo', 'manufacturerName', 'customerName', 'issuedAt'],
     listSearchableFields: ['number', 'productName', 'batchNo', 'manufacturerName', 'customerName'],

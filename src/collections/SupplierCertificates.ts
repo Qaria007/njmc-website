@@ -37,7 +37,7 @@ export const SupplierCertificates: CollectionConfig = {
   labels: { singular: 'Supplier certificate', plural: 'Supplier certificates' },
   admin: {
     useAsTitle: 'title',
-    group: 'Catalogue',
+    group: 'Suppliers',
     defaultColumns: ['title', 'supplier', 'validUntil', 'state'],
     description: 'Sort by "Valid until" to see what expires next.',
   },

@@ -29,15 +29,41 @@ const SECTIONS: [string, string, string][] = [
   ['certificates', 'Supplier certificates expiring (suppliers in use)', 'Ask for renewals'],
 ]
 
-// The last three are for the owner only.
-const ACTIONS: [string, string, boolean?][] = [
-  ['New customer order', '/admin/collections/order-matches/create'],
-  ['New client', '/admin/collections/clients/create'],
-  ['Upload a document', '/admin/collections/trade-files/create'],
-  ['Record a payment or cost', '/admin/collections/payments/create', true],
-  ['Accounts overview', '/admin/globals/accounts-overview', true],
-  ['Company details and AI', '/admin/globals/trade-settings', true],
+// Shortcuts, grouped like the menu. Groups marked true are for the owner only.
+const SHORTCUTS: [string, boolean, [string, string][]][] = [
+  ['Customers', false, [
+    ['Customer orders', '/admin/collections/order-matches'],
+    ['Clients', '/admin/collections/clients'],
+    ['Proforma invoices and invoices', '/admin/collections/buyer-documents'],
+    ['Emails received', '/admin/collections/inbox-messages'],
+  ]],
+  ['Suppliers', false, [
+    ['Enquiries and purchase orders', '/admin/collections/supplier-orders'],
+    ['Suppliers', '/admin/collections/suppliers'],
+    ['Supplier certificates', '/admin/collections/supplier-certificates'],
+    ['Product catalogue', '/admin/collections/products'],
+  ]],
+  ['Documents', false, [
+    ['Upload a document', '/admin/collections/trade-files/create'],
+    ['All documents', '/admin/collections/trade-files'],
+    ['Certificate on our letterhead', '/admin/collections/trader-coas/create'],
+  ]],
+  ['Money and settings', true, [
+    ['Record a payment or cost', '/admin/collections/payments/create'],
+    ['Accounts overview', '/admin/globals/accounts-overview'],
+    ['Company details and AI', '/admin/globals/trade-settings'],
+    ['Our companies', '/admin/collections/issuing-companies'],
+  ]],
 ]
+
+// To-do sections that need action first get a coloured edge.
+const URGENT = new Set(['emails', 'newOrders', 'overdueReplies', 'paymentsDue'])
+const SHOW = 5
+
+type Visitors = {
+  views: number; previousViews: number; mobile: number; arabic: number; whatsapp: number; email: number; phone: number; newEnquiries: number
+  days: { day: string; views: number }[]; topPages: { name: string; count: number }[]; topSources: { name: string; count: number }[]
+}
 
 async function get(url: string) {
   const r = await fetch(url, { credentials: 'include' })
@@ -183,93 +209,214 @@ function PriceHistory() {
   )
 }
 
+function Section({ title, hint, children, id }: { title: string; hint?: string; children: React.ReactNode; id?: string }) {
+  return (
+    <section id={id} style={{ margin: '0 0 26px' }}>
+      <h2 style={{ margin: '0 0 2px', fontSize: 20 }}>{title}</h2>
+      {hint ? <p style={{ ...muted, margin: '0 0 10px', fontSize: 13 }}>{hint}</p> : <div style={{ height: 8 }} />}
+      {children}
+    </section>
+  )
+}
+
+function Tile({ label, value, sub, href, accent }: { label: string; value: string | number; sub?: string; href?: string; accent?: string }) {
+  const body = (
+    <>
+      <div style={muted}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 600, lineHeight: 1.25 }}>{value}</div>
+      {sub ? <div style={{ ...muted, marginTop: 2 }}>{sub}</div> : null}
+    </>
+  )
+  const style: React.CSSProperties = { ...card, textDecoration: 'none', color: 'inherit', display: 'block', ...(accent ? { borderLeft: `4px solid ${accent}` } : {}) }
+  return href ? <a href={href} style={style}>{body}</a> : <div style={style}>{body}</div>
+}
+
+function TopList({ title, rows, empty }: { title: string; rows: { name: string; count: number }[]; empty: string }) {
+  return (
+    <div style={card}>
+      <strong>{title}</strong>
+      {rows.length ? rows.map((r) => (
+        <div key={r.name} dir="ltr" style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', gap: 8, padding: '3px 0', borderTop: '1px solid var(--theme-elevation-100)' }}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+          <span>{r.count}</span>
+        </div>
+      )) : <p style={{ ...muted, margin: '4px 0 0' }}>{empty}</p>}
+    </div>
+  )
+}
+
+function WebsiteVisitors() {
+  const [v, setV] = useState<Visitors | null>(null)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    get('/api/desk/visitors').then(setV).catch((e: Error) => setError(e.message))
+  }, [])
+  if (error) return <p>{error}</p>
+  if (!v) return <p style={muted}>Loading</p>
+  const pct = (n: number) => (v.views ? `${Math.round((n / v.views) * 100)}%` : '0%')
+  const change = v.previousViews ? Math.round(((v.views - v.previousViews) / v.previousViews) * 100) : null
+  const max = Math.max(1, ...v.days.map((d) => d.views))
+  return (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, margin: '0 0 10px' }}>
+        <Tile label="Page views" value={v.views} sub={change == null ? 'counting started this week' : `${change >= 0 ? '+' : ''}${change}% on the 7 days before`} href="/admin/collections/page-views" />
+        <Tile label="On a phone" value={pct(v.mobile)} sub={`Arabic pages: ${pct(v.arabic)}`} />
+        <Tile label="Contact clicks" value={v.whatsapp + v.email + v.phone} sub={`WhatsApp ${v.whatsapp}, email ${v.email}, phone ${v.phone}`} accent={v.whatsapp + v.email + v.phone ? 'var(--theme-success-500)' : undefined} />
+        <Tile label="Website enquiries to answer" value={v.newEnquiries} sub="Quotation and verification forms" href="/admin/collections/leads?where[status][equals]=new" accent={v.newEnquiries ? 'var(--theme-warning-500)' : undefined} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
+        <div style={card}>
+          <strong>Page views per day</strong>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 110, marginTop: 8 }}>
+            {v.days.map((d) => (
+              <div key={d.day} title={`${d.day}: ${d.views}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                <span style={{ fontSize: 11 }}>{d.views || ''}</span>
+                <div style={{ width: '100%', height: `${Math.max(2, (d.views / max) * 80)}px`, background: 'var(--theme-success-500)', borderRadius: 3 }} />
+                <span style={{ ...muted, fontSize: 11 }}>{new Date(`${d.day}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short' })}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <TopList title="Most visited pages" rows={v.topPages} empty="No visits yet" />
+        <TopList title="Where visitors came from" rows={v.topSources} empty="No outside visits yet" />
+      </div>
+      <p style={{ ...muted, margin: '8px 0 0' }}>Counted by the website itself, without cookies or IP addresses. <a href="/admin/collections/page-views">All statistics</a></p>
+    </>
+  )
+}
+
+function TaskCard({ k, title, hint, tasks, open, setOpen, load }: { k: string; title: string; hint: string; tasks: Task[]; open: string | null; setOpen: (k: string | null) => void; load: () => void }) {
+  const [all, setAll] = useState(false)
+  return (
+    <div id={`todo-${k}`} style={{ ...card, ...(URGENT.has(k) ? { borderLeft: '4px solid var(--theme-warning-500)' } : {}) }}>
+      <h3 style={{ margin: '0 0 2px', fontSize: 16 }}>{title} <span style={{ ...muted, fontSize: 14 }}>({tasks.length})</span></h3>
+      <p style={{ ...muted, margin: '0 0 6px' }}>{hint}</p>
+      {(all ? tasks : tasks.slice(0, SHOW)).map((t, i) => {
+        const key = `${k}-${i}`
+        return (
+          <div key={key} style={{ padding: '6px 0', borderTop: '1px solid var(--theme-elevation-100)' }}>
+            <a href={t.href} style={{ fontWeight: 600 }}>{t.title}</a>
+            <div style={muted}>{[t.detail, t.age != null && t.age > 0 ? `${t.age} day${t.age === 1 ? '' : 's'}` : ''].filter(Boolean).join(', ')}</div>
+            {t.done ? (
+              <button
+                type="button"
+                className="btn btn--style-secondary btn--size-small"
+                style={{ margin: '4px 0 0' }}
+                onClick={async () => {
+                  await fetch('/api/desk/email-done/', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.done }) })
+                  load()
+                }}
+              >
+                Mark done
+              </button>
+            ) : null}
+            {t.action ? (
+              open === key ? (
+                <Remind action={t.action} onDone={() => { setOpen(null); load() }} />
+              ) : (
+                <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: '4px 0 0' }} onClick={() => setOpen(key)}>Prepare a reminder</button>
+              )
+            ) : null}
+          </div>
+        )
+      })}
+      {tasks.length > SHOW ? (
+        <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: '6px 0 0' }} onClick={() => setAll(!all)}>
+          {all ? 'Show fewer' : `Show all ${tasks.length}`}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 export function HomeDashboard() {
   const [data, setData] = useState<Today | null>(null)
   const [error, setError] = useState('')
   const [open, setOpen] = useState<string | null>(null)
+  const [now, setNow] = useState<Date | null>(null)
   const load = useCallback(() => {
     get('/api/desk/today').then(setData).catch((e: Error) => setError(e.message))
   }, [])
   useEffect(() => {
     load()
+    setNow(new Date())
   }, [load])
 
   const m = data?.money
-  const total = data ? SECTIONS.reduce((a, [k]) => a + (data.tasks[k]?.length ?? 0), 0) : 0
+  const owner = Boolean(m)
+  const busy = data ? SECTIONS.filter(([k]) => data.tasks[k]?.length) : []
+  const total = busy.reduce((a, [k]) => a + (data?.tasks[k]?.length ?? 0), 0)
+  const hour = now?.getHours() ?? 12
   return (
     <div style={{ margin: '0 0 28px' }}>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', margin: '0 0 14px' }}>
-        <Search />
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', margin: '0 0 14px' }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 26 }}>{hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}</h1>
+          <p style={{ ...muted, margin: '2px 0 0', fontSize: 14 }}>
+            {now ? now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+            {data ? ` · ${total ? `${total} thing${total === 1 ? '' : 's'} to do` : 'nothing waiting'}` : ''}
+          </p>
+        </div>
+        <a href="/admin/collections/order-matches/create" className="btn btn--style-primary" style={{ margin: 0 }}>+ New customer order</a>
       </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 18px' }}>
-        {ACTIONS.filter(([, , ownerOnly]) => !ownerOnly || data?.money).map(([label, href]) => (
-          <a key={href} href={href} className="btn btn--style-secondary btn--size-small" style={{ margin: 0 }}>{label}</a>
-        ))}
+      <div style={{ display: 'flex', margin: '0 0 22px' }}>
+        <Search />
       </div>
 
       {m ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, margin: '0 0 18px' }}>
-          {([
-            ['Received this month', m.month.received], ['Paid to suppliers this month', m.month.paidSuppliers], ['Profit on this month\'s sales', m.month.profit],
-            ['Clients owe us', m.all.receivable], ['We owe suppliers', m.all.payable],
-          ] as [string, number][]).map(([k, v]) => (
-            <a key={k} href="/admin/globals/accounts-overview" style={{ ...card, textDecoration: 'none' }}>
-              <div style={muted}>{k} (USD)</div>
-              <div style={{ fontSize: 20, fontWeight: 600 }}>{fmt(v)}</div>
-            </a>
+        <Section title="Money" hint="In US dollars. Click a figure for the accounts overview.">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
+            <Tile label="Received this month" value={fmt(m.month.received)} href="/admin/globals/accounts-overview" />
+            <Tile label="Paid to suppliers this month" value={fmt(m.month.paidSuppliers)} href="/admin/globals/accounts-overview" />
+            <Tile label="Profit on this month's sales" value={fmt(m.month.profit)} href="/admin/globals/accounts-overview" accent="var(--theme-success-500)" />
+            <Tile label="Clients owe us" value={fmt(m.all.receivable)} href="/admin/globals/accounts-overview" />
+            <Tile label="We owe suppliers" value={fmt(m.all.payable)} href="/admin/globals/accounts-overview" />
+          </div>
+          {m.missingRates.length ? <p style={{ color: 'var(--theme-error-500)', margin: '8px 0 0' }}>No exchange rate for {m.missingRates.join(', ')}: open Company details.</p> : null}
+        </Section>
+      ) : null}
+
+      <Section title="To do" hint={data && total ? 'Most urgent first. The ones with a coloured edge need action today.' : undefined}>
+        {error ? <p>{error}</p> : null}
+        {!data && !error ? <p style={muted}>Loading</p> : null}
+        {data && total === 0 ? <p style={{ ...card, margin: 0 }}>Nothing waiting. New orders, replies and payments will appear here.</p> : null}
+        {busy.length ? (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0 0 10px' }}>
+            {busy.map(([k, title]) => (
+              <a key={k} href={`#todo-${k}`} style={{ padding: '3px 10px', borderRadius: 999, border: '1px solid var(--theme-elevation-200)', fontSize: 13, textDecoration: 'none', color: 'inherit' }}>
+                {title} <strong>{data?.tasks[k].length}</strong>
+              </a>
+            ))}
+          </div>
+        ) : null}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
+          {busy.map(([k, title, hint]) => <TaskCard key={k} k={k} title={title} hint={hint} tasks={data!.tasks[k]} open={open} setOpen={setOpen} load={load} />)}
+        </div>
+      </Section>
+
+      <Section title="Website visitors, last 7 days">
+        <WebsiteVisitors />
+      </Section>
+
+      <Section title="Shortcuts">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+          {SHORTCUTS.filter(([, ownerOnly]) => !ownerOnly || owner).map(([group, , links]) => (
+            <div key={group} style={card}>
+              <strong>{group}</strong>
+              {links.map(([label, href]) => (
+                <a key={href} href={href} style={{ display: 'block', padding: '5px 0', borderTop: '1px solid var(--theme-elevation-100)', textDecoration: 'none' }}>{label}</a>
+              ))}
+            </div>
           ))}
         </div>
-      ) : null}
-      {m?.missingRates.length ? <p style={{ color: 'var(--theme-error-500)' }}>No exchange rate for {m.missingRates.join(', ')}: open Company details.</p> : null}
+      </Section>
 
-      <h2 style={{ margin: '0 0 10px' }}>To do {data ? `(${total})` : ''}</h2>
-      {error ? <p>{error}</p> : null}
-      {data && total === 0 ? <p>Nothing waiting. New orders, replies and payments will appear here.</p> : null}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12, margin: '0 0 18px' }}>
-        {data
-          ? SECTIONS.filter(([k]) => data.tasks[k]?.length).map(([k, title, hint]) => (
-              <div key={k} style={card}>
-                <h3 style={{ margin: '0 0 2px' }}>{title} ({data.tasks[k].length})</h3>
-                <p style={{ ...muted, margin: '0 0 8px' }}>{hint}</p>
-                {data.tasks[k].slice(0, 8).map((t, i) => {
-                  const key = `${k}-${i}`
-                  return (
-                    <div key={key} style={{ padding: '6px 0', borderTop: i ? '1px solid var(--theme-elevation-100)' : 'none' }}>
-                      <a href={t.href} style={{ fontWeight: 600 }}>{t.title}</a>
-                      <div style={muted}>
-                        {[t.detail, t.age != null && t.age > 0 ? `${t.age} day${t.age === 1 ? '' : 's'}` : ''].filter(Boolean).join(', ')}
-                      </div>
-                      {t.done ? (
-                        <button
-                          type="button"
-                          className="btn btn--style-secondary btn--size-small"
-                          style={{ margin: '4px 0 0' }}
-                          onClick={async () => {
-                            await fetch('/api/desk/email-done/', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.done }) })
-                            load()
-                          }}
-                        >
-                          Mark done
-                        </button>
-                      ) : null}
-                      {t.action ? (
-                        open === key ? (
-                          <Remind action={t.action} onDone={() => { setOpen(null); load() }} />
-                        ) : (
-                          <button type="button" className="btn btn--style-secondary btn--size-small" style={{ margin: '4px 0 0' }} onClick={() => setOpen(key)}>
-                            Prepare a reminder
-                          </button>
-                        )
-                      ) : null}
-                    </div>
-                  )
-                })}
-                {data.tasks[k].length > 8 ? <p style={{ ...muted, margin: '6px 0 0' }}>and {data.tasks[k].length - 8} more</p> : null}
-              </div>
-            ))
-          : <p>Loading</p>}
-      </div>
-      <PriceHistory />
+      <details style={{ ...card, margin: 0 }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Price history: what we were quoted, paid and sold for a material</summary>
+        <div style={{ marginTop: 10 }}>
+          <PriceHistory />
+        </div>
+      </details>
     </div>
   )
 }

@@ -104,7 +104,7 @@ export const Payments: CollectionConfig = {
   slug: 'payments',
   labels: { singular: 'Payment or cost', plural: 'Money in and out' },
   admin: {
-    group: 'Accounts',
+    group: 'Money',
     useAsTitle: 'reference',
     defaultColumns: ['date', 'direction', 'amount', 'currency', 'client', 'supplier', 'reference'],
     description: 'Every payment received from a client, paid to a supplier, and every cost (freight, bank charges). Link it to the sale or the purchase order so the balances add up.',

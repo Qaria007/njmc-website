@@ -70,19 +70,20 @@ export interface Config {
   collections: {
     'order-matches': OrderMatch;
     clients: Client;
-    'supplier-orders': SupplierOrder;
     'buyer-documents': BuyerDocument;
     'inbox-messages': InboxMessage;
-    'trade-files': TradeFile;
-    payments: Payment;
-    'trader-coas': TraderCoa;
-    'issuing-companies': IssuingCompany;
-    products: Product;
+    'order-files': OrderFile;
+    'supplier-orders': SupplierOrder;
     suppliers: Supplier;
     'supplier-certificates': SupplierCertificate;
-    'order-files': OrderFile;
+    products: Product;
+    'trade-files': TradeFile;
+    'trader-coas': TraderCoa;
+    payments: Payment;
     leads: Lead;
+    'page-views': PageView;
     media: Media;
+    'issuing-companies': IssuingCompany;
     users: User;
     'portal-users': PortalUser;
     'activity-log': ActivityLog;
@@ -114,19 +115,20 @@ export interface Config {
   collectionsSelect: {
     'order-matches': OrderMatchesSelect<false> | OrderMatchesSelect<true>;
     clients: ClientsSelect<false> | ClientsSelect<true>;
-    'supplier-orders': SupplierOrdersSelect<false> | SupplierOrdersSelect<true>;
     'buyer-documents': BuyerDocumentsSelect<false> | BuyerDocumentsSelect<true>;
     'inbox-messages': InboxMessagesSelect<false> | InboxMessagesSelect<true>;
-    'trade-files': TradeFilesSelect<false> | TradeFilesSelect<true>;
-    payments: PaymentsSelect<false> | PaymentsSelect<true>;
-    'trader-coas': TraderCoasSelect<false> | TraderCoasSelect<true>;
-    'issuing-companies': IssuingCompaniesSelect<false> | IssuingCompaniesSelect<true>;
-    products: ProductsSelect<false> | ProductsSelect<true>;
+    'order-files': OrderFilesSelect<false> | OrderFilesSelect<true>;
+    'supplier-orders': SupplierOrdersSelect<false> | SupplierOrdersSelect<true>;
     suppliers: SuppliersSelect<false> | SuppliersSelect<true>;
     'supplier-certificates': SupplierCertificatesSelect<false> | SupplierCertificatesSelect<true>;
-    'order-files': OrderFilesSelect<false> | OrderFilesSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
+    'trade-files': TradeFilesSelect<false> | TradeFilesSelect<true>;
+    'trader-coas': TraderCoasSelect<false> | TraderCoasSelect<true>;
+    payments: PaymentsSelect<false> | PaymentsSelect<true>;
     leads: LeadsSelect<false> | LeadsSelect<true>;
+    'page-views': PageViewsSelect<false> | PageViewsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'issuing-companies': IssuingCompaniesSelect<false> | IssuingCompaniesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'portal-users': PortalUsersSelect<false> | PortalUsersSelect<true>;
     'activity-log': ActivityLogSelect<false> | ActivityLogSelect<true>;
@@ -194,7 +196,7 @@ export interface PortalUserAuthOperations {
   };
 }
 /**
- * Attach a customer order (Excel, CSV, Word, PDF) or type the materials, then Save. The suppliers table appears below, with an Excel download.
+ * Attach a customer order (Excel, CSV, Word, PDF or a photo) or type the materials, then Save. The suppliers table appears below, with an Excel download. Uploaded by mistake? Delete it: it goes to the Trash and can be restored from there.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "order-matches".
@@ -212,9 +214,18 @@ export interface OrderMatch {
   client?: (number | null) | Client;
   status?: ('new' | 'suppliers contacted' | 'quoted' | 'won' | 'lost') | null;
   /**
-   * Excel, CSV, Word, PDF (with text) or .txt
+   * Excel, CSV, Word, PDF, .txt, or a photo or scan (JPG, PNG): photos and scans are read by the AI when AI mode is on in Company details
    */
   orderFile?: (number | null) | OrderFile;
+  fileReading?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * Optional: one material per line, e.g. "Mesalazine EP 500 kg" or a CAS number
    */
@@ -251,6 +262,7 @@ export interface OrderMatch {
   };
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
 }
 /**
  * Companies we sell to. Their documents, sales and payments are listed on each client.
@@ -868,7 +880,7 @@ export interface Payment {
   createdAt: string;
 }
 /**
- * Uploaded customer orders (private).
+ * Uploaded customer orders (private). Uploaded by mistake? Delete it: it goes to the Trash and can be restored from there.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "order-files".
@@ -878,6 +890,7 @@ export interface OrderFile {
   note?: string | null;
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
   url?: string | null;
   thumbnailURL?: string | null;
   filename?: string | null;
@@ -953,6 +966,49 @@ export interface InboxMessage {
   attachments?: (number | TradeFile)[] | null;
   aiNote?: string | null;
   messageId?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Sort by "Valid until" to see what expires next.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-certificates".
+ */
+export interface SupplierCertificate {
+  id: number;
+  /**
+   * Filled in automatically
+   */
+  title?: string | null;
+  supplier: number | Supplier;
+  type:
+    | 'cn-gmp'
+    | 'cn-dml'
+    | 'eu-gmp'
+    | 'us-fda'
+    | 'who-gmp'
+    | 'cep'
+    | 'us-dmf'
+    | 'wc'
+    | 'ipec-gmp'
+    | 'iso-9001'
+    | 'iso-13485'
+    | 'iso-22000'
+    | 'fssc-22000'
+    | 'business-licence'
+    | 'other';
+  number?: string | null;
+  issuer?: string | null;
+  scope?: string | null;
+  issued?: string | null;
+  validUntil?: string | null;
+  state?: string | null;
+  /**
+   * File name or Drive link of the copy we hold
+   */
+  sourceFile?: string | null;
+  notes?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1086,49 +1142,6 @@ export interface TraderCoa {
   createdAt: string;
 }
 /**
- * Sort by "Valid until" to see what expires next.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "supplier-certificates".
- */
-export interface SupplierCertificate {
-  id: number;
-  /**
-   * Filled in automatically
-   */
-  title?: string | null;
-  supplier: number | Supplier;
-  type:
-    | 'cn-gmp'
-    | 'cn-dml'
-    | 'eu-gmp'
-    | 'us-fda'
-    | 'who-gmp'
-    | 'cep'
-    | 'us-dmf'
-    | 'wc'
-    | 'ipec-gmp'
-    | 'iso-9001'
-    | 'iso-13485'
-    | 'iso-22000'
-    | 'fssc-22000'
-    | 'business-licence'
-    | 'other';
-  number?: string | null;
-  issuer?: string | null;
-  scope?: string | null;
-  issued?: string | null;
-  validUntil?: string | null;
-  state?: string | null;
-  /**
-   * File name or Drive link of the copy we hold
-   */
-  sourceFile?: string | null;
-  notes?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "leads".
  */
@@ -1160,6 +1173,27 @@ export interface Lead {
    * Notification reached the mail relay
    */
   emailed?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Counted by the website itself: no cookies, no IP addresses. The home page shows the last 7 days.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "page-views".
+ */
+export interface PageView {
+  id: number;
+  day: string;
+  kind: 'view' | 'whatsapp' | 'email' | 'phone';
+  path: string;
+  lang?: string | null;
+  /**
+   * The website the visitor came from, or "direct".
+   */
+  source?: string | null;
+  device?: string | null;
+  count: number;
   updatedAt: string;
   createdAt: string;
 }
@@ -1244,10 +1278,6 @@ export interface PayloadLockedDocument {
         value: number | Client;
       } | null)
     | ({
-        relationTo: 'supplier-orders';
-        value: number | SupplierOrder;
-      } | null)
-    | ({
         relationTo: 'buyer-documents';
         value: number | BuyerDocument;
       } | null)
@@ -1256,24 +1286,12 @@ export interface PayloadLockedDocument {
         value: number | InboxMessage;
       } | null)
     | ({
-        relationTo: 'trade-files';
-        value: number | TradeFile;
+        relationTo: 'order-files';
+        value: number | OrderFile;
       } | null)
     | ({
-        relationTo: 'payments';
-        value: number | Payment;
-      } | null)
-    | ({
-        relationTo: 'trader-coas';
-        value: number | TraderCoa;
-      } | null)
-    | ({
-        relationTo: 'issuing-companies';
-        value: number | IssuingCompany;
-      } | null)
-    | ({
-        relationTo: 'products';
-        value: number | Product;
+        relationTo: 'supplier-orders';
+        value: number | SupplierOrder;
       } | null)
     | ({
         relationTo: 'suppliers';
@@ -1284,16 +1302,36 @@ export interface PayloadLockedDocument {
         value: number | SupplierCertificate;
       } | null)
     | ({
-        relationTo: 'order-files';
-        value: number | OrderFile;
+        relationTo: 'products';
+        value: number | Product;
+      } | null)
+    | ({
+        relationTo: 'trade-files';
+        value: number | TradeFile;
+      } | null)
+    | ({
+        relationTo: 'trader-coas';
+        value: number | TraderCoa;
+      } | null)
+    | ({
+        relationTo: 'payments';
+        value: number | Payment;
       } | null)
     | ({
         relationTo: 'leads';
         value: number | Lead;
       } | null)
     | ({
+        relationTo: 'page-views';
+        value: number | PageView;
+      } | null)
+    | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'issuing-companies';
+        value: number | IssuingCompany;
       } | null)
     | ({
         relationTo: 'users';
@@ -1369,6 +1407,7 @@ export interface OrderMatchesSelect<T extends boolean = true> {
   client?: T;
   status?: T;
   orderFile?: T;
+  fileReading?: T;
   typedMaterials?: T;
   rematch?: T;
   matchedAt?: T;
@@ -1398,6 +1437,7 @@ export interface OrderMatchesSelect<T extends boolean = true> {
   documents?: T;
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1422,70 +1462,6 @@ export interface ClientsSelect<T extends boolean = true> {
   sales?: T;
   payments?: T;
   documents?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "supplier-orders_select".
- */
-export interface SupplierOrdersSelect<T extends boolean = true> {
-  number?: T;
-  kind?: T;
-  status?: T;
-  date?: T;
-  supplier?: T;
-  toEmail?: T;
-  items?:
-    | T
-    | {
-        material?: T;
-        spec?: T;
-        quantity?: T;
-        unit?: T;
-        unitPrice?: T;
-        supplierProduct?: T;
-        note?: T;
-        quotedPrice?: T;
-        moq?: T;
-        leadTime?: T;
-        quoteNote?: T;
-        requested?: T;
-        id?: T;
-      };
-  currency?: T;
-  incoterm?: T;
-  incotermPlace?: T;
-  paymentTerms?: T;
-  delivery?: T;
-  destination?: T;
-  documentsRequired?: T;
-  notes?: T;
-  subject?: T;
-  message?: T;
-  rewriteMessage?: T;
-  subjectAuto?: T;
-  messageAuto?: T;
-  order?: T;
-  fromEnquiry?: T;
-  sentAt?: T;
-  sentTo?: T;
-  sendLog?: T;
-  quoteCurrency?: T;
-  quoteIncoterm?: T;
-  quoteIncotermPlace?: T;
-  quoteValidUntil?: T;
-  quotePaymentTerms?: T;
-  quoteContact?: T;
-  quoteSource?: T;
-  quoteReceivedAt?: T;
-  quoteNotes?: T;
-  replyArrivedAt?: T;
-  aiProposal?: T;
-  aiProposalAt?: T;
-  supplierReply?: T;
-  quoteLog?: T;
-  quoteToken?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1587,6 +1563,163 @@ export interface InboxMessagesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "order-files_select".
+ */
+export interface OrderFilesSelect<T extends boolean = true> {
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-orders_select".
+ */
+export interface SupplierOrdersSelect<T extends boolean = true> {
+  number?: T;
+  kind?: T;
+  status?: T;
+  date?: T;
+  supplier?: T;
+  toEmail?: T;
+  items?:
+    | T
+    | {
+        material?: T;
+        spec?: T;
+        quantity?: T;
+        unit?: T;
+        unitPrice?: T;
+        supplierProduct?: T;
+        note?: T;
+        quotedPrice?: T;
+        moq?: T;
+        leadTime?: T;
+        quoteNote?: T;
+        requested?: T;
+        id?: T;
+      };
+  currency?: T;
+  incoterm?: T;
+  incotermPlace?: T;
+  paymentTerms?: T;
+  delivery?: T;
+  destination?: T;
+  documentsRequired?: T;
+  notes?: T;
+  subject?: T;
+  message?: T;
+  rewriteMessage?: T;
+  subjectAuto?: T;
+  messageAuto?: T;
+  order?: T;
+  fromEnquiry?: T;
+  sentAt?: T;
+  sentTo?: T;
+  sendLog?: T;
+  quoteCurrency?: T;
+  quoteIncoterm?: T;
+  quoteIncotermPlace?: T;
+  quoteValidUntil?: T;
+  quotePaymentTerms?: T;
+  quoteContact?: T;
+  quoteSource?: T;
+  quoteReceivedAt?: T;
+  quoteNotes?: T;
+  replyArrivedAt?: T;
+  aiProposal?: T;
+  aiProposalAt?: T;
+  supplierReply?: T;
+  quoteLog?: T;
+  quoteToken?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "suppliers_select".
+ */
+export interface SuppliersSelect<T extends boolean = true> {
+  name?: T;
+  nameLocal?: T;
+  country?: T;
+  city?: T;
+  address?: T;
+  website?: T;
+  email?: T;
+  phone?: T;
+  contactPerson?: T;
+  wechat?: T;
+  supplies?: T;
+  status?: T;
+  source?: T;
+  documentsFolder?: T;
+  rating?: T;
+  problems?: T;
+  notes?: T;
+  orders?: T;
+  payments?: T;
+  documents?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-certificates_select".
+ */
+export interface SupplierCertificatesSelect<T extends boolean = true> {
+  title?: T;
+  supplier?: T;
+  type?: T;
+  number?: T;
+  issuer?: T;
+  scope?: T;
+  issued?: T;
+  validUntil?: T;
+  state?: T;
+  sourceFile?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  published?: T;
+  category?: T;
+  productClass?: T;
+  otherNames?: T;
+  cas?: T;
+  ciNumber?: T;
+  grades?: T;
+  sources?:
+    | T
+    | {
+        supplier?: T;
+        documents?: T;
+        marketStatus?: T;
+        details?: T;
+        id?: T;
+      };
+  internalNotes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "trade-files_select".
  */
 export interface TradeFilesSelect<T extends boolean = true> {
@@ -1614,33 +1747,6 @@ export interface TradeFilesSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payments_select".
- */
-export interface PaymentsSelect<T extends boolean = true> {
-  date?: T;
-  direction?: T;
-  category?: T;
-  amount?: T;
-  currency?: T;
-  usdRate?: T;
-  amountUsd?: T;
-  buyerDocument?: T;
-  supplierOrder?: T;
-  order?: T;
-  client?: T;
-  supplier?: T;
-  paidTo?: T;
-  method?: T;
-  reference?: T;
-  proof?: T;
-  notes?: T;
-  void?: T;
-  voidReason?: T;
-  updatedAt?: T;
-  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1705,6 +1811,91 @@ export interface TraderCoasSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments_select".
+ */
+export interface PaymentsSelect<T extends boolean = true> {
+  date?: T;
+  direction?: T;
+  category?: T;
+  amount?: T;
+  currency?: T;
+  usdRate?: T;
+  amountUsd?: T;
+  buyerDocument?: T;
+  supplierOrder?: T;
+  order?: T;
+  client?: T;
+  supplier?: T;
+  paidTo?: T;
+  method?: T;
+  reference?: T;
+  proof?: T;
+  notes?: T;
+  void?: T;
+  voidReason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "leads_select".
+ */
+export interface LeadsSelect<T extends boolean = true> {
+  type?: T;
+  status?: T;
+  name?: T;
+  company?: T;
+  role?: T;
+  country?: T;
+  email?: T;
+  phone?: T;
+  service?: T;
+  supplier?: T;
+  message?: T;
+  heardAbout?: T;
+  consent?: T;
+  page?: T;
+  utmFirst?: T;
+  utmLast?: T;
+  emailed?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "page-views_select".
+ */
+export interface PageViewsSelect<T extends boolean = true> {
+  day?: T;
+  kind?: T;
+  path?: T;
+  lang?: T;
+  source?: T;
+  device?: T;
+  count?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "issuing-companies_select".
  */
 export interface IssuingCompaniesSelect<T extends boolean = true> {
@@ -1740,141 +1931,6 @@ export interface IssuingCompaniesSelect<T extends boolean = true> {
   notes?: T;
   updatedAt?: T;
   createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "products_select".
- */
-export interface ProductsSelect<T extends boolean = true> {
-  name?: T;
-  slug?: T;
-  published?: T;
-  category?: T;
-  productClass?: T;
-  otherNames?: T;
-  cas?: T;
-  ciNumber?: T;
-  grades?: T;
-  sources?:
-    | T
-    | {
-        supplier?: T;
-        documents?: T;
-        marketStatus?: T;
-        details?: T;
-        id?: T;
-      };
-  internalNotes?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "suppliers_select".
- */
-export interface SuppliersSelect<T extends boolean = true> {
-  name?: T;
-  nameLocal?: T;
-  country?: T;
-  city?: T;
-  address?: T;
-  website?: T;
-  email?: T;
-  phone?: T;
-  contactPerson?: T;
-  wechat?: T;
-  supplies?: T;
-  status?: T;
-  source?: T;
-  documentsFolder?: T;
-  rating?: T;
-  problems?: T;
-  notes?: T;
-  orders?: T;
-  payments?: T;
-  documents?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "supplier-certificates_select".
- */
-export interface SupplierCertificatesSelect<T extends boolean = true> {
-  title?: T;
-  supplier?: T;
-  type?: T;
-  number?: T;
-  issuer?: T;
-  scope?: T;
-  issued?: T;
-  validUntil?: T;
-  state?: T;
-  sourceFile?: T;
-  notes?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "order-files_select".
- */
-export interface OrderFilesSelect<T extends boolean = true> {
-  note?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "leads_select".
- */
-export interface LeadsSelect<T extends boolean = true> {
-  type?: T;
-  status?: T;
-  name?: T;
-  company?: T;
-  role?: T;
-  country?: T;
-  email?: T;
-  phone?: T;
-  service?: T;
-  supplier?: T;
-  message?: T;
-  heardAbout?: T;
-  consent?: T;
-  page?: T;
-  utmFirst?: T;
-  utmLast?: T;
-  emailed?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
- */
-export interface MediaSelect<T extends boolean = true> {
-  alt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -32,7 +32,7 @@ export const TradeFiles: CollectionConfig = {
   slug: 'trade-files',
   labels: { singular: 'Document', plural: 'Documents (clients and suppliers)' },
   admin: {
-    group: 'Orders',
+    group: 'Documents',
     useAsTitle: 'title',
     defaultColumns: ['filename', 'kind', 'client', 'supplier', 'date'],
     listSearchableFields: ['title', 'filename', 'notes'],
