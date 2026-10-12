@@ -26,10 +26,8 @@ sits under NJMC, now and in future:
 - Markets: international, any country, no limit.
 - Email: info@njmcmedicsupp.com (general), sale@njmcmedicsupp.com (sales / RFQ),
   qaria@njmcmedicsupp.com (owner).
-- WhatsApp Business (always with country code 86):
-  primary https://wa.me/8613244536191 (shown as +86 132 4453 6191),
-  secondary https://wa.me/8618860876679 (shown as +86 188 6087 6679).
-  WhatsApp QR link: https://wa.me/message/SOT7YTN6PXCMK1 . WeChat: https://u.wechat.com/MJTUpQoMvV9_Hlk_pr26EbE
+- WhatsApp (always with country code 86): https://wa.me/8613244536191 (shown as +86 132 4453 6191).
+  +86 188 6087 6679 and its QR link wa.me/message/SOT7YTN6PXCMK1 now belong to AI Employees (owner, 13 Oct 2026); never show them for NJMC. WeChat: https://u.wechat.com/MJTUpQoMvV9_Hlk_pr26EbE
 - LinkedIn company page: https://www.linkedin.com/company/105923818/ (only social channel; no Facebook, Instagram or X).
 - Owner: Dr. Majid Qaria, Founder & Technical Director, "PhD, PhD in Medical Sciences".
   Arabic, exact spelling: د. ماجد قاريه (never مجيد, never قارية).

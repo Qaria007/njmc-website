@@ -11,7 +11,6 @@ export const contact = {
   emailGeneral: 'info@njmcmedicsupp.com',
   emailSales: 'sale@njmcmedicsupp.com',
   whatsappPrimary: { href: 'https://wa.me/8613244536191', label: '+86 132 4453 6191' },
-  whatsappSecondary: { href: 'https://wa.me/8618860876679', label: '+86 188 6087 6679' },
   wechat: 'https://u.wechat.com/MJTUpQoMvV9_Hlk_pr26EbE',
   linkedin: 'https://www.linkedin.com/company/105923818/',
   address: {

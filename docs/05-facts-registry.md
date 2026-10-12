@@ -9,7 +9,7 @@ Only facts here or in BRAND.md may appear on the site. Every new fact needs a so
 | Head office: Jianye District, Nanjing, Jiangsu, China | CONFIRMED | owner, 14 Aug 2026 |
 | International, any country, no limit | CONFIRMED | owner, 26 Sep 2026 |
 | Emails info@, sale@, qaria@njmcmedicsupp.com | CONFIRMED | owner |
-| WhatsApp +86 132 4453 6191 and +86 188 6087 6679; WeChat link | CONFIRMED | owner |
+| WhatsApp +86 132 4453 6191 only (188 6087 6679 moved to AI Employees, 13 Oct 2026); WeChat link | CONFIRMED | owner |
 | LinkedIn company page 105923818 | CONFIRMED | owner |
 | Dr. Majid Qaria, Founder & Technical Director, "PhD, PhD in Medical Sciences" | CONFIRMED | owner, 14 Aug 2026 |
 | Five pillars: APIs, excipients, consumables, devices, consultancy | CONFIRMED | owner |

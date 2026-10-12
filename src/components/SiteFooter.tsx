@@ -20,7 +20,6 @@ export function SiteFooter({ locale }: { locale: Locale }) {
           <li><a href={`mailto:${contact.emailGeneral}`}>{contact.emailGeneral}</a></li>
           <li><a href={`mailto:${contact.emailSales}`}>{contact.emailSales}</a></li>
           <li><a href={contact.whatsappPrimary.href} rel="noopener">WhatsApp {contact.whatsappPrimary.label}</a></li>
-          <li><a href={contact.whatsappSecondary.href} rel="noopener">WhatsApp {contact.whatsappSecondary.label}</a></li>
           <li><a href={contact.wechat} rel="noopener">WeChat</a></li>
           <li><a href={contact.linkedin} rel="noopener">LinkedIn</a></li>
         </ul>

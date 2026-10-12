@@ -4,9 +4,7 @@ import { test } from 'node:test'
 import { contact, nav } from '../src/lib/site.ts'
 
 test('WhatsApp links use the exact wa.me format with country code 86', () => {
-  for (const w of [contact.whatsappPrimary, contact.whatsappSecondary]) {
-    assert.match(w.href, /^https:\/\/wa\.me\/86\d{11}$/)
-  }
+  assert.match(contact.whatsappPrimary.href, /^https:\/\/wa\.me\/86\d{11}$/)
 })
 
 test('English and Arabic navigation mirror each other', () => {
