@@ -147,3 +147,26 @@ test('grade words, solutions and water content do not hide a product; all are la
   assert.deepEqual(lines.map((l) => l.matches.map((m) => m.productId)), [[1], [2], [3], []])
   assert.ok(lines.slice(0, 3).every((l) => l.matches[0].how.includes('(check)')))
 })
+
+test('device orders: a product name of two or more words inside a descriptive row is offered (check)', () => {
+  const ps: CatalogueProduct[] = [
+    { id: 1, name: 'Patient monitor', otherNames: 'multi-parameter monitor, vital signs monitor', sources: src(1) },
+    { id: 2, name: 'Syringe pump', sources: src(2) },
+    { id: 3, name: 'Electrocardiograph (ECG machine)', otherNames: 'ECG, 12-lead ECG', sources: src(3) },
+    { id: 4, name: 'Polyethylene glycol', sources: src(4) },
+    { id: 5, name: 'Infusion pump', sources: src(5) },
+  ]
+  const rows = ['Patient Monitor 12.1 inch, 5 parameters, 10 units', 'Syringe pumps, double channel, 20 pcs', 'ECG machine 12 lead digital, 3 units', 'PEG-40 hydrogenated castor oil 50 kg', 'Volumetric infusion pump with drop sensor']
+  const lines = matchOrder(rows.map((text) => ({ text })), '', ps)
+  assert.deepEqual(lines.map((l) => l.matches.map((m) => m.productId)), [[1], [2], [3], [], [5]])
+  for (const l of lines) for (const m of l.matches) assert.ok(m.how.includes('(check)'), l.requested)
+  // Numbers and one-letter words in a name stay next to their neighbour: no Polysorbate 20 for a Polysorbate 80 row.
+  const ph: CatalogueProduct[] = [
+    { id: 20, name: 'Polysorbate 20', sources: src(20) },
+    { id: 80, name: 'Polysorbate 80', sources: src(80) },
+    { id: 91, name: 'Vitamin A', sources: src(91) },
+    { id: 92, name: 'Vitamin E', sources: src(92) },
+  ]
+  const more = matchOrder([{ text: 'Polysorbate 80, 25kg drum, 20' }, { text: 'Vitamin E in a soft capsule' }], '', ph)
+  assert.deepEqual(more.map((l) => l.matches.map((m) => m.productId)), [[80], [92]])
+})

@@ -3,7 +3,7 @@
 //
 // A row is matched to products by, in order of confidence:
 //   CAS number > name / other name > standard synonym > close spelling > name inside a longer name
-//   > same molecule in another salt or form.
+//   > same molecule in another salt or form > every word of a name of two or more words, any order (device rows).
 // Everything below an exact name is labelled "(check)" so the user confirms before quoting.
 // Free text (letters, PDFs) is also scanned for known product names; table orders are not, because
 // their rows already list every material.
@@ -210,6 +210,27 @@ function namedWithin(row: string, product: string): boolean {
   return rest.every((w) => w.length <= 2 || GENERIC.has(w) || FORM_WORDS.has(w) || DESCRIPTORS.has(w) || /^\d+$/.test(w))
 }
 
+// "Patient monitor 12 inch 5 parameters", "Syringe pump double channel": every word of a product name
+// of two or more words appears in the row, in any order, plural or not. Device orders describe the item
+// in free words, so the words around the name are not required to be generic. Compared without
+// synonyms (so "PEG-40 castor oil" never contains "polyethylene glycol"), and always labelled.
+const stem = (w: string) => (w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w)
+// A number or a one- or two-letter word ("20", "a", "x") only counts next to its neighbour in the name, in
+// the same order: "Polysorbate 80, drum, 20" does not contain "Polysorbate 20", "ECG 12 lead" contains "12 lead".
+const loose = (w: string) => w.length <= 2 || /\d/.test(w)
+function wordsWithin(row: string, product: string): boolean {
+  const pw = product.split(' ').map(stem)
+  if (pw.length < 2 || !distinctive(product)) return false
+  const rw = row.split(' ').map(stem)
+  const set = new Set(rw)
+  return pw.every((w, i) => {
+    if (!loose(w)) return set.has(w)
+    const prev = i > 0 ? pw[i - 1] : undefined
+    const next = i + 1 < pw.length ? pw[i + 1] : undefined
+    return rw.some((x, j) => x === w && ((prev !== undefined && rw[j - 1] === prev) || (next !== undefined && rw[j + 1] === next)))
+  })
+}
+
 type Entry = { p: CatalogueProduct; other: boolean; nums: boolean; c: string; cNoSyn: string; base: string }
 export type ProductIndex = { byCas: Map<string, CatalogueProduct[]>; list: Entry[] }
 
@@ -264,6 +285,7 @@ export function matchRow(row: OrderRow, idx: ProductIndex): Match[] {
       else if (e.c === c) add(matches, e.p, 'synonym (check)', 88)
       else if (closeSpelling(c, e.c)) add(matches, e.p, 'close spelling (check)', 82)
       else if (namedWithin(c, e.c)) add(matches, e.p, 'name inside a longer name (check)', 70)
+      else if (wordsWithin(cNoSyn, e.cNoSyn)) add(matches, e.p, 'name inside a longer name (check)', 68)
       else {
         const b = e.nums ? bases.nums : bases.plain
         if (b && e.base === b && distinctive(b)) add(matches, e.p, 'same molecule, other salt or form (check)', 60)
