@@ -2,7 +2,8 @@ import { randomBytes } from 'node:crypto'
 
 import type { CollectionBeforeChangeHook, CollectionConfig, Payload, PayloadHandler, PayloadRequest } from 'payload'
 
-import { BLOCKS_SENDING, docNumber, docPrefix, emailsIn, nextSeq, safeFileName, supplierMessage, type SupplierOrderDoc, supplierOrderGaps, type SupplierOrderItem, type SupplierOrderKind, supplierOrderSpec } from '../lib/trade-docs.ts'
+import { BLOCKS_SENDING, docNumber, docPrefix, emailsIn, nextSeq, safeFileName, supplierMessage, type SupplierOrderDoc, supplierOrderGaps, type SupplierOrderItem, type SupplierOrderKind, supplierOrderSpec, mailBrand, mailSenderName } from '../lib/trade-docs.ts'
+import { mailHtml } from '../lib/mail-html.ts'
 import { aiErrorMessage, AiReadError, readQuoteWithAi } from '../lib/ai.ts'
 import { type CleanQuote, cleanQuote, type QuoteSubmission } from '../lib/order-desk.ts'
 import { SITE_URL } from '../lib/site.ts'
@@ -135,13 +136,14 @@ const sendEndpoint: PayloadHandler = async (req) => {
   if (!process.env.SMTP_HOST && (body.confirm || process.env.NODE_ENV === 'production')) return Response.json({ error: 'Email is not set up on this server, nothing was sent' }, { status: 503 })
   const { doc, data, seller, to, gaps } = await load(req)
   if (doc.status === 'cancelled') return Response.json({ error: 'This order is cancelled' }, { status: 400 })
-  const from = `"${(seller.brandName || seller.companyName).replace(/["\\\r\n]/g, '')}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`
+  const from = `"${mailSenderName(seller)}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`
   const spec = supplierOrderSpec(data, seller)
   const mail = {
     from,
     replyTo: emailsIn(seller.email)[0],
     subject: s(doc.subject),
     text: s(doc.message),
+    html: mailHtml(s(doc.message), mailBrand(seller)),
     attachments: [{ filename: safeFileName(spec.fileName), content: Buffer.from(await renderPdf(spec)), contentType: 'application/pdf' }],
   }
   const failed = (err: unknown) => {

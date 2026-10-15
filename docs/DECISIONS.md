@@ -266,4 +266,12 @@ documents in English only ("I use English everywhere for formal documents"). Bui
   No cookie banner is needed: nothing identifies a person.
 - 2026-10-15 (2): suppliers carry a Category (multi-select, 26 kinds) set from the product types in
   their sources; the supplies field (API, excipient, device ...) stays for the pharma side.
+- 2026-10-15 (3): outside e-mail goes only from the official address (owner, after 13 enquiries
+  went out from a personal mailbox). The site is the sender: deploy/send-mail.sh posts a message file
+  to /api/desk/send-mail with the import token; the mail goes through the Workspace relay as the
+  company, reply-to the company address, the company copy on cc, and is filed as a supplier enquiry
+  (status sent) under a customer order so the Order desk shows it. "Sender name on e-mails" is a
+  separate setting from the brand name on documents: e-mails say NJMC Medical Supplies, documents
+  stay Medicayal (owner, 11 Oct). E-mails carry an HTML layout (navy bar, lists, signature block)
+  because plain text looked dull to the owner; the plain text stays as the alternative part.
 

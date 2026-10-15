@@ -21,6 +21,7 @@ import * as migration_20261011_164032_signature_image from './20261011_164032_si
 import * as migration_20261012_130817_show_manufacturer from './20261012_130817_show_manufacturer';
 import * as migration_20261012_145215_trash_photos_visitors from './20261012_145215_trash_photos_visitors';
 import * as migration_20261015_143729_visits_categories from './20261015_143729_visits_categories';
+import * as migration_20261015_154321_mail_from_name from './20261015_154321_mail_from_name';
 
 export const migrations = [
   {
@@ -136,6 +137,11 @@ export const migrations = [
   {
     up: migration_20261015_143729_visits_categories.up,
     down: migration_20261015_143729_visits_categories.down,
-    name: '20261015_143729_visits_categories'
+    name: '20261015_143729_visits_categories',
+  },
+  {
+    up: migration_20261015_154321_mail_from_name.up,
+    down: migration_20261015_154321_mail_from_name.down,
+    name: '20261015_154321_mail_from_name'
   },
 ];

@@ -3,7 +3,8 @@ import type { Endpoint, PayloadHandler, PayloadRequest } from 'payload'
 import { buildTasks, type CertRow, clientReminder, type EnquiryRow, type OrderRow, priceHistory, type SaleRow, supplierReminder, supplierScores } from '../lib/desk.ts'
 import { usdPerUnit } from '../lib/order-desk.ts'
 import { type SessionRow, sessionStats } from '../lib/visits.ts'
-import { emailsIn, money } from '../lib/trade-docs.ts'
+import { emailsIn, mailBrand, mailSenderName, money } from '../lib/trade-docs.ts'
+import { mailHtml } from '../lib/mail-html.ts'
 import { loadOverview } from './Payments.ts'
 import { CERT_TYPES } from './SupplierCertificates.ts'
 import { jsonBody, notJson, quoteLink } from './SupplierOrders.ts'
@@ -219,18 +220,19 @@ const remindSend: PayloadHandler = async (req) => {
   if ('error' in d) return Response.json({ error: d.error }, { status: 400 })
   const seller = await loadSeller(req.payload, req)
   const mail = {
-    from: `"${(seller.brandName || seller.companyName).replace(/["\\\r\n]/g, '')}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`, replyTo: emailsIn(seller.email)[0],
+    from: `"${mailSenderName(seller)}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`, replyTo: emailsIn(seller.email)[0],
     subject: s(body.subject).trim().slice(0, 300) || d.subject, text: s(body.body).trim().slice(0, 20000) || d.body,
   }
+  const html = mailHtml(mail.text, mailBrand(seller))
   try {
     if (body.test) {
       const me = emailsIn(req.user?.email)
-      await req.payload.sendEmail({ ...mail, to: me, subject: `[TEST] ${mail.subject}` })
+      await req.payload.sendEmail({ ...mail, html, to: me, subject: `[TEST] ${mail.subject}` })
       return Response.json({ ok: true, test: true, to: me })
     }
     if (!d.to.length) return Response.json({ error: 'No email address on this record' }, { status: 400 })
     const cc = emailsIn(seller.copyTo).filter((e) => !d.to.includes(e))
-    await req.payload.sendEmail({ ...mail, to: d.to, ...(cc.length ? { cc } : {}) })
+    await req.payload.sendEmail({ ...mail, html, to: d.to, ...(cc.length ? { cc } : {}) })
   } catch (err) {
     req.payload.logger.error({ name: (err as Error)?.name }, 'reminder failed')
     return Response.json({ error: 'The email could not be sent' }, { status: 502 })
@@ -311,11 +313,47 @@ const visitorsHandler: PayloadHandler = async (req) => {
 // subject, text, supplier?: name, test?: true }. With test: true the message goes only to the
 // company's own address (Company details > Email) with a [TEST] subject. When a supplier name is
 // given, the send is written to that supplier's notes and its status set to Contacted.
+// With "record": { order?: title, items?: [...], sentAt?: ISO date, sentFrom?: text } the message is
+// also filed in the Order desk: the customer order with that title is found or created (status
+// "suppliers contacted", the items as typed materials) and a supplier enquiry (kind rfq, status
+// sent) is created under it with the items, the subject and the message. A record with sentAt is
+// for a message that was already sent elsewhere: it is filed, nothing is sent again.
+type MailRecord = { order?: string; items?: string[]; sentAt?: string; sentFrom?: string }
+async function fileEnquiry(req: PayloadRequest, supplierId: number | string, to: string[], subject: string, text: string, rec: MailRecord, from: string, sentAt: string) {
+  const items = (Array.isArray(rec.items) ? rec.items : []).map((i) => s(i).replace(/^\s*\d+[.)]\s+/, '').trim()).filter(Boolean).slice(0, 60)
+  let orderId: number | string | null = null
+  const title = s(rec.order).trim().slice(0, 200)
+  if (title) {
+    const found = await req.payload.find({ collection: 'order-matches', where: { title: { equals: title } }, limit: 1, depth: 0, overrideAccess: true, req })
+    if (found.docs[0]) orderId = found.docs[0].id
+    else {
+      const made = await req.payload.create({ collection: 'order-matches', depth: 0, overrideAccess: true, req, data: { title, status: 'suppliers contacted', typedMaterials: items.join('\n'), rematch: false, notes: `Created ${sentAt.slice(0, 10)} by the server mail script (deploy/send-mail.sh).` } as never })
+      orderId = made.id
+    }
+  }
+  // Filed once: the same message to the same supplier at the same time is not filed again.
+  const dup = await req.payload.find({ collection: 'supplier-orders', where: { and: [{ supplier: { equals: supplierId } }, { subject: { equals: subject } }, { sentAt: { equals: sentAt } }] }, limit: 1, depth: 0, overrideAccess: true, req })
+  if (dup.docs[0]) return { number: s((dup.docs[0] as unknown as Doc).number), orderId, existing: true }
+  const log = `${sentAt.slice(0, 16).replace('T', ' ')} UTC: enquiry sent to ${to.join(', ')} from ${rec.sentFrom || from}`
+  const doc = await req.payload.create({
+    collection: 'supplier-orders', depth: 0, overrideAccess: true, req,
+    data: {
+      kind: 'rfq', status: 'sent', supplier: supplierId, toEmail: to.join(', '), subject, message: text, date: sentAt,
+      items: items.map((material) => ({ material, unit: 'unit' })), ...(orderId ? { order: orderId } : {}),
+      sentAt, sentTo: to.join(', '), sendLog: log,
+    } as never,
+  })
+  return { number: s((doc as unknown as Doc).number), orderId, existing: false }
+}
+
 const sendMailHandler: PayloadHandler = async (req) => {
   if (!authorised(req)) return Response.json({ error: 'Not found' }, { status: 404 })
-  const body = await jsonBody<{ to?: string[]; cc?: string[]; subject?: string; text?: string; supplier?: string; test?: boolean }>(req)
+  const body = await jsonBody<{ to?: string[]; cc?: string[]; subject?: string; text?: string; supplier?: string; test?: boolean; record?: MailRecord }>(req)
   if (!body) return notJson()
-  if (!process.env.SMTP_HOST) return Response.json({ error: 'Email is not set up on this server, nothing was sent' }, { status: 503 })
+  const filedOnly = Boolean(body.record?.sentAt) && !body.test
+  if (body.record && !body.test && !s(body.supplier).trim()) return Response.json({ error: 'record needs a supplier name' }, { status: 400 })
+  if (body.record?.sentAt && Number.isNaN(Date.parse(s(body.record.sentAt)))) return Response.json({ error: 'record.sentAt is not a date' }, { status: 400 })
+  if (!process.env.SMTP_HOST && !filedOnly) return Response.json({ error: 'Email is not set up on this server, nothing was sent' }, { status: 503 })
   const seller = await loadSeller(req.payload, req)
   const own = emailsIn(seller.email)
   const to = body.test ? own : emailsIn(body.to)
@@ -323,15 +361,16 @@ const sendMailHandler: PayloadHandler = async (req) => {
   const text = s(body.text).trim().slice(0, 20000)
   if (!to.length || !subject || !text) return Response.json({ error: 'to, subject and text are required (test: true sends to the company address)' }, { status: 400 })
   const mail = {
-    from: `"${(seller.brandName || seller.companyName).replace(/["\\\r\n]/g, '')}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`,
+    from: `"${mailSenderName(seller)}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`,
     replyTo: own[0],
     subject: body.test ? `[TEST] ${subject}` : subject,
     text,
+    html: mailHtml(text, mailBrand(seller)),
   }
   // The company copy (Company details > "Send me a copy of every supplier message at") goes on every real send, as for enquiries.
   const cc = body.test ? [] : [...new Set([...emailsIn(body.cc), ...emailsIn(seller.copyTo)])].filter((e) => !to.includes(e))
   try {
-    await req.payload.sendEmail({ ...mail, to, ...(cc.length ? { cc } : {}) })
+    if (!filedOnly) await req.payload.sendEmail({ ...mail, to, ...(cc.length ? { cc } : {}) })
   } catch (err) {
     req.payload.logger.error({ name: (err as Error)?.name }, 'server mail failed')
     return Response.json({ error: 'The email could not be sent' }, { status: 502 })
@@ -342,11 +381,18 @@ const sendMailHandler: PayloadHandler = async (req) => {
     try {
       const found = await req.payload.find({ collection: 'suppliers', where: { name: { equals: supplierName } }, limit: 1, depth: 0, overrideAccess: true, req })
       const sup = found.docs[0]
-      if (!sup) return Response.json({ ok: true, to, from: mail.from, warning: `Sent, but no supplier named "${supplierName}" was found, nothing was written` })
-      const line = `${now.slice(0, 16).replace('T', ' ')} UTC: e-mail "${subject}" sent to ${to.join(', ')} from ${mail.from}`
+      if (!sup) return Response.json({ ok: true, to, from: mail.from, filedOnly, warning: `${filedOnly ? 'Not sent (already sent before), and' : 'Sent, but'} no supplier named "${supplierName}" was found, nothing was written` })
+      const sentAt = filedOnly ? new Date(s(body.record?.sentAt)).toISOString() : now
+      const line = `${sentAt.slice(0, 16).replace('T', ' ')} UTC: e-mail "${subject}" sent to ${to.join(', ')} from ${body.record?.sentFrom || mail.from}`
+      if (body.record) {
+        const filed = await fileEnquiry(req, sup.id, to, subject, text, body.record, mail.from, sentAt)
+        if (!filed.existing) await req.payload.update({ collection: 'suppliers', id: sup.id, depth: 0, overrideAccess: true, req, data: { status: sup.status === 'new' ? 'contacted' : sup.status, notes: [s(sup.notes), line].filter(Boolean).join('\n') } as never })
+        return Response.json({ ok: true, to, from: mail.from, filedOnly, enquiry: filed.number, order: filed.orderId, alreadyFiled: filed.existing })
+      }
       await req.payload.update({ collection: 'suppliers', id: sup.id, depth: 0, overrideAccess: true, req, data: { status: sup.status === 'new' ? 'contacted' : sup.status, notes: [s(sup.notes), line].filter(Boolean).join('\n') } as never })
-    } catch {
-      return Response.json({ ok: true, to, from: mail.from, warning: 'Sent, but it could not be written on the supplier record' })
+    } catch (err) {
+      req.payload.logger.error({ err }, 'filing the e-mail on the records failed')
+      return Response.json({ ok: true, to, from: mail.from, filedOnly, warning: filedOnly ? 'Not sent (already sent before); the record could not be written' : 'Sent, but it could not be written on the supplier record' })
     }
   }
   return Response.json({ ok: true, to, from: mail.from, test: Boolean(body.test) })

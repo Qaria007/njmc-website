@@ -2166,9 +2166,13 @@ export interface TradeSetting {
    */
   companyName: string;
   /**
-   * Optional, e.g. NJMC Medical Supplies: printed large, with the legal name under it; used as the sender name of emails
+   * Optional, e.g. NJMC Medical Supplies: printed large, with the legal name under it
    */
   brandName?: string | null;
+  /**
+   * Shown as the sender of enquiries, reminders and other e-mails, e.g. NJMC Medical Supplies. Empty = the brand name, or else the legal name. Documents are not affected.
+   */
+  mailFromName?: string | null;
   /**
    * Full registered address, as on the business licence
    */
@@ -2262,6 +2266,7 @@ export interface TradeSettingsSelect<T extends boolean = true> {
   logo?: T;
   companyName?: T;
   brandName?: T;
+  mailFromName?: T;
   address?: T;
   phone?: T;
   email?: T;

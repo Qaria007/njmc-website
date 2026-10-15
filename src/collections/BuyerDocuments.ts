@@ -6,7 +6,8 @@ import { clientMessage, saleMargin } from '../lib/order-desk.ts'
 import { SHARE_DAYS, waLink, waNumber } from '../lib/share.ts'
 import { SITE_URL } from '../lib/site.ts'
 import { docSpecXlsx } from '../lib/order-desk-xlsx.ts'
-import { type BuyerDoc, buyerDocGaps, buyerDocSpec, type BuyerDocType, type BuyerItem, emailsIn, safeFileName } from '../lib/trade-docs.ts'
+import { type BuyerDoc, buyerDocGaps, buyerDocSpec, type BuyerDocType, type BuyerItem, emailsIn, safeFileName, mailBrand, mailSenderName } from '../lib/trade-docs.ts'
+import { mailHtml } from '../lib/mail-html.ts'
 import { renderPdf } from '../lib/trade-pdf.ts'
 import { isOwner, isStaff, ownerField, signedIn } from './access.ts'
 import { CURRENCIES, INCOTERMS, jsonBody, nextNumber, notJson } from './SupplierOrders.ts'
@@ -180,7 +181,7 @@ const sendEndpoint: PayloadHandler = async (req) => {
   const text = s(body.message).trim().slice(0, 20000) || auto.body
   const attachments: { filename: string; content: Buffer; contentType: string }[] = [{ filename: safeFileName(spec.fileName), content: Buffer.from(await renderPdf(spec)), contentType: 'application/pdf' }]
   if (body.excel) attachments.push({ filename: safeFileName(spec.fileName.replace(/\.pdf$/, '.xlsx')), content: await docSpecXlsx(spec), contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-  const mail = { from: `"${(seller.brandName || seller.companyName).replace(/["\\\r\n]/g, '')}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`, replyTo: emailsIn(seller.email)[0], subject, text, attachments }
+  const mail = { from: `"${mailSenderName(seller)}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`, replyTo: emailsIn(seller.email)[0], subject, text, html: mailHtml(text, mailBrand(seller)), attachments }
   const failed = (err: unknown) => {
     req.payload.logger.error({ err }, 'client message failed')
     return Response.json({ error: `The email could not be sent: ${(err as Error).message}`.slice(0, 300) }, { status: 502 })
