@@ -23,6 +23,10 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // The offline GeoIP table (geoip-lite) is read from disk at run time: keep it in the standalone image.
+  outputFileTracingIncludes: { '/track': ['./node_modules/geoip-lite/data/**/*'] },
+  // Loaded from node_modules at run time (it finds its data files by its own folder), not bundled.
+  serverExternalPackages: ['geoip-lite'],
   trailingSlash: true,
   poweredByHeader: false,
   async redirects() {

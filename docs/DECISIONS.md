@@ -255,3 +255,15 @@ documents in English only ("I use English everywhere for formal documents"). Bui
   chemicals) the owner may leave the manufacturer off: its details stay on file in the admin and
   the certificate states that they are available to the competent authorities on request; the
   original is then never attached. The results are still the manufacturer's, unchanged.
+- 2026-10-15: website visitors by session (owner: "who visits us and which page they visit"). The
+  cookie-free counter stays; in addition /track/ keeps one row per visitor and day in the collection
+  visits. The visitor is a one-way code (sha256 of server secret + day + address + browser, 24 hex
+  characters) that changes every day, so nobody can be followed across days and the address cannot be
+  recovered. Country and city come from the offline geoip-lite table (MaxMind GeoLite2, Apache 2.0,
+  kept in the image by outputFileTracingIncludes, loaded as a server external package); the network
+  is the registered part of the reverse DNS name (often the ISP, sometimes the company). Looked up
+  once per session, with a 1.5 s limit, never blocking the page. Pages per session are capped at 40.
+  No cookie banner is needed: nothing identifies a person.
+- 2026-10-15 (2): suppliers carry a Category (multi-select, 26 kinds) set from the product types in
+  their sources; the supplies field (API, excipient, device ...) stays for the pharma side.
+

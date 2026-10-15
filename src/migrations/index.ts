@@ -20,6 +20,7 @@ import * as migration_20261011_062307_company_stamp from './20261011_062307_comp
 import * as migration_20261011_164032_signature_image from './20261011_164032_signature_image';
 import * as migration_20261012_130817_show_manufacturer from './20261012_130817_show_manufacturer';
 import * as migration_20261012_145215_trash_photos_visitors from './20261012_145215_trash_photos_visitors';
+import * as migration_20261015_143729_visits_categories from './20261015_143729_visits_categories';
 
 export const migrations = [
   {
@@ -130,6 +131,11 @@ export const migrations = [
   {
     up: migration_20261012_145215_trash_photos_visitors.up,
     down: migration_20261012_145215_trash_photos_visitors.down,
-    name: '20261012_145215_trash_photos_visitors'
+    name: '20261012_145215_trash_photos_visitors',
+  },
+  {
+    up: migration_20261015_143729_visits_categories.up,
+    down: migration_20261015_143729_visits_categories.down,
+    name: '20261015_143729_visits_categories'
   },
 ];

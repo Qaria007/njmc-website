@@ -31,6 +31,7 @@
     "@payloadcms/translations": "3.90.2",
     "@payloadcms/ui": "3.90.2",
     "exceljs": "^4.4.0",
+    "geoip-lite": "~1.4.10",
     "graphql": "^16.8.1",
     "imapflow": "^2.3.0",
     "mailparser": "^3.9.37",
@@ -45,6 +46,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@types/geoip-lite": "^1.4.4",
     "@types/mailparser": "^3.9.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",

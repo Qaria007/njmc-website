@@ -60,9 +60,16 @@ const SHORTCUTS: [string, boolean, [string, string][]][] = [
 const URGENT = new Set(['emails', 'newOrders', 'overdueReplies', 'paymentsDue'])
 const SHOW = 5
 
+type Count = { name: string; count: number }
+type Recent = { at: string; country: string; city: string; network: string; source: string; device: string; lang: string; pages: string[]; pageCount: number; contactClicks: number }
 type Visitors = {
+  period: number
   views: number; previousViews: number; mobile: number; arabic: number; whatsapp: number; email: number; phone: number; newEnquiries: number
-  days: { day: string; views: number }[]; topPages: { name: string; count: number }[]; topSources: { name: string; count: number }[]
+  days: { day: string; views: number }[]; topPages: Count[]; topSources: Count[]
+  sessions: {
+    visitors: number; previousVisitors: number; pagesPerVisit: number; oneAndGone: number; withContact: number
+    countries: Count[]; cities: Count[]; networks: Count[]; landings: Count[]; perDay: { day: string; visitors: number }[]; recent: Recent[]
+  }
 }
 
 async function get(url: string) {
@@ -245,42 +252,97 @@ function TopList({ title, rows, empty }: { title: string; rows: { name: string; 
   )
 }
 
+// Flag emoji from the country name is not available; the country name is shown as text.
+function when(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+
 function WebsiteVisitors() {
+  const [days, setDays] = useState<7 | 30>(7)
   const [v, setV] = useState<Visitors | null>(null)
   const [error, setError] = useState('')
   useEffect(() => {
-    get('/api/desk/visitors').then(setV).catch((e: Error) => setError(e.message))
-  }, [])
+    let stale = false
+    setV(null)
+    setError('')
+    get(`/api/desk/visitors?days=${days}`).then((r) => { if (!stale) setV(r) }).catch((e: Error) => { if (!stale) setError(e.message) })
+    return () => { stale = true }
+  }, [days])
   if (error) return <p>{error}</p>
   if (!v) return <p style={muted}>Loading</p>
+  const S = v.sessions
   const pct = (n: number) => (v.views ? `${Math.round((n / v.views) * 100)}%` : '0%')
-  const change = v.previousViews ? Math.round(((v.views - v.previousViews) / v.previousViews) * 100) : null
-  const max = Math.max(1, ...v.days.map((d) => d.views))
+  const change = (now: number, before: number) => (before ? `${now - before >= 0 ? '+' : ''}${Math.round(((now - before) / before) * 100)}% on the ${v.period} days before` : 'counting started recently')
+  const max = Math.max(1, ...v.days.map((d) => d.views), ...S.perDay.map((d) => d.visitors))
+  const label = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', v.period === 7 ? { weekday: 'short' } : { day: 'numeric' })
   return (
     <>
+      <div style={{ display: 'flex', gap: 6, margin: '0 0 10px', alignItems: 'center' }}>
+        {([7, 30] as const).map((n) => (
+          <button key={n} type="button" onClick={() => setDays(n)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--theme-elevation-200)', background: days === n ? 'var(--theme-elevation-150)' : 'transparent', fontWeight: days === n ? 600 : 400, cursor: 'pointer' }}>
+            Last {n} days
+          </button>
+        ))}
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, margin: '0 0 10px' }}>
-        <Tile label="Page views" value={v.views} sub={change == null ? 'counting started this week' : `${change >= 0 ? '+' : ''}${change}% on the 7 days before`} href="/admin/collections/page-views" />
-        <Tile label="On a phone" value={pct(v.mobile)} sub={`Arabic pages: ${pct(v.arabic)}`} />
-        <Tile label="Contact clicks" value={v.whatsapp + v.email + v.phone} sub={`WhatsApp ${v.whatsapp}, email ${v.email}, phone ${v.phone}`} accent={v.whatsapp + v.email + v.phone ? 'var(--theme-success-500)' : undefined} />
+        <Tile label="Visitors" value={S.visitors} sub={change(S.visitors, S.previousVisitors)} href="/admin/collections/visits" />
+        <Tile label="Page views" value={v.views} sub={change(v.views, v.previousViews)} href="/admin/collections/page-views" />
+        <Tile label="Pages per visit" value={S.pagesPerVisit} sub={`${S.oneAndGone}% left after one page`} />
+        <Tile label="Countries" value={S.countries.length} sub={S.countries[0] ? `most from ${S.countries[0].name}` : 'no visits yet'} />
+        <Tile label="Visitors who clicked to contact" value={S.withContact} sub={`WhatsApp ${v.whatsapp}, email ${v.email}, phone ${v.phone}`} accent={S.withContact ? 'var(--theme-success-500)' : undefined} />
         <Tile label="Website enquiries to answer" value={v.newEnquiries} sub="Quotation and verification forms" href="/admin/collections/leads?where[status][equals]=new" accent={v.newEnquiries ? 'var(--theme-warning-500)' : undefined} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
-        <div style={card}>
-          <strong>Page views per day</strong>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 110, marginTop: 8 }}>
-            {v.days.map((d) => (
-              <div key={d.day} title={`${d.day}: ${d.views}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                <span style={{ fontSize: 11 }}>{d.views || ''}</span>
-                <div style={{ width: '100%', height: `${Math.max(2, (d.views / max) * 80)}px`, background: 'var(--theme-success-500)', borderRadius: 3 }} />
-                <span style={{ ...muted, fontSize: 11 }}>{new Date(`${d.day}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short' })}</span>
+        <div style={{ ...card, gridColumn: '1 / -1' }}>
+          <strong>Visitors and page views per day</strong>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: v.period === 7 ? 8 : 3, height: 120, marginTop: 8 }}>
+            {v.days.map((d, i) => (
+              <div key={d.day} title={`${d.day}: ${S.perDay[i]?.visitors ?? 0} visitors, ${d.views} page views`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                <span style={{ fontSize: 10 }}>{v.period === 7 ? d.views || '' : ''}</span>
+                <div style={{ width: '100%', display: 'flex', alignItems: 'flex-end', gap: 1, height: 84 }}>
+                  <div style={{ flex: 1, height: `${Math.max(2, ((S.perDay[i]?.visitors ?? 0) / max) * 84)}px`, background: 'var(--theme-success-500)', borderRadius: 2 }} />
+                  <div style={{ flex: 1, height: `${Math.max(2, (d.views / max) * 84)}px`, background: 'var(--theme-elevation-300)', borderRadius: 2 }} />
+                </div>
+                <span style={{ ...muted, fontSize: 10 }}>{label(d.day)}</span>
               </div>
             ))}
           </div>
+          <p style={{ ...muted, margin: '6px 0 0', fontSize: 11 }}>Green: visitors. Grey: page views. {pct(v.mobile)} on a phone, {pct(v.arabic)} on Arabic pages.</p>
         </div>
-        <TopList title="Most visited pages" rows={v.topPages} empty="No visits yet" />
+        <TopList title="Countries" rows={S.countries} empty="No visits yet" />
+        <TopList title="Cities" rows={S.cities} empty="No city known yet" />
+        <TopList title="Networks and companies" rows={S.networks} empty="No network names yet" />
         <TopList title="Where visitors came from" rows={v.topSources} empty="No outside visits yet" />
+        <TopList title="First page seen" rows={S.landings} empty="No visits yet" />
+        <TopList title="Most visited pages" rows={v.topPages} empty="No visits yet" />
       </div>
-      <p style={{ ...muted, margin: '8px 0 0' }}>Counted by the website itself, without cookies or IP addresses. <a href="/admin/collections/page-views">All statistics</a></p>
+      <div style={{ ...card, marginTop: 10, overflowX: 'auto' }}>
+        <strong>Latest visitors</strong>
+        {S.recent.length ? (
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8, fontSize: 13 }}>
+            <thead>
+              <tr style={{ textAlign: 'left', ...muted }}>
+                <th style={{ padding: '4px 6px' }}>When</th><th style={{ padding: '4px 6px' }}>From</th><th style={{ padding: '4px 6px' }}>Network</th><th style={{ padding: '4px 6px' }}>Came from</th><th style={{ padding: '4px 6px' }}>Pages seen</th><th style={{ padding: '4px 6px' }}>Device</th>
+              </tr>
+            </thead>
+            <tbody>
+              {S.recent.map((r, i) => (
+                <tr key={i} style={{ borderTop: '1px solid var(--theme-elevation-100)', background: r.contactClicks ? 'var(--theme-success-50)' : undefined }}>
+                  <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>{when(r.at)}</td>
+                  <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>{r.city ? `${r.city}, ${r.country}` : r.country || 'Unknown'}</td>
+                  <td style={{ padding: '4px 6px' }}>{r.network}</td>
+                  <td style={{ padding: '4px 6px' }}>{r.source}</td>
+                  <td style={{ padding: '4px 6px' }} title={r.pages.join(' > ')}>{r.pageCount} {r.pageCount === 1 ? 'page' : 'pages'}: {r.pages.slice(0, 4).join(' > ')}{r.pages.length > 4 ? ' ...' : ''}{r.contactClicks ? ` (contact click)` : ''}</td>
+                  <td style={{ padding: '4px 6px' }}>{r.device}{r.lang === 'ar' ? ', Arabic' : ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : <p style={{ ...muted, margin: '4px 0 0' }}>No visits recorded yet. Counting of visitor sessions started with this version of the site.</p>}
+      </div>
+      <p style={{ ...muted, margin: '8px 0 0' }}>Counted by the website itself: no cookies, and IP addresses are never stored. Country and city come from an offline table, the network from the address's registered name. <a href="/admin/collections/visits">All visits</a> and <a href="/admin/collections/page-views">page counts</a>.</p>
     </>
   )
 }
@@ -394,7 +456,7 @@ export function HomeDashboard() {
         </div>
       </Section>
 
-      <Section title="Website visitors, last 7 days">
+      <Section title="Website visitors">
         <WebsiteVisitors />
       </Section>
 

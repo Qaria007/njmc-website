@@ -1,6 +1,6 @@
 # STATUS
 
-Updated 27 Sep 2026 (session 2, Claude Code on the Mac).
+Updated 15 Oct 2026 (Claude Code on the Mac).
 
 | Phase | State |
 |---|---|
@@ -23,6 +23,8 @@ Updated 27 Sep 2026 (session 2, Claude Code on the Mac).
 | 11 Oct (3) | First three real certificates issued for the owner's client; statement shortened, attachment optional for non-pharma materials, Chinese issue date, Medicayal only |
 | 11 Oct (4) | Certificates black and white, company stamp at the signature |
 | 12 Oct | Customer orders and order files can be deleted to a Trash (restore from the Trash tab; only the owner empties it; refused once an enquiry was sent, a PI is past draft or a payment exists). Order matching reads photos and scanned PDFs with the AI when AI mode is on. Menu regrouped (Orders, Suppliers, Documents, Money, Website, Settings), home dashboard redesigned, cookie-free website visitor counter (Website > Website visitors) as on the We-World site |
+| 15 Oct | CMEF 93 exhibitor CD loaded (4,501 device suppliers, 205 device types, contacts from 3,176 websites); Order matching offers multi-word device names inside descriptive rows (d4ea351) |
+| 15 Oct (2) | Suppliers get a Category (26 kinds, several per supplier, set from their product types). Website visitors: one row per visitor and day (Website > Website visits) with country and city (offline GeoIP table), network name (reverse DNS), source, device, pages in order, contact clicks; home dashboard shows 7 or 30 days, visitors and views per day, countries, cities, networks, sources, first pages, latest visitors. No IP address or cookie stored. docs/DECISIONS.md 2026-10-15 |
 | Next | Owner: app password for the mailbox, AI key, invite first client to the portal, Importer account for the Product Importer. Owner sets the usual markup, pastes an API key and switches AI mode on if wanted; first real AI reading to be checked. Owner fills in exchange rates and usual margin in Company details. Phase 2: AI reading of supplier emails, online supplier search. Owner fills in Company details for documents (legal address, signatory, bank details). Order files are not in the nightly backup yet (DB only). Catalogue: Arabic after review; owner decision on in-house/R&D molecules. Two-buyer home, Arabic for new pages and forms, Drive copy of backups (parked) |
 
 ## Done this session

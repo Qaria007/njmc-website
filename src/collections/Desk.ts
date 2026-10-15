@@ -2,6 +2,7 @@ import type { Endpoint, PayloadHandler, PayloadRequest } from 'payload'
 
 import { buildTasks, type CertRow, clientReminder, type EnquiryRow, type OrderRow, priceHistory, type SaleRow, supplierReminder, supplierScores } from '../lib/desk.ts'
 import { usdPerUnit } from '../lib/order-desk.ts'
+import { type SessionRow, sessionStats } from '../lib/visits.ts'
 import { emailsIn, money } from '../lib/trade-docs.ts'
 import { loadOverview } from './Payments.ts'
 import { CERT_TYPES } from './SupplierCertificates.ts'
@@ -256,9 +257,11 @@ const emailDone: PayloadHandler = async (req) => {
 // before for comparison, and the website enquiries not yet answered.
 const visitorsHandler: PayloadHandler = async (req) => {
   if (!admin(req)) return denied()
+  // ?days=7 (default) or 30: the period shown; the same length before it is the comparison.
+  const period = req.query?.days === '30' ? 30 : 7
   const dayAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10)
-  const since = dayAgo(6)
-  const rows = (await find(req, 'page-views', { day: { greater_than_equal: dayAgo(13) } }, 0)).map((r) => ({
+  const since = dayAgo(period - 1)
+  const rows = (await find(req, 'page-views', { day: { greater_than_equal: dayAgo(2 * period - 1) } }, 0)).map((r) => ({
     day: s(r.day), kind: s(r.kind), path: s(r.path), lang: s(r.lang), source: s(r.source), device: s(r.device), count: Number(r.count) || 0,
   }))
   const week = rows.filter((r) => r.day >= since)
@@ -269,9 +272,24 @@ const visitorsHandler: PayloadHandler = async (req) => {
     return [...m].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, count]) => ({ name, count }))
   }
   const view = (r: { kind: string }) => r.kind === 'view'
-  const days = Array.from({ length: 7 }, (_, i) => dayAgo(6 - i)).map((d) => ({ day: d, views: sum(week, (r) => r.day === d && view(r)) }))
+  const dayList = Array.from({ length: period }, (_, i) => dayAgo(period - 1 - i))
+  const days = dayList.map((d) => ({ day: d, views: sum(week, (r) => r.day === d && view(r)) }))
   const enquiries = await req.payload.count({ collection: 'leads', where: { status: { equals: 'new' } }, overrideAccess: true, req })
+  // Visitor sessions (collection visits): who came, from where, which pages.
+  const sessions = (await find(req, 'visits', { day: { greater_than_equal: dayAgo(2 * period - 1) } }, 0, { day: true, startedAt: true, country: true, city: true, network: true, source: true, device: true, lang: true, landing: true, pageCount: true, contactClicks: true, pages: true })).map((r) => ({
+    day: s(r.day), startedAt: s(r.startedAt), country: s(r.country), city: s(r.city), network: s(r.network), source: s(r.source), device: s(r.device), lang: s(r.lang),
+    landing: s(r.landing), pageCount: Number(r.pageCount) || 0, contactClicks: Number(r.contactClicks) || 0,
+    pages: Array.isArray(r.pages) ? (r.pages as { path?: unknown }[]).map((x) => s(x.path)) : [],
+  }))
+  const thisPeriod = sessions.filter((r) => r.day >= since)
+  const stats = sessionStats(thisPeriod as SessionRow[], dayList)
+  const previousVisitors = sessions.filter((r) => r.day < since).length
+  const recent = [...thisPeriod].sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1)).slice(0, 25).map((r) => ({
+    at: r.startedAt, country: r.country, city: r.city, network: r.network, source: r.source, device: r.device, lang: r.lang, pages: r.pages, pageCount: r.pageCount, contactClicks: r.contactClicks,
+  }))
   return Response.json({
+    period,
+    sessions: { ...stats, previousVisitors, recent },
     views: sum(week, view),
     previousViews: sum(rows, (r) => r.day < since && view(r)),
     mobile: sum(week, (r) => view(r) && r.device === 'mobile'),

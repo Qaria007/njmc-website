@@ -82,6 +82,7 @@ export interface Config {
     payments: Payment;
     leads: Lead;
     'page-views': PageView;
+    visits: Visit;
     media: Media;
     'issuing-companies': IssuingCompany;
     users: User;
@@ -127,6 +128,7 @@ export interface Config {
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
     leads: LeadsSelect<false> | LeadsSelect<true>;
     'page-views': PageViewsSelect<false> | PageViewsSelect<true>;
+    visits: VisitsSelect<false> | VisitsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'issuing-companies': IssuingCompaniesSelect<false> | IssuingCompaniesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -683,6 +685,39 @@ export interface Supplier {
    */
   contactPerson?: string | null;
   wechat?: string | null;
+  /**
+   * What kind of supplier this is. Set from their product range; a supplier can be in more than one.
+   */
+  category?:
+    | (
+        | 'pharma'
+        | 'imaging'
+        | 'monitoring'
+        | 'life-support'
+        | 'surgical'
+        | 'or-equipment'
+        | 'consumables'
+        | 'infusion'
+        | 'wound-care'
+        | 'laboratory'
+        | 'sterilization'
+        | 'furniture'
+        | 'rehabilitation'
+        | 'orthopaedic'
+        | 'cardiovascular'
+        | 'dental'
+        | 'ophthalmic'
+        | 'specialties'
+        | 'aesthetics'
+        | 'tcm'
+        | 'components'
+        | 'hospital-build'
+        | 'services'
+        | 'emergency'
+        | 'veterinary'
+        | 'nutrition'
+      )[]
+    | null;
   supplies?: ('api' | 'intermediate' | 'excipient' | 'colour' | 'device' | 'consumable' | 'other')[] | null;
   status?: ('new' | 'contacted' | 'samples' | 'qualified' | 'approved' | 'on-hold' | 'rejected') | null;
   /**
@@ -1198,6 +1233,48 @@ export interface PageView {
   createdAt: string;
 }
 /**
+ * One row per visitor and day: where they came from, which pages they saw. No IP addresses or cookies are stored.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visits".
+ */
+export interface Visit {
+  id: number;
+  summary?: string | null;
+  day: string;
+  visitor: string;
+  startedAt: string;
+  lastAt: string;
+  country?: string | null;
+  countryCode?: string | null;
+  city?: string | null;
+  /**
+   * The network the visit came from (the internet provider, or the company when it has its own address).
+   */
+  network?: string | null;
+  /**
+   * The website that sent the visitor, or "direct".
+   */
+  source?: string | null;
+  device?: string | null;
+  lang?: string | null;
+  landing?: string | null;
+  pageCount: number;
+  /**
+   * WhatsApp, e-mail or phone links clicked
+   */
+  contactClicks: number;
+  pages?:
+    | {
+        path: string;
+        at?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
@@ -1324,6 +1401,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'page-views';
         value: number | PageView;
+      } | null)
+    | ({
+        relationTo: 'visits';
+        value: number | Visit;
       } | null)
     | ({
         relationTo: 'media';
@@ -1659,6 +1740,7 @@ export interface SuppliersSelect<T extends boolean = true> {
   phone?: T;
   contactPerson?: T;
   wechat?: T;
+  category?: T;
   supplies?: T;
   status?: T;
   source?: T;
@@ -1873,6 +1955,36 @@ export interface PageViewsSelect<T extends boolean = true> {
   source?: T;
   device?: T;
   count?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visits_select".
+ */
+export interface VisitsSelect<T extends boolean = true> {
+  summary?: T;
+  day?: T;
+  visitor?: T;
+  startedAt?: T;
+  lastAt?: T;
+  country?: T;
+  countryCode?: T;
+  city?: T;
+  network?: T;
+  source?: T;
+  device?: T;
+  lang?: T;
+  landing?: T;
+  pageCount?: T;
+  contactClicks?: T;
+  pages?:
+    | T
+    | {
+        path?: T;
+        at?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

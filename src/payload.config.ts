@@ -20,6 +20,7 @@ import { Media } from './collections/Media.ts'
 import { OrderFiles } from './collections/OrderFiles.ts'
 import { OrderMatches } from './collections/OrderMatches.ts'
 import { PageViews } from './collections/PageViews.ts'
+import { Visits } from './collections/Visits.ts'
 import { Payments } from './collections/Payments.ts'
 import { Products } from './collections/Products.ts'
 import { SupplierCertificates } from './collections/SupplierCertificates.ts'
@@ -50,10 +51,10 @@ export default buildConfig({
     SupplierOrders, Suppliers, SupplierCertificates, Products,
     TradeFiles, TraderCoas,
     Payments,
-    Leads, PageViews, Media,
+    Leads, PageViews, Visits, Media,
     IssuingCompanies, Users, PortalUsers, ActivityLog,
   ].map(
-    (c) => (['activity-log', 'media', 'page-views'].includes(c.slug) ? c : { ...c, hooks: { ...c.hooks, afterChange: [...(c.hooks?.afterChange ?? []), logActivity(c.slug as never, String((c.labels?.singular as string) ?? c.slug))] } }),
+    (c) => (['activity-log', 'media', 'page-views', 'visits'].includes(c.slug) ? c : { ...c, hooks: { ...c.hooks, afterChange: [...(c.hooks?.afterChange ?? []), logActivity(c.slug as never, String((c.labels?.singular as string) ?? c.slug))] } }),
   ),
   endpoints: [...deskEndpoints, ...portalEndpoints],
   onInit: async (payload) => startInboxReader(payload),
