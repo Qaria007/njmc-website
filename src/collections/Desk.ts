@@ -8,6 +8,7 @@ import { loadOverview } from './Payments.ts'
 import { CERT_TYPES } from './SupplierCertificates.ts'
 import { jsonBody, notJson, quoteLink } from './SupplierOrders.ts'
 import { loadSeller } from './TradeSettings.ts'
+import { authorised } from './catalogue-import.ts'
 import { isOwner, isStaff } from './access.ts'
 
 // The home dashboard's server side (signed-in admins only): today's tasks, search across everything,
@@ -304,7 +305,55 @@ const visitorsHandler: PayloadHandler = async (req) => {
   })
 }
 
+// POST /api/desk/send-mail, called on the server itself (docker exec, header "Authorization: Import
+// <token>", see deploy/send-mail.sh): sends a message from the company's official address through
+// the Workspace relay, exactly like the enquiries and reminders above. Body: { to: [...], cc?: [...],
+// subject, text, supplier?: name, test?: true }. With test: true the message goes only to the
+// company's own address (Company details > Email) with a [TEST] subject. When a supplier name is
+// given, the send is written to that supplier's notes and its status set to Contacted.
+const sendMailHandler: PayloadHandler = async (req) => {
+  if (!authorised(req)) return Response.json({ error: 'Not found' }, { status: 404 })
+  const body = await jsonBody<{ to?: string[]; cc?: string[]; subject?: string; text?: string; supplier?: string; test?: boolean }>(req)
+  if (!body) return notJson()
+  if (!process.env.SMTP_HOST) return Response.json({ error: 'Email is not set up on this server, nothing was sent' }, { status: 503 })
+  const seller = await loadSeller(req.payload, req)
+  const own = emailsIn(seller.email)
+  const to = body.test ? own : emailsIn(body.to)
+  const subject = s(body.subject).trim().slice(0, 300)
+  const text = s(body.text).trim().slice(0, 20000)
+  if (!to.length || !subject || !text) return Response.json({ error: 'to, subject and text are required (test: true sends to the company address)' }, { status: 400 })
+  const mail = {
+    from: `"${(seller.brandName || seller.companyName).replace(/["\\\r\n]/g, '')}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`,
+    replyTo: own[0],
+    subject: body.test ? `[TEST] ${subject}` : subject,
+    text,
+  }
+  // The company copy (Company details > "Send me a copy of every supplier message at") goes on every real send, as for enquiries.
+  const cc = body.test ? [] : [...new Set([...emailsIn(body.cc), ...emailsIn(seller.copyTo)])].filter((e) => !to.includes(e))
+  try {
+    await req.payload.sendEmail({ ...mail, to, ...(cc.length ? { cc } : {}) })
+  } catch (err) {
+    req.payload.logger.error({ name: (err as Error)?.name }, 'server mail failed')
+    return Response.json({ error: 'The email could not be sent' }, { status: 502 })
+  }
+  const now = new Date().toISOString()
+  const supplierName = s(body.supplier).trim()
+  if (!body.test && supplierName) {
+    try {
+      const found = await req.payload.find({ collection: 'suppliers', where: { name: { equals: supplierName } }, limit: 1, depth: 0, overrideAccess: true, req })
+      const sup = found.docs[0]
+      if (!sup) return Response.json({ ok: true, to, from: mail.from, warning: `Sent, but no supplier named "${supplierName}" was found, nothing was written` })
+      const line = `${now.slice(0, 16).replace('T', ' ')} UTC: e-mail "${subject}" sent to ${to.join(', ')} from ${mail.from}`
+      await req.payload.update({ collection: 'suppliers', id: sup.id, depth: 0, overrideAccess: true, req, data: { status: sup.status === 'new' ? 'contacted' : sup.status, notes: [s(sup.notes), line].filter(Boolean).join('\n') } as never })
+    } catch {
+      return Response.json({ ok: true, to, from: mail.from, warning: 'Sent, but it could not be written on the supplier record' })
+    }
+  }
+  return Response.json({ ok: true, to, from: mail.from, test: Boolean(body.test) })
+}
+
 export const deskEndpoints: Endpoint[] = [
+  { path: '/desk/send-mail', method: 'post', handler: sendMailHandler },
   { path: '/desk/visitors', method: 'get', handler: visitorsHandler },
   { path: '/desk/today', method: 'get', handler: todayHandler },
   { path: '/desk/search', method: 'get', handler: searchHandler },

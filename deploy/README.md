@@ -9,6 +9,7 @@ Copies of what runs on the server, without secrets. Rules: CLAUDE.md "Shared ser
 | /opt/njmc/.env | (never committed) | DATABASE_URI, PAYLOAD_SECRET, MEDIA_DIR, CATALOGUE_IMPORT_TOKEN |
 | /opt/njmc/backup_njmc.sh | deploy/backup_njmc.sh | Nightly dump of the `njmc` database, cron 02:35 UTC |
 | /opt/njmc/import-catalogue.sh | deploy/import-catalogue.sh | Load a catalogue JSON file (see below) |
+| /opt/njmc/send-mail.sh | deploy/send-mail.sh | Send one e-mail from the official address (sale@njmcmedicsupp.com) through the site's mail relay; JSON file with to, subject, text, supplier; "test": true sends to the company's own address |
 | /opt/njmc/autodeploy.sh | deploy/autodeploy.sh | Cron every 10 min: pull the latest image, restart only if it changed |
 | /opt/pharmatrust-deploy/Caddyfile (appended) | deploy/Caddyfile.njmc | Preview hostname now, domain at C3 |
 | /root/njmc-change-backups/<UTC>/ | | Caddyfile, compose files and crontab copied before each change |

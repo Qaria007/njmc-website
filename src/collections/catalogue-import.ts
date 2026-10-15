@@ -19,7 +19,8 @@ type SourceIn = { supplier: string; documents?: string; marketStatus?: string; d
 type ProductIn = { slug: string; name: string; published?: boolean; sources?: SourceIn[] } & Record<string, unknown>
 type ImportFile = { suppliers?: SupplierIn[]; certificates?: CertIn[]; products?: ProductIn[] }
 
-function authorised(req: PayloadRequest): boolean {
+// Also used by the server-side mail endpoint (Desk.ts): the token lives only in /opt/njmc/.env.
+export function authorised(req: PayloadRequest): boolean {
   const token = process.env.CATALOGUE_IMPORT_TOKEN
   if (!token || token.length < 32) return false
   const header = req.headers.get('authorization') ?? ''
