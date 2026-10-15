@@ -45,7 +45,7 @@
     "unpdf": "^1.8.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.0.0",
+    "@eslint/js": "^10.0.1",
     "@types/geoip-lite": "^1.4.4",
     "@types/mailparser": "^3.9.0",
     "@types/node": "^22.0.0",
