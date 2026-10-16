@@ -36,7 +36,15 @@ export const nav: Record<Locale, NavItem[]> = {
         { href: '/consultancy/', label: 'Sourcing Consultancy' },
       ],
     },
-    { href: '/verification/', label: 'Independent Verification' },
+    {
+      href: '/supplier-matching/',
+      label: 'Services',
+      children: [
+        { href: '/supplier-matching/', label: 'Supplier Matching' },
+        { href: '/certificate-check/', label: 'Certificate Check' },
+        { href: '/verification/', label: 'Independent Verification' },
+      ],
+    },
     { href: '/insights/', label: 'Insights' },
     { href: '/about/', label: 'About' },
     { href: '/contact/', label: 'Contact Us' },
@@ -53,7 +61,15 @@ export const nav: Record<Locale, NavItem[]> = {
         { href: '/ar/consultancy/', label: 'استشارات التوريد' },
       ],
     },
-    { href: '/ar/verification/', label: 'التحقق المستقل' },
+    {
+      href: '/ar/supplier-matching/',
+      label: 'خدماتنا',
+      children: [
+        { href: '/ar/supplier-matching/', label: 'مطابقة الموردين' },
+        { href: '/ar/certificate-check/', label: 'فحص شهادة التحليل' },
+        { href: '/ar/verification/', label: 'التحقق المستقل' },
+      ],
+    },
     { href: '/ar/insights/', label: 'مقالات' },
     { href: '/ar/about/', label: 'من نحن' },
     { href: '/ar/contact/', label: 'اتصل بنا' },

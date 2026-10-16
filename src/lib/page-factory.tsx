@@ -28,7 +28,7 @@ export function contentRoute(locale: Locale, section: '' | 'insights' | 'group')
       const c = await getContent(locale, key)
       if (!c) notFound()
       // Forms are English only until reviewed Arabic labels exist (docs/arabic-review.md).
-      const form = locale === 'en' && (key === 'contact' || key === 'verification')
+      const form = locale === 'en' && (key === 'contact' || key === 'verification' || key === 'supplier-matching')
       // The catalogue is English only for now, like the forms.
       const catalogue = locale === 'en' && (key === 'drug-apis' || key === 'excipients')
       return (
