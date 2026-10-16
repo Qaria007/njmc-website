@@ -22,6 +22,9 @@ Only facts here or in BRAND.md may appear on the site. Every new fact needs a so
 | LNJC legal name "LNJC Pharmaceuticals and Medical Supplies Co., Ltd.", site landcarenj.com, brand-kit logo | CONFIRMED | owner, 27 Sep 2026 (OWNER-QUESTIONS 2) |
 | PharmaTrust COA Validator, pharmatrust.tech, tagline "Certificate analysis you can defend." | CONFIRMED | PharmaTrust Brand Manual v3 |
 | No fixed product lists; products are sourced to each client's requirements | CONFIRMED | owner, 27 Sep 2026 (OWNER-QUESTIONS 1) |
+| NJMC website is the single front door; services shown: Sourcing, Supplier Matching, Certificate Check (PharmaTrust), Independent Verification; consultancy linked below the service cards | CONFIRMED | owner, 16 Oct 2026 ("yes to all") |
+| Supplier matching: supplier records built over three years of sourcing and at trade exhibitions in China; we show the documents a source has shared, with expiry dates as stated; checking them is the paid verification service | CONFIRMED | owner, 16 Oct 2026 |
+| Certificate check: a buyer may e-mail a certificate to sale@ and NJMC runs the PharmaTrust Automated Analysis and sends the report | CONFIRMED | owner, 16 Oct 2026 |
 | Public product pages (/catalogue/) listing examples of products sourced (names, CAS/C.I., grades, class); published rows come from the catalogue database | CONFIRMED | owner, 28 Sep 2026 (in session) |
 | Group boilerplate (BRAND.md) and verification disclaimer (docs/02) approved | CONFIRMED | owner, 27 Sep 2026 (OWNER-QUESTIONS 4) |
 | Business licence: 南京米迪古卡亚尔医疗用品有限公司, USCC 91320100MAC61PPG8U (checksum ok), LLC foreign invested, registered 2022-12-30, Nanjing Market Supervision Administration; shown on /trust/ | CONFIRMED | licence scan (owner's OneDrive, personal/patent course/Companies license.pdf p1), owner asked 5 Oct 2026 to put the licence on the site |
