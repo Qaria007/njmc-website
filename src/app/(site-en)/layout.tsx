@@ -15,6 +15,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: 'NJMC Medical Supplies', template: '%s | NJMC Medical Supplies' },
   icons: { icon: '/njmc-mark.svg', apple: '/apple-touch-icon.png' },
+  // Bing Webmaster Tools ownership (majidqaria@gmail.com account, 16 Oct 2026). Keep it:
+  // Bing re-checks the tag, and removing it unverifies the site.
+  verification: { other: { 'msvalidate.01': '26E6678872E95CEBA9C2D414EE38D31F' } },
 }
 
 export default function EnglishLayout({ children }: { children: React.ReactNode }) {
