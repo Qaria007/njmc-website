@@ -126,6 +126,24 @@ def extract(path: pathlib.Path, ar: bool):
         lds.append(fix(j, ar))
     return {'title': fix(title, ar), 'description': fix(desc, ar), 'html': fix(main, ar), 'jsonld': lds}
 
+# Owner, 16 Oct 2026: NJMC is the front door for the PharmaTrust certificate check. Every
+# article that discusses certificates of analysis gets one box pointing to /certificate-check/,
+# placed just before the author box. Wording follows docs/02 (PharmaTrust copy rules).
+COA_BOX_EN = ('<div class="callout"><p><strong>Check a certificate of analysis.</strong> PharmaTrust by NJMC, '
+              'our own software, reads a certificate against the applicable specification and lists the points '
+              'to raise with the supplier. <a href="/certificate-check/">Certificate check</a></p></div>')
+COA_BOX_AR = ('<div class="callout"><p><strong>افحص شهادة التحليل.</strong> <span dir="ltr">PharmaTrust by NJMC</span>، '
+              'برنامجنا الخاص، يقرأ الشهادة مقابل المواصفة المعمول بها ويحدد البنود التي ينبغي أن تسأل المورّد عنها. '
+              '<a href="/ar/certificate-check/">فحص شهادة التحليل</a></p></div>')
+
+def add_coa_box(h: str, ar: bool) -> str:
+    mentions = ('شهادة التحليل' in h or 'شهادات التحليل' in h) if ar else ('certificate of analysis' in h.lower() or 'certificates of analysis' in h.lower())
+    if not mentions or '/certificate-check/' in h:
+        return h
+    box = COA_BOX_AR if ar else COA_BOX_EN
+    at = h.find('<div class="author-box">')
+    return h[:at] + box + '\n' + h[at:] if at >= 0 else h + box
+
 NEW_SITE_OWNS = {'home'}
 
 pages = sorted(p for p in SRC.rglob('*.html') if p.parts[len(SRC.parts)] not in ('.automation', 'drqaria', '.git'))
@@ -154,5 +172,7 @@ for p in pages:
         at = data['html'].find('<div class="faq"')
         at = at if at >= 0 else data['html'].find('<section class="alt-bg"')
         data['html'] = data['html'][:at] + note + data['html'][at:] if at >= 0 else data['html'] + note
+    if slug.startswith('insights__'):
+        data['html'] = add_coa_box(data['html'], ar)
     out.write_text(json.dumps(data, ensure_ascii=False, indent=1), 'utf-8')
     print(out.relative_to(OUT))
