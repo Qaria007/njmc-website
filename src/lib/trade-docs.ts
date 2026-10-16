@@ -122,8 +122,8 @@ const t = (v: unknown) => (v == null ? '' : String(v).trim())
 // The name people see (the brand when there is one) and the full name with the legal company.
 export const tradingName = (s: Pick<Seller, 'companyName' | 'brandName'>) => t(s.brandName) || s.companyName
 // Everything the HTML mail layout needs about the sender (src/lib/mail-html.ts).
-export const mailBrand = (s: Pick<Seller, 'companyName' | 'brandName' | 'mailFromName' | 'website' | 'phone' | 'email' | 'address'>) => ({
-  brand: mailSenderName(s), legalName: s.companyName, website: t(s.website), phone: t(s.phone), email: t(s.email), address: t(s.address),
+export const mailBrand = (s: Pick<Seller, 'companyName' | 'brandName' | 'mailFromName' | 'website' | 'phone' | 'email' | 'address' | 'signatoryName' | 'signatoryTitle'>) => ({
+  brand: mailSenderName(s), legalName: s.companyName, website: t(s.website), phone: t(s.phone), email: t(s.email), address: t(s.address), signatoryName: t(s.signatoryName), signatoryTitle: t(s.signatoryTitle),
 })
 // The sender name of e-mails: the e-mail setting, else the brand, else the legal name. Quotes and line breaks removed.
 export const mailSenderName = (s: Pick<Seller, 'companyName' | 'brandName' | 'mailFromName'>) => (t(s.mailFromName) || t(s.brandName) || s.companyName).replace(/["\\\r\n]/g, '')
