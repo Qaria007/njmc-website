@@ -126,6 +126,8 @@ def extract(path: pathlib.Path, ar: bool):
         lds.append(fix(j, ar))
     return {'title': fix(title, ar), 'description': fix(desc, ar), 'html': fix(main, ar), 'jsonld': lds}
 
+NEW_SITE_OWNS = {'home'}
+
 pages = sorted(p for p in SRC.rglob('*.html') if p.parts[len(SRC.parts)] not in ('.automation', 'drqaria', '.git'))
 for p in pages:
     rel = p.relative_to(SRC).as_posix()
@@ -136,6 +138,11 @@ for p in pages:
         slug = (rel[3:] if rel.startswith('ar/') else rel).removesuffix('.html')
         if slug.startswith('insights-'):
             slug = 'insights__' + slug[len('insights-'):]
+    # Pages the new site owns (edited in src/content directly). The daily sync must not
+    # overwrite them with the old static copy. home: owner decision 16 Oct 2026, the home
+    # page shows the services side by side (Sourcing, Supplier Matching, Certificate Check).
+    if slug in NEW_SITE_OWNS:
+        continue
     out = OUT / ('ar' if ar else 'en') / (slug + '.json')
     data = extract(p, ar)
     if slug == 'verification':
