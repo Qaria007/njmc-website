@@ -58,7 +58,7 @@ sits under NJMC, now and in future:
 - See docs/02-content-and-claims.md.
 
 ## Data
-- GA4 and Search Console for njmcmedicsupp.com: [OPEN, Phase 4].
+- Search Console for njmcmedicsupp.com: URL-prefix property https://njmcmedicsupp.com/ owned by majidqaria@gmail.com (Chrome authuser=1), verified 16 Oct 2026 by the file public/google8816def3a8eda04a.html (never delete it). Sitemap submitted 16 Oct (262 pages). A domain property also exists in another Chrome profile of the owner. GA4: none; visits come from the server log and Admin > Website visits.
 - CRM: HubSpot. RFQs go to HubSpot, the Payload Leads collection, and sale@njmcmedicsupp.com.
 - Funnel events: page_view > service_view > rfq_start > rfq_submit, plus whatsapp_click.
 
