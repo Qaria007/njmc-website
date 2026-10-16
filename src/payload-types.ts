@@ -1370,7 +1370,7 @@ export interface NetworkClient {
    * The installation name on the server (/opt/njmc/clients/<slug>)
    */
   slug: string;
-  plan: 'starter' | 'business';
+  plan: 'trial' | 'starter' | 'business';
   /**
    * Off = the installation gets "subscription paused" on every search
    */

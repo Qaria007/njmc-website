@@ -43,6 +43,8 @@ test('signals fold into stats; own and network stats merge with a weighted reply
 })
 
 test('plans and the monthly allowance: starter 3 per product and 20 a month, business 5 and 60, plus 2 per shared supplier', () => {
+  assert.equal(PLANS.trial.perProduct, 3)
+  assert.equal(PLANS.trial.perMonth, 3)
   assert.equal(PLANS.starter.perProduct, 3)
   assert.equal(PLANS.starter.perMonth, 20)
   assert.equal(PLANS.business.perProduct, 5)

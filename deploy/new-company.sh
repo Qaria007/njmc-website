@@ -18,6 +18,7 @@
 #       - the installation is registered on the NJMC master as a network client (plan starter|business)
 #   new-company.sh hosts <slug> <host[,host2]>      replace the Caddy hosts (e.g. once a real DNS name exists)
 #   new-company.sh register <slug> [plan]          (re)register on the master; safe to repeat
+#                                                  plan: trial (3 free product searches) | starter | business
 #   new-company.sh list                             every installation and whether it answers
 #
 # The image follows njmc-web: /opt/njmc/autodeploy.sh restarts every client container when the
@@ -197,13 +198,13 @@ cmd_hosts() {
 cmd_register() {
   local slug="$1" plan="${2:-starter}"; need_slug "$slug"
   [ -f "$CLIENTS/$slug/.env" ] || die "no installation ${slug}"
-  [[ "$plan" =~ ^(starter|business)$ ]] || die "plan must be starter or business"
+  [[ "$plan" =~ ^(trial|starter|business)$ ]] || die "plan must be trial, starter or business"
   local token hash title per month
   token=$(sed -n -E 's/^NETWORK_TOKEN=//p' "$CLIENTS/$slug/.env")
   [ -n "$token" ] || die "no NETWORK_TOKEN in the .env"
   hash=$(printf '%s' "$token" | sha256sum | cut -d' ' -f1)
   title=$(sed -n -E 's/^ADMIN_TITLE=//p' "$CLIENTS/$slug/.env")
-  if [ "$plan" = business ]; then per=5; month=60; else per=3; month=20; fi
+  if [ "$plan" = business ]; then per=5; month=60; elif [ "$plan" = trial ]; then per=3; month=3; else per=3; month=20; fi
   local t
   t=$(printf '%s' "$title" | sed "s/'/''/g")
   if ! echo "select 1 from information_schema.tables where table_name='network_clients'" | psql_master | grep -q 1; then

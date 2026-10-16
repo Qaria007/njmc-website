@@ -15,8 +15,11 @@
 //   the N suppliers shown are the best behaved ones. Golden is earned, never bought.
 import { createHash } from 'node:crypto'
 
-export type Plan = 'starter' | 'business'
+// Trial (owner, 17 Oct 2026): a prospect tries three product searches for free; the owner
+// switches the plan to Starter or Business when he pays.
+export type Plan = 'trial' | 'starter' | 'business'
 export const PLANS: Record<Plan, { label: string; perProduct: number; perMonth: number }> = {
+  trial: { label: 'Free trial', perProduct: 3, perMonth: 3 },
   starter: { label: 'Starter', perProduct: 3, perMonth: 20 },
   business: { label: 'Business', perProduct: 5, perMonth: 60 },
 }

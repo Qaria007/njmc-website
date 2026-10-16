@@ -23,6 +23,7 @@ import * as migration_20261012_145215_trash_photos_visitors from './20261012_145
 import * as migration_20261015_143729_visits_categories from './20261015_143729_visits_categories';
 import * as migration_20261015_154321_mail_from_name from './20261015_154321_mail_from_name';
 import * as migration_20261016_193147_supplier_network from './20261016_193147_supplier_network';
+import * as migration_20261017_050000_trial_plan from './20261017_050000_trial_plan';
 
 export const migrations = [
   {
@@ -149,5 +150,10 @@ export const migrations = [
     up: migration_20261016_193147_supplier_network.up,
     down: migration_20261016_193147_supplier_network.down,
     name: '20261016_193147_supplier_network'
+  },
+  {
+    up: migration_20261017_050000_trial_plan.up,
+    down: migration_20261017_050000_trial_plan.down,
+    name: '20261017_050000_trial_plan'
   },
 ];
