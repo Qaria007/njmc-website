@@ -20,10 +20,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       out.push({ url: SITE_URL + pathFor(locale, key), alternates: { languages } })
     }
   }
+  // Product pages are noindex since 16 Oct 2026 (see catalogue/[slug]/page.tsx), so only the
+  // catalogue list goes in the sitemap. The newest product date is its lastModified.
   try {
     const products = await publishedProducts()
-    out.push({ url: `${SITE_URL}/catalogue/` })
-    for (const p of products) out.push({ url: `${SITE_URL}/catalogue/${p.slug}/`, lastModified: p.updatedAt })
+    const newest = products.map((p) => p.updatedAt).filter(Boolean).sort().at(-1)
+    out.push({ url: `${SITE_URL}/catalogue/`, ...(newest ? { lastModified: newest } : {}) })
   } catch {
     // Database unreachable: the static pages above still make a valid sitemap.
   }

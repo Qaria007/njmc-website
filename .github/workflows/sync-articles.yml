@@ -75,3 +75,21 @@ jobs:
             ghcr.io/qaria007/njmc-website:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # Tell Bing (and the other IndexNow engines) about the new or changed articles, once the
+      # server has picked up the new image (autodeploy every 10 min). Added 16 Oct 2026: Bing had
+      # no NJMC pages. Never fails the job.
+      - name: IndexNow (new and changed articles)
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          URLS=$(git diff --name-only HEAD~1 HEAD -- src/content | sed -n -E \
+            -e 's#^src/content/en/insights__(.+)\.json$#https://njmcmedicsupp.com/insights/\1/#p' \
+            -e 's#^src/content/ar/insights__(.+)\.json$#https://njmcmedicsupp.com/ar/insights/\1/#p' \
+            -e 's#^src/content/en/insights\.json$#https://njmcmedicsupp.com/insights/#p' \
+            -e 's#^src/content/ar/insights\.json$#https://njmcmedicsupp.com/ar/insights/#p')
+          if [ -z "$URLS" ]; then echo "no article URLs changed"; exit 0; fi
+          FIRST=$(echo "$URLS" | head -1)
+          for i in $(seq 1 40); do
+            [ "$(curl -s -o /dev/null -w '%{http_code}' "$FIRST")" = 200 ] && break
+            sleep 30
+          done
+          echo "$URLS" | xargs python3 scripts/indexnow.py || echo "IndexNow failed (not fatal)"

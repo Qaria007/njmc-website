@@ -19,6 +19,11 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     title: `${p.name} ${kind}`,
     description: `Request a quotation for ${p.name}${p.cas ? ` (CAS ${p.cas})` : ''}${p.ciNumber ? ` (C.I. ${p.ciNumber})` : ''}${p.grades?.length ? `, ${p.grades.join(', ')} grade` : ''}, sourced through NJMC Medical Supplies.`,
     alternates: { canonical: `/catalogue/${p.slug}/` },
+    // Owner, 16 Oct 2026: kept out of search until each product has real content of its own.
+    // About 210 near-identical ~150-word pages are the thin-page pattern that got pharmatrust.tech
+    // dropped by Google's September 2026 spam update. The pages stay for visitors and quotations,
+    // and /catalogue/ (the list) stays indexable. Lift per product once it has a written description.
+    robots: { index: false, follow: true },
   }
 }
 
