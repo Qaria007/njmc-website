@@ -8,6 +8,7 @@ import { aiErrorMessage, AiReadError, readQuoteWithAi } from '../lib/ai.ts'
 import { type CleanQuote, cleanQuote, type QuoteSubmission } from '../lib/order-desk.ts'
 import { SITE_URL } from '../lib/site.ts'
 import { renderPdf } from '../lib/trade-pdf.ts'
+import { signalSupplier } from '../lib/network-client.ts'
 import { isStaff, signedIn } from './access.ts'
 import { loadAi, loadSeller } from './TradeSettings.ts'
 
@@ -187,6 +188,7 @@ const sendEndpoint: PayloadHandler = async (req) => {
       const order = (await req.payload.findByID({ collection: 'order-matches', id: orderId, depth: 0, overrideAccess: true, trash: true, req })) as unknown as AnyDoc
       if (order.status === 'new' && !order.deletedAt) await req.payload.update({ collection: 'order-matches', id: orderId, depth: 0, overrideAccess: true, req, data: { status: 'suppliers contacted' } as never })
     }
+    if (!body.test && !doc.sentAt) signalSupplier(req.payload, idOf(doc.supplier), doc.kind === 'po' ? 'ordered' : 'enquiry_sent')
   } catch (err) {
     req.payload.logger.error({ err }, `supplier message ${s(doc.number)} was sent but the record could not be updated`)
     warning = 'The email WAS sent, but the record could not be marked as sent. Do not send it again.'
@@ -259,6 +261,7 @@ async function saveQuote(req: PayloadRequest, doc: AnyDoc, q: CleanQuote, source
       quoteLog: [s(doc.quoteLog), log].filter(Boolean).join('\n'),
     } as never,
   })
+  if (!doc.quoteReceivedAt) signalSupplier(req.payload, idOf(doc.supplier), 'replied', doc.sentAt ? (Date.parse(now) - Date.parse(s(doc.sentAt))) / 86_400_000 : null)
   return priced
 }
 

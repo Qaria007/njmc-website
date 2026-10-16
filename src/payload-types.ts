@@ -88,6 +88,9 @@ export interface Config {
     users: User;
     'portal-users': PortalUser;
     'activity-log': ActivityLog;
+    'network-clients': NetworkClient;
+    'network-reveals': NetworkReveal;
+    'network-signals': NetworkSignal;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -134,6 +137,9 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     'portal-users': PortalUsersSelect<false> | PortalUsersSelect<true>;
     'activity-log': ActivityLogSelect<false> | ActivityLogSelect<true>;
+    'network-clients': NetworkClientsSelect<false> | NetworkClientsSelect<true>;
+    'network-reveals': NetworkRevealsSelect<false> | NetworkRevealsSelect<true>;
+    'network-signals': NetworkSignalsSelect<false> | NetworkSignalsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -233,6 +239,11 @@ export interface OrderMatch {
    */
   typedMaterials?: string | null;
   rematch?: boolean | null;
+  /**
+   * Each product searched counts once a month; a product searched again shows the same suppliers.
+   */
+  networkSearch?: ('missing' | 'all' | 'off') | null;
+  networkUsage?: string | null;
   matchedAt?: string | null;
   readNote?: string | null;
   results?: string | null;
@@ -253,6 +264,23 @@ export interface OrderMatch {
               id?: string | null;
             }[]
           | null;
+        network?:
+          | {
+              ref?: string | null;
+              name?: string | null;
+              country?: string | null;
+              city?: string | null;
+              website?: string | null;
+              email?: string | null;
+              phone?: string | null;
+              wechat?: string | null;
+              listedAs?: string | null;
+              documents?: string | null;
+              standing?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        networkNote?: string | null;
         id?: string | null;
       }[]
     | null;
@@ -731,6 +759,13 @@ export interface Supplier {
   rating?: ('5' | '4' | '3' | '2' | '1') | null;
   problems?: string | null;
   notes?: string | null;
+  /**
+   * Sends the name, country, website and what they make to the network, once. Never your prices, contacts or orders. Each shared supplier gives you 2 extra product searches this month. A supplier that came from the network cannot be shared back.
+   */
+  shareWithNetwork?: boolean | null;
+  sharedAt?: string | null;
+  shareNote?: string | null;
+  networkRef?: string | null;
   orders?: {
     docs?: (number | SupplierOrder)[];
     hasNextPage?: boolean;
@@ -1323,6 +1358,76 @@ export interface ActivityLog {
   createdAt: string;
 }
 /**
+ * Companies using the order software (Trade Manager) that search our supplier database. Made by new-company.sh on the server; the plan and the caps can be changed here.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "network-clients".
+ */
+export interface NetworkClient {
+  id: number;
+  name: string;
+  /**
+   * The installation name on the server (/opt/njmc/clients/<slug>)
+   */
+  slug: string;
+  plan: 'starter' | 'business';
+  /**
+   * Off = the installation gets "subscription paused" on every search
+   */
+  active?: boolean | null;
+  suppliersPerProduct: number;
+  productsPerMonth: number;
+  contactEmail?: string | null;
+  notes?: string | null;
+  usedThisMonth?: number | null;
+  usageMonth?: string | null;
+  lastSeenAt?: string | null;
+  tokenHash?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Which suppliers each network client was shown, per product.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "network-reveals".
+ */
+export interface NetworkReveal {
+  id: number;
+  client: number | NetworkClient;
+  productKey: string;
+  productLabel?: string | null;
+  month?: string | null;
+  suppliers?:
+    | {
+        supplier: number | Supplier;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * How suppliers behaved with the network clients: feeds the scorecard. Never prices, never who the client traded with.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "network-signals".
+ */
+export interface NetworkSignal {
+  id: number;
+  client: number | NetworkClient;
+  supplier: number | Supplier;
+  event: 'enquiry_sent' | 'replied' | 'quoted' | 'ordered' | 'delivered' | 'problem' | 'shared';
+  /**
+   * Reply time in days, on a reply
+   */
+  days?: number | null;
+  at: string;
+  month?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -1425,6 +1530,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'activity-log';
         value: number | ActivityLog;
+      } | null)
+    | ({
+        relationTo: 'network-clients';
+        value: number | NetworkClient;
+      } | null)
+    | ({
+        relationTo: 'network-reveals';
+        value: number | NetworkReveal;
+      } | null)
+    | ({
+        relationTo: 'network-signals';
+        value: number | NetworkSignal;
       } | null);
   globalSlug?: string | null;
   user:
@@ -1491,6 +1608,8 @@ export interface OrderMatchesSelect<T extends boolean = true> {
   fileReading?: T;
   typedMaterials?: T;
   rematch?: T;
+  networkSearch?: T;
+  networkUsage?: T;
   matchedAt?: T;
   readNote?: T;
   results?: T;
@@ -1512,6 +1631,23 @@ export interface OrderMatchesSelect<T extends boolean = true> {
               certificates?: T;
               id?: T;
             };
+        network?:
+          | T
+          | {
+              ref?: T;
+              name?: T;
+              country?: T;
+              city?: T;
+              website?: T;
+              email?: T;
+              phone?: T;
+              wechat?: T;
+              listedAs?: T;
+              documents?: T;
+              standing?: T;
+              id?: T;
+            };
+        networkNote?: T;
         id?: T;
       };
   notes?: T;
@@ -1748,6 +1884,10 @@ export interface SuppliersSelect<T extends boolean = true> {
   rating?: T;
   problems?: T;
   notes?: T;
+  shareWithNetwork?: T;
+  sharedAt?: T;
+  shareNote?: T;
+  networkRef?: T;
   orders?: T;
   payments?: T;
   documents?: T;
@@ -2106,6 +2246,58 @@ export interface ActivityLogSelect<T extends boolean = true> {
   docId?: T;
   summary?: T;
   fields?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "network-clients_select".
+ */
+export interface NetworkClientsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  plan?: T;
+  active?: T;
+  suppliersPerProduct?: T;
+  productsPerMonth?: T;
+  contactEmail?: T;
+  notes?: T;
+  usedThisMonth?: T;
+  usageMonth?: T;
+  lastSeenAt?: T;
+  tokenHash?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "network-reveals_select".
+ */
+export interface NetworkRevealsSelect<T extends boolean = true> {
+  client?: T;
+  productKey?: T;
+  productLabel?: T;
+  month?: T;
+  suppliers?:
+    | T
+    | {
+        supplier?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "network-signals_select".
+ */
+export interface NetworkSignalsSelect<T extends boolean = true> {
+  client?: T;
+  supplier?: T;
+  event?: T;
+  days?: T;
+  at?: T;
+  month?: T;
   updatedAt?: T;
   createdAt?: T;
 }

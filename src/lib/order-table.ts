@@ -4,6 +4,8 @@
 import ExcelJS from 'exceljs'
 import type { Payload, PayloadRequest } from 'payload'
 
+import { type Standing, STANDING_LABEL } from './network.ts'
+
 export type TableRow = {
   no: number
   requested: string
@@ -38,6 +40,14 @@ export async function buildOrderTable(payload: Payload, id: string | number, req
   const doc = (await payload.findByID({ collection: 'order-matches', id, depth: 0, overrideAccess: true, trash: true, req })) as unknown as AnyDoc
   const lines = (doc.lines as AnyDoc[] | undefined) ?? []
   const supIds = [...new Set(lines.flatMap((l) => ((l.matches as AnyDoc[]) ?? []).map((m) => idOf(m.supplier))))].filter(Boolean)
+  // Network suppliers already copied into our own list (by sending an enquiry) are shown under
+  // their own record, so their enquiries and orders line up with them.
+  const refs = [...new Set(lines.flatMap((l) => ((l.network as AnyDoc[]) ?? []).map((n) => s(n.ref))))].filter(Boolean)
+  const local = new Map<string, AnyDoc>()
+  if (refs.length) {
+    const r = await payload.find({ collection: 'suppliers', where: { networkRef: { in: refs } }, limit: 1000, depth: 0, pagination: false, overrideAccess: true, req })
+    for (const d of r.docs as unknown as AnyDoc[]) local.set(s(d.networkRef), d)
+  }
   const prodIds = [...new Set(lines.flatMap((l) => ((l.matches as AnyDoc[]) ?? []).map((m) => idOf(m.product))))].filter(Boolean)
   const sup = new Map<string, AnyDoc>()
   const prod = new Map<string, AnyDoc>()
@@ -54,9 +64,21 @@ export async function buildOrderTable(payload: Payload, id: string | number, req
   lines.forEach((l, i) => {
     const base = { no: i + 1, requested: s(l.requested), quantity: s(l.quantity), grade: s(l.grade) }
     const matches = (l.matches as AnyDoc[]) ?? []
-    if (!matches.length) {
-      rows.push({ ...base, supplierId: '', supplier: 'No supplier in the database yet', country: '', city: '', product: '', gradesListed: '', match: '', contactPerson: '',
+    const network = (l.network as AnyDoc[]) ?? []
+    if (!matches.length && !network.length) {
+      const note = s(l.networkNote) === 'monthly limit reached' ? 'No supplier of yours; the network\'s monthly limit of product searches is reached' : 'No supplier in the database yet'
+      rows.push({ ...base, supplierId: '', supplier: note, country: '', city: '', product: '', gradesListed: '', match: '', contactPerson: '',
         phone: '', email: '', wechat: '', website: '', documents: '', toConfirm: '', found: false })
+      return
+    }
+    // Suppliers from the network come after our own: same columns, marked as network suppliers.
+    const networkRows: TableRow[] = network.map((n) => ({
+      ...base, supplierId: local.has(s(n.ref)) ? String(local.get(s(n.ref))?.id) : `net:${s(n.ref)}`, supplier: `${s(n.name)} (network)`, country: s(n.country), city: s(n.city), product: s(n.listedAs), gradesListed: '',
+      match: `supplier network: ${STANDING_LABEL[s(n.standing) as Standing] ?? s(n.standing)}`, contactPerson: '', phone: s(n.phone), email: s(n.email), wechat: s(n.wechat), website: s(n.website),
+      documents: s(n.documents), toConfirm: s(n.documents) ? `${ASK_ALL} (stated: ${s(n.documents)}; confirm still valid)` : `${ASK_ALL} (none stated)`, found: true,
+    }))
+    if (!matches.length) {
+      rows.push(...networkRows)
       return
     }
     // One row per supplier for this material: the strongest match, with every product name they list.
@@ -89,9 +111,10 @@ export async function buildOrderTable(payload: Payload, id: string | number, req
         found: true,
       })
     }
+    rows.push(...networkRows)
   })
   const total = lines.length
-  const found = lines.filter((l) => ((l.matches as AnyDoc[]) ?? []).length).length
+  const found = lines.filter((l) => ((l.matches as AnyDoc[]) ?? []).length || ((l.network as AnyDoc[]) ?? []).length).length
   return {
     title: s(doc.title),
     customer: s(doc.customer),

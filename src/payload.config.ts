@@ -17,6 +17,7 @@ import { InboxMessages, startInboxReader } from './collections/Inbox.ts'
 import { IssuingCompanies } from './collections/IssuingCompanies.ts'
 import { Leads } from './collections/Leads.ts'
 import { Media } from './collections/Media.ts'
+import { NetworkClients, networkEndpoints, NetworkReveals, NetworkSignals } from './collections/Network.ts'
 import { OrderFiles } from './collections/OrderFiles.ts'
 import { OrderMatches } from './collections/OrderMatches.ts'
 import { PageViews } from './collections/PageViews.ts'
@@ -53,10 +54,11 @@ export default buildConfig({
     Payments,
     Leads, PageViews, Visits, Media,
     IssuingCompanies, Users, PortalUsers, ActivityLog,
+    NetworkClients, NetworkReveals, NetworkSignals,
   ].map(
-    (c) => (['activity-log', 'media', 'page-views', 'visits'].includes(c.slug) ? c : { ...c, hooks: { ...c.hooks, afterChange: [...(c.hooks?.afterChange ?? []), logActivity(c.slug as never, String((c.labels?.singular as string) ?? c.slug))] } }),
+    (c) => (['activity-log', 'media', 'page-views', 'visits', 'network-reveals', 'network-signals'].includes(c.slug) ? c : { ...c, hooks: { ...c.hooks, afterChange: [...(c.hooks?.afterChange ?? []), logActivity(c.slug as never, String((c.labels?.singular as string) ?? c.slug))] } }),
   ),
-  endpoints: [...deskEndpoints, ...portalEndpoints],
+  endpoints: [...deskEndpoints, ...portalEndpoints, ...networkEndpoints],
   onInit: async (payload) => startInboxReader(payload),
   globals: [TradeSettings, AccountsOverview],
   localization: {

@@ -15,6 +15,28 @@ if [ "$SIZE" -lt 200 ]; then echo "NJMC BACKUP FAILED: $OUT is $SIZE bytes" >&2;
 ls -1t "$DIR"/njmc-*.dump.gz 2>/dev/null | tail -n +15 | while read -r old; do rm -f "$old"; done
 echo "$(date -u +%FT%TZ) njmc backup ok: $OUT ($SIZE bytes)"
 
+# Company installations made by new-company.sh (/opt/njmc/clients/<slug>): database and order files
+# of each, kept and uploaded like NJMC's own. A failure of one client never stops the others.
+for d in /opt/njmc/clients/*/; do
+  [ -f "$d/.env" ] || continue
+  SLUG=$(basename "$d")
+  COUT="$DIR/njmc-client-$SLUG-$(date -u +%Y%m%dT%H%M%SZ).dump.gz"
+  if docker exec pharmatrust-db-1 sh -c "pg_dump -U \$POSTGRES_USER -d njmc_$SLUG --format=custom" | gzip > "$COUT" && [ "$(stat -c %s "$COUT")" -ge 200 ]; then
+    chmod 600 "$COUT"
+    echo "$(date -u +%FT%TZ) client $SLUG backup ok: $COUT ($(stat -c %s "$COUT") bytes)"
+    ls -1t "$DIR"/njmc-client-"$SLUG"-*.dump.gz 2>/dev/null | tail -n +15 | while read -r old; do rm -f "$old"; done
+  else
+    rm -f "$COUT"; echo "CLIENT $SLUG BACKUP FAILED" >&2
+  fi
+  CORD="$DIR/njmc-client-$SLUG-orders-$(date -u +%Y%m%dT%H%M%SZ).tar.gz"
+  if docker exec "njmc-$SLUG" tar czf - -C /app/private-orders . > "$CORD" && [ -s "$CORD" ]; then
+    chmod 600 "$CORD"
+    ls -1t "$DIR"/njmc-client-"$SLUG"-orders-*.tar.gz 2>/dev/null | tail -n +15 | while read -r old; do rm -f "$old"; done
+  else
+    rm -f "$CORD"
+  fi
+done
+
 # Private order files and deal documents (volume njmc_orders: customer orders, contracts, payment
 # slips). Read through the running container; a failure here does not stop the database backup.
 ORD="$DIR/njmc-orders-$(date -u +%Y%m%dT%H%M%SZ).tar.gz"
@@ -47,7 +69,7 @@ for old in names[:-keep]:
     bucket.blob(old).delete()
 '
 FAILED=0
-for F in "$OUT" "${ORD:-}"; do
+for F in "$OUT" "${ORD:-}" "$DIR"/njmc-client-*-"$(date -u +%Y%m%dT)"*.gz; do
   [ -n "$F" ] && [ -s "$F" ] || continue
   PREFIX=$(basename "$F" | sed -E 's/-[0-9]{8}T.*//')
   if ! docker exec -i pharmatrust-api-1 python -c "$UPLOAD_PY" "$(basename "$F")" 30 "$PREFIX-2" < "$F"; then

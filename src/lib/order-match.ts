@@ -331,7 +331,8 @@ export function matchOrder(rows: OrderRow[], fullText: string, products: Catalog
   const idx = buildIndex(products)
   // Lines from letters, Word or PDF files are kept only when they look like an order line: a match,
   // a CAS number or a quantity. Greetings and addresses are dropped. Table rows are always kept.
-  const QTY = /\b\d+(?:[.,]\d+)?\s*(?:kg|kgs|g|mg|mt|t|ton|tons|tonnes|l|litre|liter|drums?|bags?)\b/i
+  // Weights for materials; pieces, sets, units and the like for devices and consumables.
+  const QTY = /\b\d+(?:[.,]\d+)?\s*(?:kg|kgs|g|mg|mt|t|ton|tons|tonnes|l|litre|liter|drums?|bags?|pcs?|pieces?|units?|sets?|pairs?|boxes?|cartons?|ctns?|packs?|rolls?|nos?|ea)\b/i
   const lines: OrderLine[] = rows
     .map((r) => ({
       requested: r.text.replace(/^[-*•\s\d.)]+(?=[A-Za-z])/, '').trim(),

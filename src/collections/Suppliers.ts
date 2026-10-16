@@ -1,6 +1,27 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionAfterChangeHook, CollectionConfig } from 'payload'
 
+import { networkEnabled, networkShare, signalSupplier } from '../lib/network-client.ts'
 import { signedIn } from './access.ts'
+
+// Company installations: a supplier switched to "share with the network" goes to NJMC's database
+// once (public facts only), and a problem written on a network supplier is reported as a signal.
+const networkHooks: CollectionAfterChangeHook = async ({ doc, previousDoc, req, context }) => {
+  if (!networkEnabled() || context.networkDone) return doc
+  const problemsNew = String(doc.problems ?? '').trim() && !String(previousDoc?.problems ?? '').trim()
+  if (problemsNew && doc.networkRef) signalSupplier(req.payload, doc.id, 'problem')
+  if (doc.shareWithNetwork && !doc.sharedAt && !doc.networkRef) {
+    try {
+      const r = await networkShare({ name: String(doc.name), nameLocal: String(doc.nameLocal ?? ''), country: String(doc.country), city: String(doc.city ?? ''), website: String(doc.website ?? ''), supplies: (doc.supplies as string[]) ?? [], notes: '' })
+      await req.payload.update({
+        collection: 'suppliers', id: doc.id, depth: 0, overrideAccess: true, req, context: { networkDone: true },
+        data: { sharedAt: new Date().toISOString(), shareNote: `Shared. ${r.sharesThisMonth} supplier${r.sharesThisMonth === 1 ? '' : 's'} shared this month (the bonus counts only for suppliers the network did not have).` } as never,
+      })
+    } catch (err) {
+      await req.payload.update({ collection: 'suppliers', id: doc.id, depth: 0, overrideAccess: true, req, context: { networkDone: true }, data: { shareWithNetwork: false, shareNote: `Not shared: ${(err as Error).message}` } as never }).catch(() => null)
+    }
+  }
+  return doc
+}
 
 // Manufacturers NJMC sources from. Private: docs/02 "Confidentiality" forbids publishing any
 // supplier name, so nothing here is readable without an admin login.
@@ -13,6 +34,7 @@ export const Suppliers: CollectionConfig = {
     listSearchableFields: ['name', 'nameLocal', 'city', 'notes'],
   },
   access: { read: signedIn, create: signedIn, update: signedIn, delete: () => false },
+  hooks: { afterChange: [networkHooks] },
   timestamps: true,
   fields: [
     { name: 'scorecard', type: 'ui', admin: { components: { Field: '/components/admin/SupplierScore#SupplierScore' } } },
@@ -119,6 +141,23 @@ export const Suppliers: CollectionConfig = {
     },
     { name: 'problems', type: 'textarea', label: 'Problems with this supplier (quality, delays, documents)', admin: { rows: 3 } },
     { name: 'notes', type: 'textarea' },
+    {
+      type: 'collapsible',
+      label: 'Supplier network',
+      admin: { initCollapsed: true, hidden: !networkEnabled() },
+      fields: [
+        {
+          name: 'shareWithNetwork', type: 'checkbox', defaultValue: false, label: 'Share this supplier with the network',
+          admin: { description: 'Sends the name, country, website and what they make to the network, once. Never your prices, contacts or orders. Each shared supplier gives you 2 extra product searches this month. A supplier that came from the network cannot be shared back.' },
+        },
+        { type: 'row', fields: [
+          { name: 'sharedAt', type: 'date', label: 'Shared on', access: { create: () => false, update: () => false }, admin: { readOnly: true } },
+          { name: 'shareNote', type: 'text', label: 'Result', access: { create: () => false, update: () => false }, admin: { readOnly: true } },
+        ] },
+      ],
+    },
+    // Set when the supplier came from the network: lets the network learn how they behave with us.
+    { name: 'networkRef', type: 'text', index: true, admin: { hidden: true }, access: { create: () => false, update: () => false } },
     {
       type: 'collapsible',
       label: 'Enquiries, purchase orders, payments and documents',

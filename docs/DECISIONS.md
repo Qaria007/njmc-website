@@ -275,3 +275,32 @@ documents in English only ("I use English everywhere for formal documents"). Bui
   stay Medicayal (owner, 11 Oct). E-mails carry an HTML layout (navy bar, lists, signature block)
   because plain text looked dull to the owner; the plain text stays as the alternative part.
 
+## 2026-10-17 Trade Manager for other companies and the supplier network (owner decisions)
+- The order software is sold as "AI Trade Manager" through phmnai.com, not through NJMC: a trading
+  company will not put its suppliers and prices into software owned by another trading company.
+  Monthly subscription, paid up front, no credits (orders cost nothing; only AI pages cost money).
+  Starter: up to 3 suppliers per product, 20 products a month; Business: up to 5 and 60. Orders
+  unlimited on both. Prices are on phmnai.com (Trade Manager 400 setup + 50 a month on 16 Oct).
+- One installation per company (deploy/new-company.sh): same image, own database, own files and
+  settings, ORDER_DESK_ONLY=1. NJMC's supplier database never enters a company's copy. The copy asks
+  the NJMC master over the internal Docker network with a per-company token (master keeps the
+  SHA-256). The master answers for ONE product at a time with up to N suppliers; a product searched
+  again returns the same suppliers for good (network-reveals); the monthly cap counts distinct
+  products; nothing is listed or exported. "Up to N, depending on availability" is the wording.
+- The network's experience feeds the master's scorecard (network-signals: enquiry sent, replied with
+  days, ordered, problem). Standing: golden = answers within 3 days on average and at least one
+  order anywhere; silent = 3 or more enquiries and no reply; flagged = a problem reported; never
+  deleted. Golden is earned by performance, never bought. The N suppliers shown are the best ranked.
+- A company's own suppliers are its own: unlimited, shown first. It may switch one to "share with
+  the network": name, country, website and what they make go to NJMC as New, source "Network:
+  <company>", unverified; never prices, contacts or orders. Reward: 2 extra product searches that
+  month. Nothing is copied from a company's database without that switch (trust rule: "we never
+  copy your data" must stay true).
+- A company's data is its own: Excel export of its suppliers, clients and documents on leaving; the
+  installation is kept 30 days, then archived. No data held hostage.
+- The demo installation (slug demo, plan business) is the test copy and later the sales demo. The
+  first paying client's installation is made with his own slug once his company name and e-mail
+  are known. Mail from a company installation still goes through the Google relay as
+  sale@njmcmedicsupp.com with the company's sender name and its own Reply-To; own SMTP per company
+  is a later feature. The client's AI key: his own, pasted in the admin (or NJMC's Anthropic key
+  during the trial, pasted by the owner).

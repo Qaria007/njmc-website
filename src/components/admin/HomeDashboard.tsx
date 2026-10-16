@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 type Task = { kind: string; title: string; detail: string; href: string; age?: number; due?: string; done?: string; action?: { type: 'remind-supplier' | 'remind-client'; id: string } }
 type Tasks = Record<string, Task[]>
 type Totals = { received: number; paidSuppliers: number; expenses: number; cashNet: number; receivable: number; payable: number; profit: number }
-type Today = { tasks: Tasks; money: { month: Totals; all: Totals; missingRates: string[] } | null }
+type Today = { tasks: Tasks; money: { month: Totals; all: Totals; missingRates: string[] } | null; network?: { text: string } | null }
 type Hit = { type: string; title: string; detail: string; href: string }
 type Point = { date: string; kind: string; party: string; material: string; price: number; currency: string; usd: number | null; unit: string; ref: string; href: string }
 
@@ -435,6 +435,12 @@ export function HomeDashboard() {
             <Tile label="We owe suppliers" value={fmt(m.all.payable)} href="/admin/globals/accounts-overview" />
           </div>
           {m.missingRates.length ? <p style={{ color: 'var(--theme-error-500)', margin: '8px 0 0' }}>No exchange rate for {m.missingRates.join(', ')}: open Company details.</p> : null}
+        </Section>
+      ) : null}
+
+      {data?.network ? (
+        <Section title="Supplier network" hint="NJMC's supplier database answers for the materials you have no supplier for, within your plan.">
+          <p style={{ ...card, margin: 0 }}>{data.network.text} A product searched again shows the same suppliers. Share one of your own suppliers (on the supplier page) for 2 extra searches this month.</p>
         </Section>
       ) : null}
 

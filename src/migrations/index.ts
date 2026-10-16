@@ -22,6 +22,7 @@ import * as migration_20261012_130817_show_manufacturer from './20261012_130817_
 import * as migration_20261012_145215_trash_photos_visitors from './20261012_145215_trash_photos_visitors';
 import * as migration_20261015_143729_visits_categories from './20261015_143729_visits_categories';
 import * as migration_20261015_154321_mail_from_name from './20261015_154321_mail_from_name';
+import * as migration_20261016_193147_supplier_network from './20261016_193147_supplier_network';
 
 export const migrations = [
   {
@@ -142,6 +143,11 @@ export const migrations = [
   {
     up: migration_20261015_154321_mail_from_name.up,
     down: migration_20261015_154321_mail_from_name.down,
-    name: '20261015_154321_mail_from_name'
+    name: '20261015_154321_mail_from_name',
+  },
+  {
+    up: migration_20261016_193147_supplier_network.up,
+    down: migration_20261016_193147_supplier_network.down,
+    name: '20261016_193147_supplier_network'
   },
 ];

@@ -149,6 +149,7 @@ export async function parseOrder(buf: Buffer, filename: string, mimetype = ''): 
   return { rows: [], text: '', note: `Files of type .${ext} cannot be read. Use Excel, CSV, Word, PDF, a photo, or type the materials.` }
 }
 
+// A typed list is deliberate: every line is kept, matched or not (a file's free text is sifted).
 export function typedToOrder(text: string): ParsedOrder {
-  return { rows: textToRows(text), text, note: 'Typed list: one material per line' }
+  return { rows: textToRows(text).map((r) => ({ ...r, fromText: false })), text, note: 'Typed list: one material per line' }
 }

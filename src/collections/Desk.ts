@@ -1,6 +1,8 @@
 import type { Endpoint, PayloadHandler, PayloadRequest } from 'payload'
 
 import { buildTasks, type CertRow, clientReminder, type EnquiryRow, type OrderRow, priceHistory, type SaleRow, supplierReminder, supplierScores } from '../lib/desk.ts'
+import { emptyStats, mergeStats, type SignalEvent, standingOf, type Stats, statsFromSignals, usageText } from '../lib/network.ts'
+import { networkEnabled, networkUsage } from '../lib/network-client.ts'
 import { usdPerUnit } from '../lib/order-desk.ts'
 import { type SessionRow, sessionStats } from '../lib/visits.ts'
 import { emailsIn, mailBrand, mailSenderName, money } from '../lib/trade-docs.ts'
@@ -63,8 +65,9 @@ const monthStart = () => `${new Date().toISOString().slice(0, 7)}-01`
 
 const todayHandler: PayloadHandler = async (req) => {
   if (!admin(req)) return denied()
-  const [overview, month, enquiries, certs, orderDocs] = await Promise.all([
+  const [overview, month, enquiries, certs, orderDocs, network] = await Promise.all([
     loadOverview(req, '', ''), loadOverview(req, monthStart(), new Date().toISOString().slice(0, 10)), loadEnquiries(req), loadCerts(req), find(req, 'order-matches', { status: { equals: 'new' } }, 1, { title: true, status: true, client: true, customer: true, createdAt: true }),
+    networkEnabled() ? networkUsage().then((u) => ({ text: usageText(u) })).catch((e: Error) => ({ text: `Supplier network: ${e.message}` })) : Promise.resolve(null),
   ])
   const outstanding = new Map(overview.sales.map((x) => [x.id, { outstandingUsd: x.outstandingUsd, committed: x.committed }]))
   const sales = await loadSales(req, outstanding)
@@ -95,7 +98,7 @@ const todayHandler: PayloadHandler = async (req) => {
   // Staff see the work, not the money.
   const owner = isOwner(req)
   if (!owner) for (const k of ['paymentsDue', 'supplierPayments'] as const) tasks[k] = []
-  return Response.json({ tasks, money: owner ? { month: month.totals, all: overview.totals, missingRates: overview.missingRates } : null, user: s(req.user?.email) })
+  return Response.json({ tasks, money: owner ? { month: month.totals, all: overview.totals, missingRates: overview.missingRates } : null, user: s(req.user?.email), network })
 }
 
 // Search everything by name, number or CAS: clients, suppliers, orders, sales, enquiries, products.
@@ -137,7 +140,17 @@ const scoresHandler: PayloadHandler = async (req) => {
   const [enquiries, certs, seller] = await Promise.all([loadEnquiries(req), loadCerts(req), loadSeller(req.payload, req)])
   const all = supplierScores(enquiries, certs.filter((c) => !ids.size || ids.has(c.supplierId)), seller.rates)
   const scores = [...all.values()].filter((x) => (ids.size ? ids.has(x.supplierId) : x.enquiries + x.orders > 0))
-  return Response.json({ scores })
+  // The network's experience with these suppliers (NJMC's installation), and the standing it gives.
+  const signals = ids.size ? await req.payload.find({ collection: 'network-signals', where: { supplier: { in: [...ids] } }, limit: 0, pagination: false, depth: 0, overrideAccess: true, req }).catch(() => null) : null
+  const net = statsFromSignals(((signals?.docs ?? []) as unknown as Doc[]).map((d) => ({ supplierId: idOf(d.supplier) ?? '', event: d.event as SignalEvent, days: d.days as number | null })))
+  const problems = ids.size ? await find(req, 'suppliers', { id: { in: [...ids] } }, 0, { problems: true }) : []
+  const withNetwork = [...ids].map((id) => {
+    const own = all.get(id)
+    const mine: Stats = { enquiries: own?.enquiries ?? 0, answered: own?.answered ?? 0, avgReplyDays: own?.avgReplyDays ?? null, orders: own?.orders ?? 0, problems: problems.some((p) => String(p.id) === id && s(p.problems).trim()) ? 1 : 0 }
+    const theirs = net.get(id) ?? emptyStats()
+    return { supplierId: id, network: theirs, standing: standingOf(mergeStats(mine, theirs)) }
+  })
+  return Response.json({ scores, network: withNetwork })
 }
 
 // Everything that happened on one customer order, in date order.

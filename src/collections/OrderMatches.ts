@@ -14,6 +14,8 @@ import { ORDERS_DIR } from './OrderFiles.ts'
 import { CERT_TYPES, certificateState } from './SupplierCertificates.ts'
 import { jsonBody, notJson } from './SupplierOrders.ts'
 import { loadAi, loadSeller } from './TradeSettings.ts'
+import { networkEnabled, networkSearch } from '../lib/network-client.ts'
+import { usageText } from '../lib/network.ts'
 
 type Rel = number | string | { id: number | string; name?: string } | null | undefined
 const idOf = (r: Rel) => (r && typeof r === 'object' ? r.id : r)
@@ -50,7 +52,7 @@ async function certificateSummaries(req: PayloadRequest): Promise<Map<string, st
   return out
 }
 
-async function loadProducts(req: PayloadRequest): Promise<CatalogueProduct[]> {
+export async function loadProducts(req: PayloadRequest): Promise<CatalogueProduct[]> {
   const res = await req.payload.find({ collection: 'products', limit: 10000, depth: 1, pagination: false, req, overrideAccess: true })
   return res.docs.map((p) => ({
     id: p.id,
@@ -138,8 +140,30 @@ const findSuppliers: CollectionBeforeChangeHook = async ({ data, req, originalDo
     return { requested: l.requested, cas: l.cas, grade: l.grade, quantity: l.quantity, supplierCount: new Set(matches.map((m) => m.supplier)).size, matches }
   })
 
-  const found = data.lines.filter((l: { supplierCount: number }) => l.supplierCount > 0)
-  data.results = `${found.length} of ${data.lines.length} requested materials have at least one supplier in the database. See the table below, or download the Excel.`
+  // The supplier network (company installations only): NJMC's database answers for the materials
+  // without a supplier of our own (or every material), within the plan's caps. A failure is a note.
+  const mode = String(data.networkSearch ?? originalDoc?.networkSearch ?? 'missing')
+  if (networkEnabled() && mode !== 'off' && data.lines.length) {
+    const want = (data.lines as { supplierCount: number }[]).map((l, i) => i).filter((i) => mode === 'all' || data.lines[i].supplierCount === 0)
+    if (want.length) {
+      try {
+        const r = await networkSearch(want.map((i) => ({ requested: data.lines[i].requested, cas: data.lines[i].cas, grade: data.lines[i].grade, quantity: data.lines[i].quantity })))
+        want.forEach((i, j) => {
+          const nl = r.lines[j]
+          data.lines[i].network = (nl?.suppliers ?? []).map((x) => ({ ...x }))
+          data.lines[i].networkNote = nl?.limitReached ? 'monthly limit reached' : ''
+        })
+        data.networkUsage = usageText(r.usage)
+        if (r.lines.some((l) => l.limitReached)) notes.push('supplier network: the monthly limit of product searches is reached (shown on the order)')
+      } catch (e) {
+        data.networkUsage = `Supplier network: ${(e as Error).message}`
+        notes.push(`supplier network: ${(e as Error).message}`)
+      }
+    }
+  }
+
+  const found = data.lines.filter((l: { supplierCount: number; network?: unknown[] }) => l.supplierCount > 0 || (l.network?.length ?? 0) > 0)
+  data.results = `${found.length} of ${data.lines.length} requested materials have at least one supplier${networkEnabled() ? ' (yours or from the network)' : ' in the database'}. See the table below, or download the Excel.${data.networkUsage ? ` ${data.networkUsage}` : ''}`
   data.readNote = notes.join(' | ') || 'Nothing to read: attach an order file or type the materials.'
   data.matchedAt = new Date().toISOString()
   data.rematch = false
@@ -254,7 +278,11 @@ const enquiriesEndpoint: PayloadHandler = async (req) => {
   for (const supplierId of wanted) {
     const rows = t.rows.filter((r) => r.found && r.supplierId === supplierId)
     if (!rows.length) continue
-    const has = existing.find((o) => String(idOf(o.supplier as Rel)) === supplierId && o.kind === 'rfq' && o.status !== 'cancelled')
+    // A network supplier becomes one of our own suppliers first (name, country, contacts, and the
+    // reference that lets the network learn how they behave), then gets the enquiry like any other.
+    const localId = supplierId.startsWith('net:') ? await localSupplierFor(req, id, supplierId.slice(4)) : supplierId
+    if (!localId) continue
+    const has = existing.find((o) => String(idOf(o.supplier as Rel)) === localId && o.kind === 'rfq' && o.status !== 'cancelled')
     if (has) {
       out.push({ supplierId, id: has.id, number: str(has.number), created: false })
       continue
@@ -262,7 +290,7 @@ const enquiriesEndpoint: PayloadHandler = async (req) => {
     const made = (await req.payload.create({
       collection: 'supplier-orders', depth: 0, overrideAccess: true, req,
       data: {
-        kind: 'rfq', status: 'draft', supplier: Number(supplierId) || supplierId, order: Number(id) || id,
+        kind: 'rfq', status: 'draft', supplier: Number(localId) || localId, order: Number(id) || id,
         items: rows.map((r) => {
           const q = parseQuantity(r.quantity)
           // A sure match is asked for under the supplier's own product name (customer spelling can be off);
@@ -275,6 +303,29 @@ const enquiriesEndpoint: PayloadHandler = async (req) => {
     out.push({ supplierId, id: made.id, number: str(made.number), created: true })
   }
   return Response.json({ orders: out })
+}
+
+// The supplier record for a network supplier shown on this order: found by its network reference,
+// or made from the facts the network gave (source "Supplier network").
+async function localSupplierFor(req: PayloadRequest, orderId: string, ref: string): Promise<string | null> {
+  const have = await req.payload.find({ collection: 'suppliers', where: { networkRef: { equals: ref } }, limit: 1, depth: 0, overrideAccess: true, req })
+  if (have.docs.length) return String(have.docs[0].id)
+  const order = (await req.payload.findByID({ collection: 'order-matches', id: orderId, depth: 0, overrideAccess: true, trash: true, req })) as unknown as Doc
+  const n = ((order.lines as Doc[]) ?? []).flatMap((l) => (l.network as Doc[]) ?? []).find((x) => str(x.ref) === ref)
+  if (!n) return null
+  const sameName = await req.payload.find({ collection: 'suppliers', where: { name: { equals: str(n.name) } }, limit: 1, depth: 0, overrideAccess: true, req })
+  if (sameName.docs.length) {
+    await req.payload.update({ collection: 'suppliers', id: sameName.docs[0].id, depth: 0, overrideAccess: true, req, data: { networkRef: ref } as never })
+    return String(sameName.docs[0].id)
+  }
+  const made = await req.payload.create({
+    collection: 'suppliers', depth: 0, overrideAccess: true, req,
+    data: {
+      name: str(n.name), country: str(n.country) || 'China', city: str(n.city), website: str(n.website), email: str(n.email), phone: str(n.phone), wechat: str(n.wechat),
+      status: 'new', source: `Supplier network (${new Date().toISOString().slice(0, 10)})`, networkRef: ref,
+    } as never,
+  })
+  return String(made.id)
 }
 
 // POST: one buyer-documents record for this order (PI, invoice, packing list), items pre-filled.
@@ -413,6 +464,16 @@ export const OrderMatches: CollectionConfig = {
     { name: 'fileReading', type: 'json', admin: { hidden: true }, hooks: { beforeDuplicate: [() => null] } },
     { name: 'typedMaterials', label: 'Materials (typed)', type: 'textarea', admin: { description: 'Optional: one material per line, e.g. "Mesalazine EP 500 kg" or a CAS number' } },
     { name: 'rematch', label: 'Find suppliers again when I save', type: 'checkbox', defaultValue: true, admin: { position: 'sidebar' } },
+    {
+      name: 'networkSearch', type: 'select', defaultValue: 'missing', label: 'Supplier network',
+      admin: { position: 'sidebar', hidden: !networkEnabled(), description: 'Each product searched counts once a month; a product searched again shows the same suppliers.' },
+      options: [
+        { label: 'Search it for materials without a supplier of mine', value: 'missing' },
+        { label: 'Search it for every material', value: 'all' },
+        { label: 'Do not search it', value: 'off' },
+      ],
+    },
+    { name: 'networkUsage', type: 'text', admin: { hidden: true } },
     { name: 'matchedAt', type: 'date', admin: { position: 'sidebar', readOnly: true, date: { pickerAppearance: 'dayAndTime' } } },
     { name: 'readNote', label: 'What was read', type: 'text', admin: { readOnly: true } },
     { name: 'results', label: 'Summary', type: 'textarea', admin: { readOnly: true, rows: 2 } },
@@ -450,6 +511,17 @@ export const OrderMatches: CollectionConfig = {
             { name: 'certificates', type: 'textarea' },
           ],
         },
+        {
+          // Suppliers the network showed for this material (company installations only).
+          name: 'network',
+          type: 'array',
+          fields: [
+            { type: 'row', fields: [{ name: 'ref', type: 'text' }, { name: 'name', type: 'text' }, { name: 'country', type: 'text' }, { name: 'city', type: 'text' }] },
+            { type: 'row', fields: [{ name: 'website', type: 'text' }, { name: 'email', type: 'text' }, { name: 'phone', type: 'text' }, { name: 'wechat', type: 'text' }] },
+            { type: 'row', fields: [{ name: 'listedAs', type: 'text' }, { name: 'documents', type: 'text' }, { name: 'standing', type: 'text' }] },
+          ],
+        },
+        { name: 'networkNote', type: 'text' },
       ],
     },
     { name: 'notes', type: 'textarea' },
