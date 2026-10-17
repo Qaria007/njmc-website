@@ -1,3 +1,6 @@
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
+
 import type { Endpoint, PayloadHandler, PayloadRequest } from 'payload'
 
 import { buildTasks, type CertRow, clientReminder, type EnquiryRow, type OrderRow, priceHistory, type SaleRow, supplierReminder, supplierScores } from '../lib/desk.ts'
@@ -12,6 +15,7 @@ import { CERT_TYPES } from './SupplierCertificates.ts'
 import { jsonBody, notJson, quoteLink } from './SupplierOrders.ts'
 import { loadSeller } from './TradeSettings.ts'
 import { authorised } from './catalogue-import.ts'
+import { ORDERS_DIR } from './OrderFiles.ts'
 import { isOwner, isStaff } from './access.ts'
 
 // The home dashboard's server side (signed-in admins only): today's tasks, search across everything,
@@ -361,7 +365,7 @@ async function fileEnquiry(req: PayloadRequest, supplierId: number | string, to:
 
 const sendMailHandler: PayloadHandler = async (req) => {
   if (!authorised(req)) return Response.json({ error: 'Not found' }, { status: 404 })
-  const body = await jsonBody<{ to?: string[]; cc?: string[]; subject?: string; text?: string; supplier?: string; test?: boolean; record?: MailRecord }>(req)
+  const body = await jsonBody<{ to?: string[]; cc?: string[]; subject?: string; text?: string; supplier?: string; test?: boolean; record?: MailRecord; attachments?: string[] }>(req)
   if (!body) return notJson()
   const filedOnly = Boolean(body.record?.sentAt) && !body.test
   if (body.record && !body.test && !s(body.supplier).trim()) return Response.json({ error: 'record needs a supplier name' }, { status: 400 })
@@ -373,12 +377,26 @@ const sendMailHandler: PayloadHandler = async (req) => {
   const subject = s(body.subject).trim().slice(0, 300)
   const text = s(body.text).trim().slice(0, 20000)
   if (!to.length || !subject || !text) return Response.json({ error: 'to, subject and text are required (test: true sends to the company address)' }, { status: 400 })
+  // Attachments: file NAMES only, read from the private outbox folder (ORDERS_DIR/outbox), which the
+  // server script fills with docker cp. No paths are accepted, so nothing else on the server can be sent.
+  const files: { filename: string; content: Buffer }[] = []
+  for (const name of Array.isArray(body.attachments) ? body.attachments.slice(0, 5) : []) {
+    const base = path.basename(s(name))
+    if (!base || base !== s(name) || !/\.(pdf|docx?|xlsx?|png|jpe?g)$/i.test(base)) return Response.json({ error: `Attachment not allowed: ${s(name).slice(0, 80)}` }, { status: 400 })
+    try {
+      files.push({ filename: base, content: await readFile(path.join(ORDERS_DIR, 'outbox', base)) })
+    } catch {
+      return Response.json({ error: `Attachment not found in the outbox: ${base}` }, { status: 400 })
+    }
+  }
+  if (files.reduce((n, f) => n + f.content.length, 0) > 20 * 1024 * 1024) return Response.json({ error: 'Attachments larger than 20 MB' }, { status: 400 })
   const mail = {
     from: `"${mailSenderName(seller)}" <${process.env.MAIL_FROM || 'sale@njmcmedicsupp.com'}>`,
     replyTo: own[0],
     subject: body.test ? `[TEST] ${subject}` : subject,
     text,
     html: mailHtml(text, mailBrand(seller)),
+    ...(files.length ? { attachments: files } : {}),
   }
   // The company copy (Company details > "Send me a copy of every supplier message at") goes on every real send, as for enquiries.
   const cc = body.test ? [] : [...new Set([...emailsIn(body.cc), ...emailsIn(seller.copyTo)])].filter((e) => !to.includes(e))

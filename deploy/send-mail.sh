@@ -3,6 +3,8 @@
 # Usage on the server: /opt/njmc/send-mail.sh /root/njmc-import/<message>.json
 # The JSON: {"to":["a@b.com"],"cc":[],"subject":"...","text":"...","supplier":"<supplier name in the admin>","test":false}
 # With "test": true the message goes only to the company's own address (Company details > Email).
+# Attachments: "attachments": ["file.pdf"] = names of files first copied into the container's
+# private outbox: docker exec njmc-web mkdir -p /app/private-orders/outbox && docker cp <file> njmc-web:/app/private-orders/outbox/
 # Posted from inside njmc-web to its own /api/desk/send-mail/ with the token the container already
 # has from /opt/njmc/.env, so the token never appears on a command line.
 set -euo pipefail
